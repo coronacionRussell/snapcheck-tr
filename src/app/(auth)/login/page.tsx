@@ -3,6 +3,11 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 import {
   Card,
   CardContent,
@@ -16,13 +21,82 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      toast({
+        title: 'Missing Fields',
+        description: 'Please enter both email and password.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Fetch user role from Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        toast({
+          title: 'Login Successful!',
+          description: `Welcome back, ${userData.fullName}.`,
+        });
+
+        if (userData.role === 'teacher') {
+          router.push('/teacher/dashboard');
+        } else {
+          router.push('/student/dashboard');
+        }
+      } else {
+        // This case should ideally not happen if registration is done correctly
+        throw new Error("User document not found in Firestore.");
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      let errorMessage = 'An unknown error occurred. Please try again.';
+      switch (error.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          errorMessage = 'Invalid email or password.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'The email address is not valid.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your internet connection.';
+          break;
+        default:
+          errorMessage = `An unexpected error occurred: ${error.message}`;
+          break;
+      }
+      toast({
+        title: 'Login Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!isMounted) {
     return (
@@ -46,22 +120,18 @@ export default function LoginPage() {
       <CardContent className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="m@example.com" required />
+          <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" required />
+          <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} />
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        <div className="grid w-full grid-cols-2 gap-4">
-          <Button asChild>
-            <Link href="/student/dashboard">Login as Student</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/teacher/dashboard">Login as Teacher</Link>
-          </Button>
-        </div>
+        <Button className="w-full" onClick={handleLogin} disabled={isLoading}>
+           {isLoading && <Loader2 className="mr-2 animate-spin" />}
+           {isLoading ? 'Logging in...' : 'Login'}
+        </Button>
         <div className="text-center text-sm text-muted-foreground">
           Don't have an account?{' '}
           <Link href="/register" className="underline hover:text-primary">
