@@ -19,7 +19,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Class } from '@/contexts/class-context';
 
 type CreateClassDialogProps = {
-  onClassCreated: (newClass: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>) => Promise<Class | null>;
+  onClassCreated: (
+    newClass: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>
+  ) => Promise<Class | null>;
 };
 
 export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
@@ -39,70 +41,83 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
       return;
     }
     setIsCreating(true);
-    const result = await onClassCreated({ name: className });
-    if (result) {
+    try {
+      const result = await onClassCreated({ name: className });
+      if (result) {
         setCreatedClass(result);
+      }
+    } catch (error) {
+        // Error is already toasted in the layout
+    } finally {
+      setIsCreating(false);
     }
-    setIsCreating(false);
   };
 
   const handleCopyCode = () => {
-    if(createdClass?.id) {
-        navigator.clipboard.writeText(createdClass.id);
-        toast({
-          title: 'Copied!',
-          description: 'Class code copied to clipboard.',
-        });
+    if (createdClass?.id) {
+      navigator.clipboard.writeText(createdClass.id);
+      toast({
+        title: 'Copied!',
+        description: 'Class code copied to clipboard.',
+      });
     }
   };
-  
-  const handleClose = () => {
+
+  const handleCloseAndReset = () => {
     setOpen(false);
     // Reset state after a short delay to allow dialog to close gracefully
     setTimeout(() => {
-        setClassName('');
-        setCreatedClass(null);
+      setClassName('');
+      setCreatedClass(null);
+      setIsCreating(false);
     }, 300);
-  }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      setOpen(isOpen);
-      if (!isOpen) {
-        handleClose();
-      }
-    }}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          handleCloseAndReset();
+        } else {
+          setOpen(true);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2 size-4" />
           Create New Class
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => {
-          if (createdClass) {
+      <DialogContent
+        className="sm:max-w-[425px]"
+        onInteractOutside={(e) => {
+          if (isCreating) {
             e.preventDefault();
-            handleClose();
           }
-      }}>
+        }}
+      >
         <DialogHeader>
-          <DialogTitle className="font-headline">Create a new class</DialogTitle>
+          <DialogTitle className="font-headline">
+            {createdClass ? 'Class Created!' : 'Create a new class'}
+          </DialogTitle>
           <DialogDescription>
-            Enter a name for your class. A unique code will be generated for
-            your students to join.
+            {createdClass
+              ? 'Share the unique code below with your students to let them join.'
+              : 'Enter a name for your class. A unique code will be generated for your students to join.'}
           </DialogDescription>
         </DialogHeader>
         {createdClass ? (
           <div className="space-y-4 py-4">
-            <div className="text-center">
-                <p className="text-sm text-muted-foreground">Class "{createdClass.name}" created successfully!</p>
-                <p className="mt-2 text-sm text-muted-foreground">Share this code with your students:</p>
-            </div>
             <div className="flex items-center space-x-2 rounded-lg border bg-secondary p-4">
-                <p className="flex-1 font-mono text-2xl tracking-widest">{createdClass.id}</p>
-                <Button variant="outline" size="icon" onClick={handleCopyCode}>
-                    <Copy className="size-4" />
-                    <span className="sr-only">Copy code</span>
-                </Button>
+              <p className="flex-1 font-mono text-2xl tracking-widest">
+                {createdClass.id}
+              </p>
+              <Button variant="outline" size="icon" onClick={handleCopyCode}>
+                <Copy className="size-4" />
+                <span className="sr-only">Copy code</span>
+              </Button>
             </div>
           </div>
         ) : (
@@ -124,7 +139,7 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
         )}
         <DialogFooter>
           {createdClass ? (
-            <Button onClick={handleClose}>Done</Button>
+            <Button onClick={handleCloseAndReset}>Done</Button>
           ) : (
             <Button onClick={handleCreateClass} disabled={isCreating}>
               {isCreating && <Loader2 className="mr-2 animate-spin" />}
