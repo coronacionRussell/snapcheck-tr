@@ -1,7 +1,9 @@
-import Link from 'next/link';
-import { BookOpen, PlusCircle } from 'lucide-react';
+'use client';
 
-import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { BookOpen } from 'lucide-react';
+import { useState } from 'react';
+
 import {
   Card,
   CardContent,
@@ -19,9 +21,8 @@ import {
 } from '@/components/ui/table';
 import { CreateClassDialog } from '@/components/teacher/create-class-dialog';
 import { GradeSubmissionDialog } from '@/components/teacher/grade-submission-dialog';
-import { Button } from '@/components/ui/button';
 
-const classes = [
+const initialClasses = [
   {
     id: 'ENG101',
     name: 'English Literature 101',
@@ -73,7 +74,20 @@ const submissions = [
   },
 ];
 
+export type Class = {
+  id: string;
+  name: string;
+  studentCount: number;
+  pendingSubmissions: number;
+};
+
 export default function TeacherDashboard() {
+  const [classes, setClasses] = useState<Class[]>(initialClasses);
+
+  const handleClassCreated = (newClass: Class) => {
+    setClasses(prevClasses => [...prevClasses, newClass]);
+  };
+
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
       <div className="flex items-center justify-between">
@@ -83,7 +97,7 @@ export default function TeacherDashboard() {
             Welcome back, here's your teaching overview.
           </p>
         </div>
-        <CreateClassDialog />
+        <CreateClassDialog onClassCreated={handleClassCreated} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

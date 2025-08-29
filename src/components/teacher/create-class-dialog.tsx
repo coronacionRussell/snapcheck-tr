@@ -1,5 +1,5 @@
-
 'use client';
+
 import { useState } from 'react';
 import { PlusCircle, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,8 +15,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { Class } from '@/app/(teacher)/teacher/dashboard/page';
 
-export function CreateClassDialog() {
+type CreateClassDialogProps = {
+  onClassCreated: (newClass: Class) => void;
+};
+
+export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
   const [open, setOpen] = useState(false);
   const [className, setClassName] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
@@ -36,6 +41,12 @@ export function CreateClassDialog() {
       'C' +
       Math.random().toString(36).substring(2, 8).toUpperCase();
     setGeneratedCode(code);
+    onClassCreated({
+      id: code,
+      name: className,
+      studentCount: 0,
+      pendingSubmissions: 0,
+    });
   };
 
   const handleCopyCode = () => {
@@ -48,19 +59,26 @@ export function CreateClassDialog() {
   
   const handleClose = () => {
     setOpen(false);
-    setClassName('');
-    setGeneratedCode('');
+    // Reset state after a short delay to allow dialog to close gracefully
+    setTimeout(() => {
+        setClassName('');
+        setGeneratedCode('');
+    }, 300);
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button onClick={() => setOpen(true)}>
+        <Button>
           <PlusCircle className="mr-2 size-4" />
           Create New Class
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => {
+          if (!open) {
+              e.preventDefault();
+          }
+      }}>
         <DialogHeader>
           <DialogTitle className="font-headline">Create a new class</DialogTitle>
           <DialogDescription>
