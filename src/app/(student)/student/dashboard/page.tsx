@@ -33,21 +33,21 @@ const enrolledClasses: any[] = [
   // },
 ];
 
-const recentGrades = [
-  {
-    id: 'GRD001',
-    assignment: 'Hamlet Analysis Essay',
-    class: 'English Literature 101',
-    grade: '88/100',
-    status: 'Graded',
-  },
-  {
-    id: 'GRD002',
-    assignment: 'Rhetorical Strategies Paper',
-    class: 'Advanced Composition',
-    grade: '-',
-    status: 'Pending',
-  },
+const recentGrades: any[] = [
+  // {
+  //   id: 'GRD001',
+  //   assignment: 'Hamlet Analysis Essay',
+  //   class: 'English Literature 101',
+  //   grade: '88/100',
+  //   status: 'Graded',
+  // },
+  // {
+  //   id: 'GRD002',
+  //   assignment: 'Rhetorical Strategies Paper',
+  //   class: 'Advanced Composition',
+  //   grade: '-',
+  //   status: 'Pending',
+  // },
 ];
 
 export default function StudentDashboard() {
@@ -112,37 +112,44 @@ export default function StudentDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Assignment</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Grade</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentGrades.map((grade) => (
-                <TableRow key={grade.id}>
-                  <TableCell className="font-medium">
-                    {grade.assignment}
-                  </TableCell>
-                  <TableCell>{grade.class}</TableCell>
-                  <TableCell className="font-semibold">{grade.grade}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        grade.status === 'Graded' ? 'default' : 'secondary'
-                      }
-                      className={grade.status === 'Graded' ? 'bg-primary/80' : ''}
-                    >
-                      {grade.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+           {recentGrades.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Assignment</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead>Grade</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentGrades.map((grade) => (
+                    <TableRow key={grade.id}>
+                      <TableCell className="font-medium">
+                        {grade.assignment}
+                      </TableCell>
+                      <TableCell>{grade.class}</TableCell>
+                      <TableCell className="font-semibold">{grade.grade}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            grade.status === 'Graded' ? 'default' : 'secondary'
+                          }
+                          className={grade.status === 'Graded' ? 'bg-primary/80' : ''}
+                        >
+                          {grade.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                    <p>You do not have any recent grades.</p>
+                    <p className="text-sm">When your assignments are graded, they will appear here.</p>
+                </div>
+            )}
         </CardContent>
       </Card>
     </div>

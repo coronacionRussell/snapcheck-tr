@@ -15,35 +15,35 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-const grades = [
-  {
-    id: 'GRD001',
-    assignment: 'Hamlet Analysis Essay',
-    class: 'English Literature 101',
-    grade: '88/100',
-    status: 'Graded',
-  },
-  {
-    id: 'GRD002',
-    assignment: 'Rhetorical Strategies Paper',
-    class: 'Advanced Composition',
-    grade: '-',
-    status: 'Pending',
-  },
-  {
-    id: 'GRD003',
-    assignment: 'The Great Gatsby: Symbolism Essay',
-    class: 'English Literature 101',
-    grade: '92/100',
-    status: 'Graded',
-  },
-  {
-    id: 'GRD004',
-    assignment: 'Research Proposal',
-    class: 'Advanced Composition',
-    grade: 'A-',
-    status: 'Graded',
-  },
+const grades: any[] = [
+  // {
+  //   id: 'GRD001',
+  //   assignment: 'Hamlet Analysis Essay',
+  //   class: 'English Literature 101',
+  //   grade: '88/100',
+  //   status: 'Graded',
+  // },
+  // {
+  //   id: 'GRD002',
+  //   assignment: 'Rhetorical Strategies Paper',
+  //   class: 'Advanced Composition',
+  //   grade: '-',
+  //   status: 'Pending',
+  // },
+  // {
+  //   id: 'GRD003',
+  //   assignment: 'The Great Gatsby: Symbolism Essay',
+  //   class: 'English Literature 101',
+  //   grade: '92/100',
+  //   status: 'Graded',
+  // },
+  // {
+  //   id: 'GRD004',
+  //   assignment: 'Research Proposal',
+  //   class: 'Advanced Composition',
+  //   grade: 'A-',
+  //   status: 'Graded',
+  // },
 ];
 
 export default function StudentGradesPage() {
@@ -64,37 +64,48 @@ export default function StudentGradesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Assignment</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Grade</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {grades.map((grade) => (
-                <TableRow key={grade.id}>
-                  <TableCell className="font-medium">
-                    {grade.assignment}
-                  </TableCell>
-                  <TableCell>{grade.class}</TableCell>
-                  <TableCell className="font-semibold">{grade.grade}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        grade.status === 'Graded' ? 'default' : 'secondary'
-                      }
-                      className={grade.status === 'Graded' ? 'bg-primary/80' : ''}
-                    >
-                      {grade.status}
-                    </Badge>
-                  </TableCell>
+          {grades.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Assignment</TableHead>
+                  <TableHead>Class</TableHead>
+                  <TableHead>Grade</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {grades.map((grade) => (
+                  <TableRow key={grade.id}>
+                    <TableCell className="font-medium">
+                      {grade.assignment}
+                    </TableCell>
+                    <TableCell>{grade.class}</TableCell>
+                    <TableCell className="font-semibold">{grade.grade}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          grade.status === 'Graded' ? 'default' : 'secondary'
+                        }
+                        className={
+                          grade.status === 'Graded' ? 'bg-primary/80' : ''
+                        }
+                      >
+                        {grade.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground">
+              <p>You do not have any grades yet.</p>
+              <p className="text-sm">
+                When your assignments are graded, they will appear here.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
