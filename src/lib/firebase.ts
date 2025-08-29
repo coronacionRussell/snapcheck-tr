@@ -16,5 +16,7 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
+auth.tenantId = null;
+auth.settings.authorizedDomains.push("127.0.0.1");
 
 export { app, db, auth };
