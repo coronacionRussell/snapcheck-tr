@@ -69,6 +69,8 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
+    const [isMounted, setIsMounted] = React.useState(false)
+
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
@@ -112,6 +114,11 @@ const SidebarProvider = React.forwardRef<
       return () => window.removeEventListener("keydown", handleKeyDown)
     }, [toggleSidebar])
 
+    React.useEffect(() => {
+      setIsMounted(true)
+    }, [])
+
+
     // We add a state so that we can do data-state="expanded" or "collapsed".
     // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed"
@@ -121,12 +128,12 @@ const SidebarProvider = React.forwardRef<
         state,
         open,
         setOpen,
-        isMobile,
+        isMobile: isMobile && isMounted,
         openMobile,
         setOpenMobile,
         toggleSidebar,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+      [state, open, setOpen, isMobile, isMounted, openMobile, setOpenMobile, toggleSidebar]
     )
 
     return (
