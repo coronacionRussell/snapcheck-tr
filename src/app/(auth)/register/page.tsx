@@ -1,4 +1,8 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import {
   Card,
@@ -21,6 +25,17 @@ import {
 } from '@/components/ui/select';
 
 export default function RegisterPage() {
+  const [role, setRole] = useState('student');
+  const router = useRouter();
+
+  const handleCreateAccount = () => {
+    if (role === 'teacher') {
+      router.push('/teacher/dashboard');
+    } else {
+      router.push('/student/dashboard');
+    }
+  };
+
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="text-center">
@@ -47,7 +62,7 @@ export default function RegisterPage() {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="role">I am a</Label>
-          <Select defaultValue="student">
+          <Select value={role} onValueChange={setRole}>
             <SelectTrigger id="role">
               <SelectValue placeholder="Select your role" />
             </SelectTrigger>
@@ -59,8 +74,8 @@ export default function RegisterPage() {
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        <Button className="w-full" asChild>
-          <Link href="/student/dashboard">Create Account</Link>
+        <Button className="w-full" onClick={handleCreateAccount}>
+          Create Account
         </Button>
         <div className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}

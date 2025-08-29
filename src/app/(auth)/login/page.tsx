@@ -36,10 +36,14 @@ export default function LoginPage() {
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        <Button className="w-full" asChild>
-          {/* This would navigate to the correct dashboard based on user role after login */}
-          <Link href="/student/dashboard">Login</Link>
-        </Button>
+        <div className="grid w-full grid-cols-2 gap-4">
+          <Button asChild>
+            <Link href="/student/dashboard">Login as Student</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/teacher/dashboard">Login as Teacher</Link>
+          </Button>
+        </div>
         <div className="text-center text-sm text-muted-foreground">
           Don't have an account?{' '}
           <Link href="/register" className="underline hover:text-primary">
