@@ -1,3 +1,4 @@
+
 import { RubricEditor } from "@/components/teacher/rubric-editor";
 
 const MOCK_RUBRICS: { [key: string]: string } = {
