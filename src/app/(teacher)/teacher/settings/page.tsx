@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Save } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TeacherSettingsPage() {
   const { toast } = useToast();
@@ -16,9 +17,10 @@ export default function TeacherSettingsPage() {
   const [email, setEmail] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [weeklySummary, setWeeklySummary] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
-  // Set initial values on client-side to avoid hydration mismatch
   useEffect(() => {
+    setIsClient(true);
     setName('Ms. Davis');
     setEmail('teacher.davis@example.com');
     setEmailNotifications(true);
@@ -26,13 +28,51 @@ export default function TeacherSettingsPage() {
   }, []);
 
   const handleSaveChanges = () => {
-    // In a real app, you'd save these settings to Firestore or a backend.
     console.log('Saving settings:', { name, email, emailNotifications, weeklySummary });
     toast({
       title: 'Settings Saved',
       description: 'Your profile and notification preferences have been updated.',
     });
   };
+
+  if (!isClient) {
+    return (
+      <div className="grid flex-1 items-start gap-4 md:gap-8">
+        <div>
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="mt-2 h-5 w-64" />
+        </div>
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="mt-1 h-4 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="mt-1 h-4 w-56" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
