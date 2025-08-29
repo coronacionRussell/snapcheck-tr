@@ -1,4 +1,3 @@
-
 'use client';
 
 import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
@@ -11,15 +10,24 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const MOCK_ESSAY_TEXT =
   "To be or not to be, that is the question. This seminal line from Shakespeare's Hamlet encapsulates the central theme of existential dread and the internal conflict of the protagonist. Hamlet's contemplation of suicide is not merely a moment of weakness, but a profound philosophical inquiry into the nature of life, death, and the afterlife. The play explores the human condition, forcing the audience to confront their own mortality and the choices they make.";
 
-const MOCK_RUBRIC_TEXT =
-  '1. Thesis Statement (25pts): Is the thesis clear, concise, and arguable? \n2. Evidence & Analysis (40pts): Does the essay use relevant textual evidence?';
+const MOCK_RUBRICS: { [key: string]: string } = {
+  ENG101: '1. Thesis Statement (25pts): Is the thesis clear, concise, and arguable? \n2. Evidence & Analysis (40pts): Does the essay use relevant textual evidence? Is the analysis of this evidence insightful and well-developed? \n3. Structure & Organization (20pts): Is the essay logically structured with clear topic sentences and smooth transitions? \n4. Clarity & Style (15pts): Is the language clear, precise, and free of grammatical errors?',
+  WRI202: 'A. Argument (30%): Presents a strong, clear argument. \nB. Research (30%): Incorporates a wide range of credible sources. \nC. Counterarguments (20%): Addresses and refutes counterarguments effectively. \nD. APA Formatting (20%): Adheres to APA style guidelines.',
+};
+
+const enrolledClasses = [
+  { id: 'ENG101', name: 'English Literature 101' },
+  { id: 'WRI202', name: 'Advanced Composition' },
+];
 
 export function EssaySubmissionForm() {
   const [essayText, setEssayText] = useState('');
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [rubric, setRubric] = useState('');
   const [feedback, setFeedback] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +35,14 @@ export function EssaySubmissionForm() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (selectedClass && MOCK_RUBRICS[selectedClass]) {
+      setRubric(MOCK_RUBRICS[selectedClass]);
+    } else {
+      setRubric('');
+    }
+  }, [selectedClass]);
 
   useEffect(() => {
     if (isCameraOpen) {
@@ -52,7 +68,6 @@ export function EssaySubmissionForm() {
 
       getCameraPermission();
     } else {
-      // Stop camera stream when not in use
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach((track) => track.stop());
@@ -82,9 +97,6 @@ export function EssaySubmissionForm() {
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // const dataUri = canvas.toDataURL('image/png');
-        // In a real app, you would send this dataUri to an OCR service.
-        // For this demo, we'll simulate it.
         toast({
           title: 'Image Captured',
           description:
@@ -98,10 +110,18 @@ export function EssaySubmissionForm() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!selectedClass) {
+        toast({
+            title: 'Missing Class',
+            description: 'Please select a class before submitting.',
+            variant: 'destructive',
+          });
+          return;
+    }
     if (!essayText.trim() || !rubric.trim()) {
       toast({
         title: 'Missing Information',
-        description: 'Please provide both the essay text and the rubric.',
+        description: 'Please provide the essay text. The rubric should be loaded automatically.',
         variant: 'destructive',
       });
       return;
@@ -127,10 +147,33 @@ export function EssaySubmissionForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+       <Card>
+        <CardHeader>
+          <CardTitle className="font-headline text-lg">
+            1. Select Your Class
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label htmlFor="class-select">Class</Label>
+            <Select onValueChange={setSelectedClass} required>
+                <SelectTrigger id="class-select">
+                    <SelectValue placeholder="Select the class for this submission..." />
+                </SelectTrigger>
+                <SelectContent>
+                    {enrolledClasses.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+       </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-lg">
-            1. Your Essay
+            2. Your Essay
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -205,20 +248,18 @@ export function EssaySubmissionForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-lg">2. Rubric</CardTitle>
+          <CardTitle className="font-headline text-lg">3. Rubric</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Label htmlFor="rubric-text">Paste Grading Rubric</Label>
+            <Label htmlFor="rubric-text">Grading Rubric (from your teacher)</Label>
             <Textarea
               id="rubric-text"
-              placeholder="Paste the rubric provided by your teacher here..."
+              placeholder="Select a class to see the rubric..."
               rows={5}
               value={rubric}
-              onChange={(e) => setRubric(e.target.value)}
-              onFocus={(e) => !e.target.value && setRubric(MOCK_RUBRIC_TEXT)}
-              required
-              className="font-code"
+              readOnly
+              className="font-code bg-muted"
             />
           </div>
         </CardContent>

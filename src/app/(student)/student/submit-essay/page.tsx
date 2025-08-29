@@ -7,8 +7,8 @@ export default function SubmitEssayPage() {
       <div className="mb-6">
         <h1 className="font-headline text-3xl font-bold">Submit an Essay</h1>
         <p className="text-muted-foreground">
-          Upload a photo of your essay, enter the rubric, and get instant AI
-          feedback.
+          Select your class, upload your essay, and get instant AI
+          feedback based on your teacher's rubric.
         </p>
       </div>
 
@@ -27,11 +27,11 @@ export default function SubmitEssayPage() {
                   How it works
                 </h3>
                 <ol className="mt-2 list-inside list-decimal space-y-2 text-sm text-muted-foreground">
+                  <li>Select your class to load the grading rubric.</li>
                   <li>
                     Upload a clear photo of your handwritten essay or paste the
                     text.
                   </li>
-                  <li>Enter the grading rubric provided by your teacher.</li>
                   <li>Our AI analyzes your text against the rubric.</li>
                   <li>Receive constructive feedback in seconds.</li>
                 </ol>

@@ -1,5 +1,5 @@
-import Image from 'next/image';
-import { BookOpen, PlusCircle, Users } from 'lucide-react';
+import Link from 'next/link';
+import { BookOpen, PlusCircle } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/table';
 import { CreateClassDialog } from '@/components/teacher/create-class-dialog';
 import { GradeSubmissionDialog } from '@/components/teacher/grade-submission-dialog';
+import { Button } from '@/components/ui/button';
 
 const classes = [
   {
@@ -90,7 +91,7 @@ export default function TeacherDashboard() {
           <Card key={c.id}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="font-headline text-sm font-medium">
-                {c.name}
+                <Link href={`/teacher/classes/${c.id}`} className="hover:underline">{c.name}</Link>
               </CardTitle>
               <BookOpen className="size-4 text-muted-foreground" />
             </CardHeader>
