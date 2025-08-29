@@ -22,7 +22,11 @@ import {
   increment,
 } from 'firebase/firestore';
 
-export function JoinClassCard() {
+interface JoinClassCardProps {
+  onClassJoined: () => void;
+}
+
+export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
   const [classCode, setClassCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -88,8 +92,8 @@ export function JoinClassCard() {
         description: `You have successfully joined the class "${classDoc.data().name}".`,
       });
 
-      // TODO: Re-fetch enrolled classes list to update the UI
       setClassCode('');
+      onClassJoined();
 
     } catch (error) {
       console.error('Error joining class:', error);
