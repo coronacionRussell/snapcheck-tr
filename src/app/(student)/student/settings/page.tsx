@@ -17,8 +17,8 @@ export default function StudentSettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(false);
 
+  // Set initial values on client-side to avoid hydration mismatch
   useEffect(() => {
-    // Set initial values on client-side to avoid hydration mismatch
     setName('Alex Doe');
     setEmail('alex.doe@example.com');
     setEmailNotifications(true);

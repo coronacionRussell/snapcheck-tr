@@ -17,8 +17,8 @@ export default function TeacherSettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [weeklySummary, setWeeklySummary] = useState(false);
 
+  // Set initial values on client-side to avoid hydration mismatch
   useEffect(() => {
-    // Set initial values on client-side to avoid hydration mismatch
     setName('Ms. Davis');
     setEmail('teacher.davis@example.com');
     setEmailNotifications(true);
