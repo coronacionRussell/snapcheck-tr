@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const JoinClassCard = dynamic(
-  () => import('@/components/student/join-class-card'),
+  () => import('@/components/student/join-class-card').then((mod) => mod.JoinClassCard),
   { ssr: false }
 );
 
