@@ -1,18 +1,6 @@
 
 import type {NextConfig} from 'next';
 
-const withPWA = require('@ducanh2912/next-pwa').default({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
-  swcMinify: true,
-  workboxOptions: {
-    disableDevLogs: true,
-  },
-});
-
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
@@ -39,12 +27,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-const applyPwa = (config: NextConfig) => {
-  // Do not apply PWA wrapper if Turbopack is enabled, as it conflicts.
-  if (process.env.TURBOPACK) {
-    return config;
-  }
-  return withPWA(config);
-}
-
-export default applyPwa(nextConfig);
+export default nextConfig;
