@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RegisterPage() {
   const [role, setRole] = useState('student');
@@ -35,8 +36,13 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleCreateAccount = async () => {
     if (!fullName || !email || !password) {
@@ -78,6 +84,14 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
+
+  if (!isMounted) {
+    return (
+       <div className="w-full max-w-sm">
+        <Skeleton className="h-[580px] w-full" />
+      </div>
+    )
+  }
 
   return (
     <Card className="w-full max-w-sm">
