@@ -1,6 +1,7 @@
 
+'use client';
+
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -8,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -17,38 +17,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { BookOpen, Plus } from 'lucide-react';
-import { JoinClassCard } from '@/components/student/join-class-card';
+import { BookOpen } from 'lucide-react';
+import dynamic from 'next/dynamic';
 
-const enrolledClasses: any[] = [
-  // {
-  //   id: 'ENG101',
-  //   name: 'English Literature 101',
-  //   teacher: 'Mr. Harrison',
-  // },
-  // {
-  //   id: 'WRI202',
-  //   name: 'Advanced Composition',
-  //   teacher: 'Ms. Davis',
-  // },
-];
+const JoinClassCard = dynamic(
+  () => import('@/components/student/join-class-card').then(mod => mod.JoinClassCard),
+  { ssr: false }
+);
 
-const recentGrades: any[] = [
-  // {
-  //   id: 'GRD001',
-  //   assignment: 'Hamlet Analysis Essay',
-  //   class: 'English Literature 101',
-  //   grade: '88/100',
-  //   status: 'Graded',
-  // },
-  // {
-  //   id: 'GRD002',
-  //   assignment: 'Rhetorical Strategies Paper',
-  //   class: 'Advanced Composition',
-  //   grade: '-',
-  //   status: 'Pending',
-  // },
-];
+
+const enrolledClasses: any[] = [];
+
+const recentGrades: any[] = [];
 
 export default function StudentDashboard() {
   return (
@@ -146,7 +126,7 @@ export default function StudentDashboard() {
               </Table>
             ) : (
                 <div className="py-8 text-center text-muted-foreground">
-                    <p>You do not have any recent grades.</p>
+                    <p>You do not have any grades yet.</p>
                     <p className="text-sm">When your assignments are graded, they will appear here.</p>
                 </div>
             )}
