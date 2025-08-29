@@ -1,12 +1,31 @@
 
+'use client';
+
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
 import { Save } from 'lucide-react';
 
 export default function StudentSettingsPage() {
+  const { toast } = useToast();
+  const [name, setName] = useState('Alex Doe');
+  const [email, setEmail] = useState('alex.doe@example.com');
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(false);
+
+  const handleSaveChanges = () => {
+    // In a real app, you'd save these settings to Firestore or a backend.
+    console.log('Saving settings:', { name, email, emailNotifications, pushNotifications });
+    toast({
+      title: 'Settings Saved',
+      description: 'Your profile and notification preferences have been updated.',
+    });
+  };
+
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
       <div>
@@ -27,11 +46,11 @@ export default function StudentSettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" defaultValue="Alex Doe" />
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="alex.doe@example.com" />
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
           </CardContent>
         </Card>
@@ -51,7 +70,7 @@ export default function StudentSettingsPage() {
                   Receive an email when your assignments are graded.
                 </p>
               </div>
-              <Switch defaultChecked />
+              <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
             </div>
              <div className="flex items-center justify-between rounded-lg border p-4">
               <div>
@@ -60,13 +79,13 @@ export default function StudentSettingsPage() {
                   Get push notifications on your devices for important updates.
                 </p>
               </div>
-              <Switch />
+              <Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
             </div>
           </CardContent>
         </Card>
 
          <div className="flex justify-end">
-            <Button>
+            <Button onClick={handleSaveChanges}>
                 <Save className="mr-2" />
                 Save Changes
             </Button>
