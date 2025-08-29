@@ -1,3 +1,4 @@
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,17 +20,17 @@ import {
 import { BookOpen, Plus } from 'lucide-react';
 import { JoinClassCard } from '@/components/student/join-class-card';
 
-const enrolledClasses = [
-  {
-    id: 'ENG101',
-    name: 'English Literature 101',
-    teacher: 'Mr. Harrison',
-  },
-  {
-    id: 'WRI202',
-    name: 'Advanced Composition',
-    teacher: 'Ms. Davis',
-  },
+const enrolledClasses: any[] = [
+  // {
+  //   id: 'ENG101',
+  //   name: 'English Literature 101',
+  //   teacher: 'Mr. Harrison',
+  // },
+  // {
+  //   id: 'WRI202',
+  //   name: 'Advanced Composition',
+  //   teacher: 'Ms. Davis',
+  // },
 ];
 
 const recentGrades = [
@@ -66,27 +67,34 @@ export default function StudentDashboard() {
               <CardTitle className="font-headline">My Classes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {enrolledClasses.map((c) => (
-                  <div
-                    key={c.id}
-                    className="flex items-center justify-between rounded-lg border p-4"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                        <BookOpen className="size-5 text-primary" />
+              {enrolledClasses.length > 0 ? (
+                <div className="space-y-4">
+                  {enrolledClasses.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center justify-between rounded-lg border p-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
+                          <BookOpen className="size-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-semibold">{c.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {c.teacher}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold">{c.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {c.teacher}
-                        </p>
-                      </div>
+                      <Badge variant="secondary">Enrolled</Badge>
                     </div>
-                    <Badge variant="secondary">Enrolled</Badge>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  <p>You are not enrolled in any classes yet.</p>
+                  <p className="text-sm">Use the "Join a New Class" card to get started.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

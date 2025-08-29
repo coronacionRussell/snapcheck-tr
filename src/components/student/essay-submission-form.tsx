@@ -1,3 +1,4 @@
+
 'use client';
 
 import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
@@ -16,13 +17,13 @@ const MOCK_ESSAY_TEXT =
   "To be or not to be, that is the question. This seminal line from Shakespeare's Hamlet encapsulates the central theme of existential dread and the internal conflict of the protagonist. Hamlet's contemplation of suicide is not merely a moment of weakness, but a profound philosophical inquiry into the nature of life, death, and the afterlife. The play explores the human condition, forcing the audience to confront their own mortality and the choices they make.";
 
 const MOCK_RUBRICS: { [key: string]: string } = {
-  ENG101: '1. Thesis Statement (25pts): Is the thesis clear, concise, and arguable? \n2. Evidence & Analysis (40pts): Does the essay use relevant textual evidence? Is the analysis of this evidence insightful and well-developed? \n3. Structure & Organization (20pts): Is the essay logically structured with clear topic sentences and smooth transitions? \n4. Clarity & Style (15pts): Is the language clear, precise, and free of grammatical errors?',
-  WRI202: 'A. Argument (30%): Presents a strong, clear argument. \nB. Research (30%): Incorporates a wide range of credible sources. \nC. Counterarguments (20%): Addresses and refutes counterarguments effectively. \nD. APA Formatting (20%): Adheres to APA style guidelines.',
+  // ENG101: '1. Thesis Statement (25pts): Is the thesis clear, concise, and arguable? \n2. Evidence & Analysis (40pts): Does the essay use relevant textual evidence? Is the analysis of this evidence insightful and well-developed? \n3. Structure & Organization (20pts): Is the essay logically structured with clear topic sentences and smooth transitions? \n4. Clarity & Style (15pts): Is the language clear, precise, and free of grammatical errors?',
+  // WRI202: 'A. Argument (30%): Presents a strong, clear argument. \nB. Research (30%): Incorporates a wide range of credible sources. \nC. Counterarguments (20%): Addresses and refutes counterarguments effectively. \nD. APA Formatting (20%): Adheres to APA style guidelines.',
 };
 
-const enrolledClasses = [
-  { id: 'ENG101', name: 'English Literature 101' },
-  { id: 'WRI202', name: 'Advanced Composition' },
+const enrolledClasses: any[] = [
+  // { id: 'ENG101', name: 'English Literature 101' },
+  // { id: 'WRI202', name: 'Advanced Composition' },
 ];
 
 export function EssaySubmissionForm() {
@@ -156,9 +157,9 @@ export function EssaySubmissionForm() {
         <CardContent>
           <div className="space-y-2">
             <Label htmlFor="class-select">Class</Label>
-            <Select onValueChange={setSelectedClass} required>
+            <Select onValueChange={setSelectedClass} required disabled={enrolledClasses.length === 0}>
                 <SelectTrigger id="class-select">
-                    <SelectValue placeholder="Select the class for this submission..." />
+                    <SelectValue placeholder="Enroll in a class to get started..." />
                 </SelectTrigger>
                 <SelectContent>
                     {enrolledClasses.map(c => (
