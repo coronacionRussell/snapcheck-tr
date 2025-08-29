@@ -22,11 +22,10 @@ interface ClassInfo {
 }
 
 export default function ClassDetailsPage({
-  params,
+  params: { classId },
 }: {
   params: { classId: string };
 }) {
-  const { classId } = params;
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
   const [initialRubric, setInitialRubric] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
