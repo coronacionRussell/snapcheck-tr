@@ -12,24 +12,24 @@ import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 
 const MOCK_ESSAY_TEXT =
   "To be or not to be, that is the question. This seminal line from Shakespeare's Hamlet encapsulates the central theme of existential dread and the internal conflict of the protagonist. Hamlet's contemplation of suicide is not merely a moment of weakness, but a profound philosophical inquiry into the nature of life, death, and the afterlife. The play explores the human condition, forcing the audience to confront their own mortality and the choices they make.";
 
-const MOCK_RUBRICS: { [key: string]: string } = {
-  // ENG101: '1. Thesis Statement (25pts): Is the thesis clear, concise, and arguable? \n2. Evidence & Analysis (40pts): Does the essay use relevant textual evidence? Is the analysis of this evidence insightful and well-developed? \n3. Structure & Organization (20pts): Is the essay logically structured with clear topic sentences and smooth transitions? \n4. Clarity & Style (15pts): Is the language clear, precise, and free of grammatical errors?',
-  // WRI202: 'A. Argument (30%): Presents a strong, clear argument. \nB. Research (30%): Incorporates a wide range of credible sources. \nC. Counterarguments (20%): Addresses and refutes counterarguments effectively. \nD. APA Formatting (20%): Adheres to APA style guidelines.',
-};
-
-const enrolledClasses: any[] = [
-  // { id: 'ENG101', name: 'English Literature 101' },
-  // { id: 'WRI202', name: 'Advanced Composition' },
-];
+interface EnrolledClass {
+    id: string;
+    name: string;
+}
 
 export function EssaySubmissionForm() {
   const [essayText, setEssayText] = useState('');
+  const [enrolledClasses, setEnrolledClasses] = useState<EnrolledClass[]>([]);
+  const [isClassListLoading, setIsClassListLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [rubric, setRubric] = useState('');
+  const [isRubricLoading, setIsRubricLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -38,12 +38,80 @@ export function EssaySubmissionForm() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (selectedClass && MOCK_RUBRICS[selectedClass]) {
-      setRubric(MOCK_RUBRICS[selectedClass]);
-    } else {
-      setRubric('');
+    const fetchEnrolledClasses = async () => {
+        setIsClassListLoading(true);
+      try {
+        const studentId = 'student-alex-doe'; 
+
+        const classesCollection = collection(db, 'classes');
+        const classesSnapshot = await getDocs(classesCollection);
+        
+        const classesData: EnrolledClass[] = [];
+
+        for (const classDoc of classesSnapshot.docs) {
+            const studentDocRef = doc(db, `classes/${classDoc.id}/students`, studentId);
+            const studentDoc = await getDoc(studentDocRef);
+
+            if (studentDoc.exists()) {
+                classesData.push({
+                    id: classDoc.id,
+                    name: classDoc.data().name,
+                });
+            }
+        }
+        setEnrolledClasses(classesData);
+
+      } catch (error) {
+        console.error("Error fetching enrolled classes: ", error);
+        toast({
+            title: 'Error',
+            description: 'Could not fetch your classes.',
+            variant: 'destructive',
+        })
+      } finally {
+        setIsClassListLoading(false);
+      }
+    };
+
+    fetchEnrolledClasses();
+  }, [toast]);
+
+  useEffect(() => {
+    const fetchRubric = async () => {
+        if (!selectedClass) {
+            setRubric('');
+            return;
+        };
+
+        setIsRubricLoading(true);
+        try {
+            const rubricDocRef = doc(db, 'rubrics', selectedClass);
+            const rubricDoc = await getDoc(rubricDocRef);
+
+            if(rubricDoc.exists()) {
+                setRubric(rubricDoc.data().content);
+            } else {
+                setRubric('No rubric found for this class.');
+                toast({
+                    title: 'Rubric Not Found',
+                    description: 'Your teacher has not set a rubric for this class yet.',
+                    variant: 'destructive'
+                })
+            }
+        } catch (error) {
+            console.error("Error fetching rubric: ", error);
+            setRubric('Error loading rubric.');
+             toast({
+                title: 'Error',
+                description: 'Could not load the rubric for this class.',
+                variant: 'destructive',
+            })
+        } finally {
+            setIsRubricLoading(false);
+        }
     }
-  }, [selectedClass]);
+    fetchRubric();
+  }, [selectedClass, toast]);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -157,9 +225,9 @@ export function EssaySubmissionForm() {
         <CardContent>
           <div className="space-y-2">
             <Label htmlFor="class-select">Class</Label>
-            <Select onValueChange={setSelectedClass} required disabled={enrolledClasses.length === 0}>
+            <Select onValueChange={setSelectedClass} required disabled={isClassListLoading || enrolledClasses.length === 0}>
                 <SelectTrigger id="class-select">
-                    <SelectValue placeholder="Enroll in a class to get started..." />
+                    <SelectValue placeholder={isClassListLoading ? "Loading classes..." : "Enroll in a class to get started..."} />
                 </SelectTrigger>
                 <SelectContent>
                     {enrolledClasses.map(c => (
@@ -256,7 +324,7 @@ export function EssaySubmissionForm() {
             <Label htmlFor="rubric-text">Grading Rubric (from your teacher)</Label>
             <Textarea
               id="rubric-text"
-              placeholder="Select a class to see the rubric..."
+              placeholder={isRubricLoading ? "Loading rubric..." : "Select a class to see the rubric..."}
               rows={5}
               value={rubric}
               readOnly
