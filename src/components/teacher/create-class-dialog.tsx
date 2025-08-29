@@ -17,8 +17,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Class, ClassContext } from '@/contexts/class-context';
+import { useAuth } from '@/hooks/use-auth';
 
 export function CreateClassDialog() {
+  const { user } = useAuth();
   const { onClassCreated } = useContext(ClassContext);
   const [open, setOpen] = useState(false);
   const [className, setClassName] = useState('');
@@ -35,10 +37,17 @@ export function CreateClassDialog() {
       });
       return;
     }
+     if (!user?.fullName) {
+      toast({
+        title: 'Error',
+        description: 'Could not identify teacher. Please try logging in again.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setIsCreating(true);
     try {
-      // In a real app, teacherName would come from auth state.
-      const teacherName = 'Ms. Davis';
+      const teacherName = user.fullName;
       const result = await onClassCreated({ name: className, teacherName });
       if (result) {
         setCreatedClass(result);
@@ -142,7 +151,7 @@ export function CreateClassDialog() {
           {createdClass ? (
             <Button onClick={handleCloseAndReset}>Done</Button>
           ) : (
-            <Button onClick={handleCreateClass} disabled={isCreating}>
+            <Button onClick={handleCreateClass} disabled={isCreating || !user}>
               {isCreating && <Loader2 className="mr-2 animate-spin" />}
               {isCreating ? 'Creating...' : 'Create Class'}
             </Button>
