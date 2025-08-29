@@ -1,6 +1,8 @@
+'use client';
 
 import Link from 'next/link';
-import { BookOpen, Users, FileText } from 'lucide-react';
+import { useContext } from 'react';
+import { Users, FileText } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -8,29 +10,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-
-const classes = [
-  {
-    id: 'ENG101',
-    name: 'English Literature 101',
-    studentCount: 28,
-    pendingSubmissions: 5,
-  },
-  {
-    id: 'WRI202',
-    name: 'Advanced Composition',
-    studentCount: 19,
-    pendingSubmissions: 2,
-  },
-  {
-    id: 'HIS301',
-    name: 'American History Essays',
-    studentCount: 22,
-    pendingSubmissions: 0,
-  },
-];
+import { ClassContext } from '@/contexts/class-context';
 
 export default function ClassesPage() {
+  const { classes } = useContext(ClassContext);
+
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
       <div>

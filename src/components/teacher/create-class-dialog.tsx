@@ -15,7 +15,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Class } from '@/app/(teacher)/teacher/dashboard/page';
+
+export type Class = {
+  id: string;
+  name: string;
+  studentCount: number;
+  pendingSubmissions: number;
+};
 
 type CreateClassDialogProps = {
   onClassCreated: (newClass: Class) => void;
@@ -75,8 +81,8 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => {
-          if (!open) {
-              e.preventDefault();
+          if (generatedCode) {
+            handleClose();
           }
       }}>
         <DialogHeader>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
-import { useState } from 'react';
+import { useContext } from 'react';
 
 import {
   Card,
@@ -21,27 +21,7 @@ import {
 } from '@/components/ui/table';
 import { CreateClassDialog } from '@/components/teacher/create-class-dialog';
 import { GradeSubmissionDialog } from '@/components/teacher/grade-submission-dialog';
-
-const initialClasses = [
-  {
-    id: 'ENG101',
-    name: 'English Literature 101',
-    studentCount: 28,
-    pendingSubmissions: 5,
-  },
-  {
-    id: 'WRI202',
-    name: 'Advanced Composition',
-    studentCount: 19,
-    pendingSubmissions: 2,
-  },
-  {
-    id: 'HIS301',
-    name: 'American History Essays',
-    studentCount: 22,
-    pendingSubmissions: 0,
-  },
-];
+import { ClassContext } from '@/contexts/class-context';
 
 const submissions = [
   {
@@ -74,19 +54,8 @@ const submissions = [
   },
 ];
 
-export type Class = {
-  id: string;
-  name: string;
-  studentCount: number;
-  pendingSubmissions: number;
-};
-
 export default function TeacherDashboard() {
-  const [classes, setClasses] = useState<Class[]>(initialClasses);
-
-  const handleClassCreated = (newClass: Class) => {
-    setClasses(prevClasses => [...prevClasses, newClass]);
-  };
+  const { classes, onClassCreated } = useContext(ClassContext);
 
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
@@ -97,7 +66,7 @@ export default function TeacherDashboard() {
             Welcome back, here's your teaching overview.
           </p>
         </div>
-        <CreateClassDialog onClassCreated={handleClassCreated} />
+        <CreateClassDialog onClassCreated={onClassCreated} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
