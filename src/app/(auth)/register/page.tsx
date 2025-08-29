@@ -91,7 +91,7 @@ export default function RegisterPage() {
             errorMessage = 'The email address is not valid.';
             break;
         case 'auth/network-request-failed':
-            errorMessage = 'Network error. Please check your connection and authorized domains in Firebase.';
+            errorMessage = 'Network error: Could not connect to Firebase. Please check your internet connection and ensure your app\'s domain is added to the "Authorized domains" list in the Firebase console (Authentication > Settings > Authorized domains).';
             break;
         case 'auth/configuration-not-found':
             errorMessage = 'Firebase configuration error. Please ensure Firebase Authentication is enabled with the Email/Password provider in your Firebase project console.';
@@ -101,6 +101,7 @@ export default function RegisterPage() {
         title: 'Registration Failed',
         description: errorMessage,
         variant: 'destructive',
+        duration: 9000,
       });
     } finally {
       setIsLoading(false);
