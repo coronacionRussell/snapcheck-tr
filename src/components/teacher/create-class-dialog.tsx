@@ -42,7 +42,9 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
     }
     setIsCreating(true);
     try {
-      const result = await onClassCreated({ name: className });
+      // In a real app, teacherName would come from auth state.
+      const teacherName = 'Ms. Davis';
+      const result = await onClassCreated({ name: className, teacherName });
       if (result) {
         setCreatedClass(result);
       }

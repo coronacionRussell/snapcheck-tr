@@ -61,6 +61,7 @@ export default function TeacherLayout({
 
       batch.set(newClassRef, {
         name: classToAdd.name,
+        teacherName: classToAdd.teacherName,
         studentCount: classToAdd.studentCount,
         pendingSubmissions: classToAdd.pendingSubmissions,
       });

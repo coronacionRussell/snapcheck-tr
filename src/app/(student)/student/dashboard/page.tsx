@@ -26,14 +26,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const JoinClassCard = dynamic(
-  () => import('@/components/student/join-class-card').then(mod => mod.JoinClassCard),
+  () => import('@/components/student/join-class-card'),
   { ssr: false }
 );
 
 interface EnrolledClass {
     id: string;
     name: string;
-    teacher: string;
+    teacherName: string;
 }
 
 interface RecentGrade {
@@ -63,7 +63,7 @@ export default function StudentDashboard() {
       // Fetch all classes
       const classesCollection = collection(db, 'classes');
       const classesSnapshot = await getDocs(classesCollection);
-      const allClasses = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string, name: string }));
+      const allClasses = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string, name: string, teacherName: string }));
       
       const classesData: EnrolledClass[] = [];
       const gradesData: RecentGrade[] = [];
@@ -77,7 +77,7 @@ export default function StudentDashboard() {
               classesData.push({
                   id: classInfo.id,
                   name: classInfo.name,
-                  teacher: 'Teacher Name', // Placeholder
+                  teacherName: classInfo.teacherName,
               });
               
               // Fetch recent graded submissions for this class
@@ -169,7 +169,7 @@ export default function StudentDashboard() {
                         <div>
                           <p className="font-semibold">{c.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {c.teacher}
+                            {c.teacherName}
                           </p>
                         </div>
                       </div>

@@ -5,12 +5,14 @@ import { DocumentData, DocumentReference } from 'firebase/firestore';
 export interface Class {
   id: string;
   name: string;
+  teacherName: string;
   studentCount: number;
   pendingSubmissions: number;
 };
 
 export interface ClassFromFirestore {
     name: string;
+    teacherName: string;
     studentCount: number;
     pendingSubmissions: number;
 }
