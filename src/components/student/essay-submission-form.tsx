@@ -13,7 +13,7 @@ import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const MOCK_ESSAY_TEXT =
   "To be or not to be, that is the question. This seminal line from Shakespeare's Hamlet encapsulates the central theme of existential dread and the internal conflict of the protagonist. Hamlet's contemplation of suicide is not merely a moment of weakness, but a profound philosophical inquiry into the nature of life, death, and the afterlife. The play explores the human condition, forcing the audience to confront their own mortality and the choices they make.";
@@ -32,6 +32,7 @@ export function EssaySubmissionForm() {
   const [isRubricLoading, setIsRubricLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -177,12 +178,11 @@ export function EssaySubmissionForm() {
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!selectedClass) {
+  const handleGetFeedback = async () => {
+     if (!selectedClass) {
         toast({
             title: 'Missing Class',
-            description: 'Please select a class before submitting.',
+            description: 'Please select a class before getting feedback.',
             variant: 'destructive',
           });
           return;
@@ -212,6 +212,63 @@ export function EssaySubmissionForm() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedClass) {
+        toast({
+            title: 'Missing Class',
+            description: 'Please select a class before submitting.',
+            variant: 'destructive',
+          });
+          return;
+    }
+    if (!essayText.trim()) {
+      toast({
+        title: 'Missing Essay Text',
+        description: 'Please provide the essay text before submitting.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // In a real app, student ID and name would come from auth state.
+      const studentId = 'student-alex-doe'; 
+      const studentName = 'Alex Doe';
+
+      const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
+      await addDoc(submissionsCollection, {
+        studentId,
+        studentName,
+        essayText,
+        submittedAt: serverTimestamp(),
+        status: 'Pending Review',
+      });
+      
+      toast({
+        title: 'Essay Submitted!',
+        description: 'Your teacher has received your essay for grading.',
+      });
+      
+      // Reset form
+      setEssayText('');
+      setFeedback('');
+      setSelectedClass(null);
+
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Submission Failed',
+        description:
+          'There was an error submitting your essay. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -225,7 +282,7 @@ export function EssaySubmissionForm() {
         <CardContent>
           <div className="space-y-2">
             <Label htmlFor="class-select">Class</Label>
-            <Select onValueChange={setSelectedClass} required disabled={isClassListLoading || enrolledClasses.length === 0}>
+            <Select onValueChange={setSelectedClass} required disabled={isClassListLoading || enrolledClasses.length === 0} value={selectedClass || ''}>
                 <SelectTrigger id="class-select">
                     <SelectValue placeholder={isClassListLoading ? "Loading classes..." : "Enroll in a class to get started..."} />
                 </SelectTrigger>
@@ -291,7 +348,7 @@ export function EssaySubmissionForm() {
                 </Alert>
               )}
                <div className="flex justify-end gap-2">
-                 <Button variant="secondary" onClick={() => setIsCameraOpen(false)}>Cancel</Button>
+                 <Button type="button" variant="secondary" onClick={() => setIsCameraOpen(false)}>Cancel</Button>
                 <Button onClick={handleCapture} disabled={!hasCameraPermission}>
                   <Camera className="mr-2" />
                   Capture
@@ -334,19 +391,32 @@ export function EssaySubmissionForm() {
         </CardContent>
       </Card>
 
-      <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 size-4 animate-spin" />
-            Generating Feedback...
-          </>
-        ) : (
-          <>
-            <Sparkles className="mr-2 size-4" />
-            Get AI Feedback
-          </>
-        )}
-      </Button>
+      <div className="flex flex-col gap-4 sm:flex-row">
+         <Button type="button" size="lg" className="flex-1" disabled={isLoading || isSubmitting} onClick={handleGetFeedback}>
+            {isLoading ? (
+            <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Generating Feedback...
+            </>
+            ) : (
+            <>
+                <Sparkles className="mr-2 size-4" />
+                Get AI Feedback
+            </>
+            )}
+        </Button>
+        <Button type="submit" size="lg" className="flex-1" disabled={isSubmitting || isLoading}>
+            {isSubmitting ? (
+            <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Submitting for Grading...
+            </>
+            ) : (
+            'Submit for Grading'
+            )}
+        </Button>
+      </div>
+
 
       {feedback && (
         <Card>
@@ -356,7 +426,7 @@ export function EssaySubmissionForm() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="prose prose-sm max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground">
+            <div className="prose prose-sm max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground whitespace-pre-wrap">
               {feedback}
             </div>
           </CardContent>
@@ -365,3 +435,5 @@ export function EssaySubmissionForm() {
     </form>
   );
 }
+
+    

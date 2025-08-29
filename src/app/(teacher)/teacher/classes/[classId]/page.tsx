@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { RubricEditor } from '@/components/teacher/rubric-editor';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import {
   Tabs,
   TabsContent,
@@ -114,13 +114,13 @@ export default function ClassDetailsPage({
         </div>
       </div>
 
-      <Tabs defaultValue="roster">
+      <Tabs defaultValue="submissions">
         <TabsList>
-          <TabsTrigger value="roster">Student Roster</TabsTrigger>
+          <TabsTrigger value="submissions">Submissions</TabsTrigger>
           <TabsTrigger value="rubric">Grading Rubric</TabsTrigger>
         </TabsList>
-        <TabsContent value="roster" className="mt-4">
-          <ClassRoster classId={classId} />
+        <TabsContent value="submissions" className="mt-4">
+          <ClassRoster classId={classId} className={classInfo?.name || ''} rubric={initialRubric} />
         </TabsContent>
         <TabsContent value="rubric" className="mt-4">
           <RubricEditor classId={classId} initialRubric={initialRubric} />
@@ -129,3 +129,5 @@ export default function ClassDetailsPage({
     </div>
   );
 }
+
+    

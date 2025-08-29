@@ -18,16 +18,22 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '../ui/skeleton';
+import { GradeSubmissionDialog } from './grade-submission-dialog';
+import { Button } from '../ui/button';
 
-// This will be expanded later
-interface Student {
+export interface Submission {
     id: string;
-    name: string;
-    // For now, we'll keep these statuses hardcoded
-    status: 'Not Submitted' | 'Pending Review' | 'Graded';
+    studentName: string;
+    studentId: string;
+    essayText: string;
+    submittedAt: {
+        seconds: number;
+        nanoseconds: number;
+    };
+    status: 'Pending Review' | 'Graded';
     grade?: string;
 }
 
@@ -37,41 +43,40 @@ const getStatusVariant = (status: string) => {
             return 'default';
         case 'Pending Review':
             return 'secondary';
-        case 'Not Submitted':
-            return 'outline';
         default:
             return 'secondary';
     }
 }
 
-export function ClassRoster({ classId }: { classId: string }) {
-  const [roster, setRoster] = useState<Student[]>([]);
+export function ClassRoster({ classId, className, rubric }: { classId: string, className: string, rubric: string }) {
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchRoster = async () => {
-        setIsLoading(true);
-        // In a real app, you would have a 'students' collection
-        // and query for students where `classId` matches.
-        // For now, we will simulate this by keeping an empty roster.
-        // const studentsCollection = collection(db, 'students');
-        // const q = query(studentsCollection, where("classId", "==", classId));
-        // const querySnapshot = await getDocs(q);
-        // const studentData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Student[];
-        // setRoster(studentData);
-        setRoster([]); // Keeping this empty until student enrollment is implemented
-        setIsLoading(false);
-    }
+    if (!classId) return;
 
-    fetchRoster();
+    setIsLoading(true);
+    const submissionsCollection = collection(db, 'classes', classId, 'submissions');
+    const q = query(submissionsCollection, orderBy('submittedAt', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const submissionData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Submission[];
+        setSubmissions(submissionData);
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching submissions: ", error);
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [classId]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Student Roster</CardTitle>
+        <CardTitle className="font-headline">Student Submissions</CardTitle>
         <CardDescription>
-          An overview of student submissions and grades for this class.
+          An overview of student submissions for this class.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -79,39 +84,43 @@ export function ClassRoster({ classId }: { classId: string }) {
           <TableHeader>
             <TableRow>
               <TableHead>Student Name</TableHead>
-              <TableHead>Submission Status</TableHead>
-              <TableHead>Grade</TableHead>
+              <TableHead>Submitted At</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
                 <TableRow>
-                    <TableCell colSpan={3}>
+                    <TableCell colSpan={4}>
                         <div className="space-y-2">
                            <Skeleton className="h-4 w-full" />
                            <Skeleton className="h-4 w-full" />
                         </div>
                     </TableCell>
                 </TableRow>
-            ) : roster.length > 0 ? (
-              roster.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.name}</TableCell>
+            ) : submissions.length > 0 ? (
+              submissions.map((submission) => (
+                <TableRow key={submission.id}>
+                  <TableCell className="font-medium">{submission.studentName}</TableCell>
                   <TableCell>
-                    <Badge variant={getStatusVariant(student.status)}
-                     className={getStatusVariant(student.status) === 'default' ? 'bg-primary/80' : ''}>
-                        {student.status}
+                    {new Date(submission.submittedAt.seconds * 1000).toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(submission.status)}
+                     className={getStatusVariant(submission.status) === 'default' ? 'bg-primary/80' : ''}>
+                        {submission.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-semibold">
-                    {student.grade || '-'}
+                  <TableCell className="text-right">
+                    <GradeSubmissionDialog submission={submission} className={className} rubric={rubric} classId={classId} />
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="text-center">
-                  No students have enrolled in this class yet.
+                <TableCell colSpan={4} className="text-center">
+                  No students have submitted essays for this class yet.
                 </TableCell>
               </TableRow>
             )}
@@ -121,3 +130,5 @@ export function ClassRoster({ classId }: { classId: string }) {
     </Card>
   );
 }
+
+    

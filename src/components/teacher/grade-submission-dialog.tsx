@@ -18,24 +18,24 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Submission } from './class-roster';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
-type Submission = {
-  id: string;
-  studentName: string;
-  className: string;
-  submittedAt: string;
-  status: string;
-};
 
-const MOCK_ESSAY_TEXT =
-  "To be or not to be, that is the question. This seminal line from Shakespeare's Hamlet encapsulates the central theme of existential dread and the internal conflict of the protagonist. Hamlet's contemplation of suicide is not merely a moment of weakness, but a profound philosophical inquiry into the nature of life, death, and the afterlife. The play explores the human condition, forcing the audience to confront their own mortality and the choices they make. Through Hamlet's journey, Shakespeare suggests that while life is fraught with suffering ('the slings and arrows of outrageous fortune'), the uncertainty of death ('the undiscovered country from whose bourn no traveller returns') makes us pause. This hesitation is a fundamental aspect of the human experience, a testament to our innate will to live despite adversity. Ultimately, the play does not offer easy answers, but instead, it presents a complex portrait of a mind in turmoil, a portrait that continues to resonate with audiences centuries later.";
+type GradeSubmissionDialogProps = {
+    submission: Submission;
+    className: string;
+    rubric: string;
+    classId: string;
+}
 
-const MOCK_RUBRIC_TEXT =
-  '1. Thesis Statement (25pts): Is the thesis clear, concise, and arguable? \n2. Evidence & Analysis (40pts): Does the essay use relevant textual evidence? Is the analysis of this evidence insightful and well-developed? \n3. Structure & Organization (20pts): Is the essay logically structured with clear topic sentences and smooth transitions? \n4. Clarity & Style (15pts): Is the language clear, precise, and free of grammatical errors?';
-
-export function GradeSubmissionDialog({ submission }: { submission: Submission }) {
+export function GradeSubmissionDialog({ submission, className, rubric, classId }: GradeSubmissionDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [finalScore, setFinalScore] = useState('');
+  const [finalFeedback, setFinalFeedback] = useState('');
   const [aiResult, setAiResult] = useState<{
     preliminaryScore: number;
     feedback: string;
@@ -47,10 +47,12 @@ export function GradeSubmissionDialog({ submission }: { submission: Submission }
     setAiResult(null);
     try {
       const result = await assistTeacherGrading({
-        essayText: MOCK_ESSAY_TEXT,
-        rubricText: MOCK_RUBRIC_TEXT,
+        essayText: submission.essayText,
+        rubricText: rubric,
       });
       setAiResult(result);
+      setFinalScore(result.preliminaryScore.toString());
+      setFinalFeedback(result.feedback);
     } catch (error) {
       console.error(error);
       toast({
@@ -64,15 +66,61 @@ export function GradeSubmissionDialog({ submission }: { submission: Submission }
     }
   };
   
+  const handleFinalizeGrade = async () => {
+    if (!finalScore.trim()) {
+        toast({
+            title: 'Score is required',
+            description: 'Please enter a final score.',
+            variant: 'destructive'
+        })
+        return;
+    }
+    setIsSubmitting(true);
+    try {
+        const submissionRef = doc(db, 'classes', classId, 'submissions', submission.id);
+        await updateDoc(submissionRef, {
+            status: 'Graded',
+            grade: finalScore,
+            feedback: finalFeedback,
+        });
+        toast({
+            title: 'Grade Submitted!',
+            description: `The grade for ${submission.studentName} has been finalized.`,
+        });
+        handleClose();
+
+    } catch (error) {
+        console.error("Error finalizing grade: ", error);
+        toast({
+            title: 'Error',
+            description: 'Could not submit the final grade.',
+            variant: 'destructive'
+        })
+    } finally {
+        setIsSubmitting(false);
+    }
+  }
+
   const handleClose = () => {
     setOpen(false);
-    // Do not reset state to allow viewing results after re-opening
+    // Reset state on close
+    setAiResult(null);
+    setFinalScore('');
+    setFinalFeedback('');
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+            handleClose();
+        } else {
+            setOpen(true);
+        }
+    }}>
       <DialogTrigger asChild>
-        <Button>Grade</Button>
+        <Button disabled={submission.status === 'Graded'}>
+            {submission.status === 'Graded' ? 'Graded' : 'Grade'}
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
@@ -80,7 +128,7 @@ export function GradeSubmissionDialog({ submission }: { submission: Submission }
             Grade Submission: {submission.studentName}
           </DialogTitle>
           <DialogDescription>
-            Class: {submission.className} | Submitted: {submission.submittedAt}
+            Class: {className} | Submitted: {new Date(submission.submittedAt.seconds * 1000).toLocaleString()}
           </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[70vh] grid-cols-1 gap-4 overflow-y-auto p-1 md:grid-cols-2">
@@ -92,7 +140,7 @@ export function GradeSubmissionDialog({ submission }: { submission: Submission }
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Textarea readOnly rows={15} defaultValue={MOCK_ESSAY_TEXT} className="font-code text-sm" />
+                <Textarea readOnly rows={15} value={submission.essayText} className="font-code text-sm" />
               </CardContent>
             </Card>
             <Card>
@@ -103,7 +151,7 @@ export function GradeSubmissionDialog({ submission }: { submission: Submission }
                 <Textarea
                   readOnly
                   rows={6}
-                  defaultValue={MOCK_RUBRIC_TEXT}
+                  value={rubric}
                   className="font-code text-sm"
                 />
               </CardContent>
@@ -127,37 +175,59 @@ export function GradeSubmissionDialog({ submission }: { submission: Submission }
                 </>
               )}
             </Button>
-            {aiResult && (
-              <Card>
+            <Card>
                 <CardHeader>
                   <CardTitle className="font-headline flex items-center gap-2 text-lg">
-                    <Bot className="size-5" /> AI Preliminary Grade
+                    <Bot className="mr-2 size-5" /> Final Grade
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="ai-score">Preliminary Score (/100)</Label>
-                    <Input
-                      id="ai-score"
-                      defaultValue={aiResult.preliminaryScore}
-                    />
-                  </div>
-                  <div>
-                    <Label>AI Feedback</Label>
-                    <Textarea rows={10} defaultValue={aiResult.feedback} />
-                  </div>
+                  {isLoading && (
+                    <div className='flex items-center justify-center p-8'>
+                      <Loader2 className="size-8 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                  {aiResult && !isLoading && (
+                     <>
+                        <div>
+                            <Label htmlFor="final-score">Final Score (/100)</Label>
+                            <Input
+                            id="final-score"
+                            value={finalScore}
+                            onChange={(e) => setFinalScore(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <Label>Final Feedback</Label>
+                            <Textarea 
+                                rows={10} 
+                                value={finalFeedback} 
+                                onChange={(e) => setFinalFeedback(e.target.value)}
+                            />
+                        </div>
+                     </>
+                  )}
+                   {!aiResult && !isLoading && (
+                    <div className='text-center text-sm text-muted-foreground p-8'>
+                        Run the AI assistant to get a preliminary grade and feedback.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            )}
           </div>
         </div>
         <DialogFooter>
-          <Button variant="secondary" onClick={handleClose}>
+          <Button variant="secondary" onClick={handleClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button>Finalize & Submit Grade</Button>
+          <Button onClick={handleFinalizeGrade} disabled={isSubmitting || !aiResult}>
+            {isSubmitting && <Loader2 className="mr-2 animate-spin" />}
+            {isSubmitting ? 'Submitting...' : 'Finalize & Submit Grade'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+    
