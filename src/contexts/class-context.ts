@@ -1,35 +1,30 @@
-import { createContext } from 'react';
-import { Class } from '@/components/teacher/create-class-dialog';
 
-export const initialClasses: Class[] = [
-  {
-    id: 'ENG101',
-    name: 'English Literature 101',
-    studentCount: 28,
-    pendingSubmissions: 5,
-  },
-  {
-    id: 'WRI202',
-    name: 'Advanced Composition',
-    studentCount: 19,
-    pendingSubmissions: 2,
-  },
-  {
-    id: 'HIS301',
-    name: 'American History Essays',
-    studentCount: 22,
-    pendingSubmissions: 0,
-  },
-];
+import { createContext } from 'react';
+import { DocumentData, DocumentReference } from 'firebase/firestore';
+
+export interface Class {
+  id: string;
+  name: string;
+  studentCount: number;
+  pendingSubmissions: number;
+};
+
+export interface ClassFromFirestore {
+    name: string;
+    studentCount: number;
+    pendingSubmissions: number;
+}
 
 type ClassContextType = {
   classes: Class[];
-  onClassCreated: (newClass: Class) => void;
-  onClassDeleted: (classId: string) => void;
+  onClassCreated: (newClass: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>) => Promise<Class | null>;
+  onClassDeleted: (classId: string) => Promise<void>;
+  isLoading: boolean;
 };
 
 export const ClassContext = createContext<ClassContextType>({
-  classes: initialClasses,
-  onClassCreated: () => {},
-  onClassDeleted: () => {},
+  classes: [],
+  onClassCreated: async () => null,
+  onClassDeleted: async () => {},
+  isLoading: true,
 });

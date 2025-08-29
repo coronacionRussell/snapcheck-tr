@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { useContext } from 'react';
-import { Users, FileText, Trash2 } from 'lucide-react';
+import { Users, FileText, Trash2, Loader2 } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -23,9 +24,37 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ClassesPage() {
-  const { classes, onClassDeleted } = useContext(ClassContext);
+  const { classes, onClassDeleted, isLoading } = useContext(ClassContext);
+
+  if (isLoading) {
+    return (
+        <div className="grid flex-1 items-start gap-4 md:gap-8">
+             <div>
+                <h1 className="font-headline text-3xl font-bold">My Classes</h1>
+                <p className="text-muted-foreground">
+                Manage your classes, students, and rubrics.
+                </p>
+            </div>
+             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(3)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-3/4" />
+                            <Skeleton className="mt-1 h-4 w-1/2" />
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                             <Skeleton className="h-4 w-1/2" />
+                             <Skeleton className="h-4 w-2/3" />
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        </div>
+    )
+  }
 
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
@@ -37,6 +66,11 @@ export default function ClassesPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {classes.length === 0 && !isLoading && (
+            <div className="col-span-full text-center text-muted-foreground">
+                <p>You haven't created any classes yet.</p>
+            </div>
+        )}
         {classes.map((c) => (
           <Card key={c.id}>
             <CardHeader>

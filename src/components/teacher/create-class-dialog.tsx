@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState } from 'react';
-import { PlusCircle, Copy } from 'lucide-react';
+import { PlusCircle, Copy, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,25 +16,20 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-
-export type Class = {
-  id: string;
-  name: string;
-  studentCount: number;
-  pendingSubmissions: number;
-};
+import { Class } from '@/contexts/class-context';
 
 type CreateClassDialogProps = {
-  onClassCreated: (newClass: Class) => void;
+  onClassCreated: (newClass: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>) => Promise<Class | null>;
 };
 
 export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
   const [open, setOpen] = useState(false);
   const [className, setClassName] = useState('');
-  const [generatedCode, setGeneratedCode] = useState('');
+  const [createdClass, setCreatedClass] = useState<Class | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
 
-  const handleCreateClass = () => {
+  const handleCreateClass = async () => {
     if (!className.trim()) {
       toast({
         title: 'Error',
@@ -42,25 +38,22 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
       });
       return;
     }
-    // Simulate code generation
-    const code =
-      'C' +
-      Math.random().toString(36).substring(2, 8).toUpperCase();
-    setGeneratedCode(code);
-    onClassCreated({
-      id: code,
-      name: className,
-      studentCount: 0,
-      pendingSubmissions: 0,
-    });
+    setIsCreating(true);
+    const result = await onClassCreated({ name: className });
+    if (result) {
+        setCreatedClass(result);
+    }
+    setIsCreating(false);
   };
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(generatedCode);
-    toast({
-      title: 'Copied!',
-      description: 'Class code copied to clipboard.',
-    });
+    if(createdClass?.id) {
+        navigator.clipboard.writeText(createdClass.id);
+        toast({
+          title: 'Copied!',
+          description: 'Class code copied to clipboard.',
+        });
+    }
   };
   
   const handleClose = () => {
@@ -68,7 +61,7 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
     // Reset state after a short delay to allow dialog to close gracefully
     setTimeout(() => {
         setClassName('');
-        setGeneratedCode('');
+        setCreatedClass(null);
     }, 300);
   }
 
@@ -81,7 +74,7 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => {
-          if (generatedCode) {
+          if (createdClass) {
             handleClose();
           }
       }}>
@@ -92,14 +85,14 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
             your students to join.
           </DialogDescription>
         </DialogHeader>
-        {generatedCode ? (
+        {createdClass ? (
           <div className="space-y-4 py-4">
             <div className="text-center">
-                <p className="text-sm text-muted-foreground">Class "{className}" created successfully!</p>
+                <p className="text-sm text-muted-foreground">Class "{createdClass.name}" created successfully!</p>
                 <p className="mt-2 text-sm text-muted-foreground">Share this code with your students:</p>
             </div>
             <div className="flex items-center space-x-2 rounded-lg border bg-secondary p-4">
-                <p className="flex-1 font-mono text-2xl tracking-widest">{generatedCode}</p>
+                <p className="flex-1 font-mono text-2xl tracking-widest">{createdClass.id}</p>
                 <Button variant="outline" size="icon" onClick={handleCopyCode}>
                     <Copy className="size-4" />
                     <span className="sr-only">Copy code</span>
@@ -118,15 +111,19 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
                 onChange={(e) => setClassName(e.target.value)}
                 placeholder="e.g., English 101"
                 className="col-span-3"
+                disabled={isCreating}
               />
             </div>
           </div>
         )}
         <DialogFooter>
-          {generatedCode ? (
+          {createdClass ? (
             <Button onClick={handleClose}>Done</Button>
           ) : (
-            <Button onClick={handleCreateClass}>Create Class</Button>
+            <Button onClick={handleCreateClass} disabled={isCreating}>
+              {isCreating && <Loader2 className="mr-2 animate-spin" />}
+              {isCreating ? 'Creating...' : 'Create Class'}
+            </Button>
           )}
         </DialogFooter>
       </DialogContent>

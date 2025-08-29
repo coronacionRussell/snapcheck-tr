@@ -1,29 +1,91 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import TeacherSidebar from '@/components/teacher/teacher-sidebar';
 import DashboardHeader from '@/components/dashboard-header';
-import { ClassContext, initialClasses } from '@/contexts/class-context';
-import { Class } from '@/components/teacher/create-class-dialog';
+import { ClassContext } from '@/contexts/class-context';
+import { Class, ClassFromFirestore } from '@/contexts/class-context';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+
 
 export default function TeacherLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [classes, setClasses] = useState<Class[]>(initialClasses);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
-  const handleClassCreated = (newClass: Class) => {
-    setClasses((prevClasses) => [...prevClasses, newClass]);
-  };
-
-  const handleClassDeleted = (classId: string) => {
-    setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'classes'));
+        const classesData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Class[];
+        setClasses(classesData);
+      } catch (error) {
+        console.error('Error fetching classes: ', error);
+        toast({
+          title: 'Error',
+          description: 'Could not fetch classes from the database.',
+          variant: 'destructive'
+        })
+      } finally {
+        setIsLoading(false);
+      }
     };
 
+    fetchClasses();
+  }, [toast]);
+
+  const handleClassCreated = async (newClassData: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>) => {
+    try {
+      const classToAdd = {
+        ...newClassData,
+        studentCount: 0,
+        pendingSubmissions: 0,
+      }
+      const docRef = await addDoc(collection(db, 'classes'), classToAdd);
+      setClasses((prevClasses) => [...prevClasses, { id: docRef.id, ...classToAdd }]);
+      return { id: docRef.id, ...classToAdd };
+    } catch (error) {
+      console.error('Error creating class: ', error);
+       toast({
+        title: 'Error',
+        description: 'Could not create the new class.',
+        variant: 'destructive'
+      })
+      return null;
+    }
+  };
+
+  const handleClassDeleted = async (classId: string) => {
+    try {
+      await deleteDoc(doc(db, 'classes', classId));
+      setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
+      toast({
+        title: 'Success',
+        description: 'Class has been deleted.',
+      })
+    } catch (error) {
+        console.error('Error deleting class: ', error);
+        toast({
+            title: 'Error',
+            description: 'Could not delete the class.',
+            variant: 'destructive'
+        })
+    }
+  };
+
   return (
-    <ClassContext.Provider value={{ classes, onClassCreated: handleClassCreated, onClassDeleted: handleClassDeleted }}>
+    <ClassContext.Provider value={{ classes, onClassCreated: handleClassCreated, onClassDeleted: handleClassDeleted, isLoading }}>
       <SidebarProvider>
         <Sidebar>
           <TeacherSidebar />
