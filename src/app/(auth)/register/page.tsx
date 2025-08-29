@@ -79,13 +79,23 @@ export default function RegisterPage() {
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      let errorMessage = 'An unknown error occurred.';
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email address is already in use.';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'The password is too weak. Please use at least 6 characters.';
-      } else if (error.code === 'auth/configuration-not-found') {
-        errorMessage = 'Firebase configuration error. Please contact support.';
+      let errorMessage = 'An unknown error occurred. Please try again.';
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = 'This email address is already in use.';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'The password is too weak. Please use at least 6 characters.';
+          break;
+        case 'auth/invalid-email':
+            errorMessage = 'The email address is not valid.';
+            break;
+        case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your connection or Firebase authorized domains.';
+            break;
+        case 'auth/configuration-not-found':
+            errorMessage = 'Firebase configuration error. Please contact support.';
+            break;
       }
        toast({
         title: 'Registration Failed',
