@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { LogOut, User, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
@@ -34,7 +34,6 @@ export function UserNav() {
   const [user, setUser] = useState<AppUser | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
-  const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -51,7 +50,6 @@ export function UserNav() {
         if (userDoc.exists()) {
           setUser(userDoc.data() as AppUser);
         } else {
-          // Handle case where user exists in Auth but not Firestore
           setUser(null);
         }
       } else {
@@ -63,21 +61,23 @@ export function UserNav() {
     return () => unsubscribe();
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.push('/login');
-      toast({
-        title: 'Logged Out',
-        description: 'You have been successfully logged out.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Logout Failed',
-        description: 'An error occurred while logging out.',
-        variant: 'destructive',
-      });
-    }
+  const handleLogout = () => {
+    (async () => {
+        try {
+          await signOut(auth);
+          router.push('/login');
+          toast({
+            title: 'Logged Out',
+            description: 'You have been successfully logged out.',
+          });
+        } catch (error) {
+          toast({
+            title: 'Logout Failed',
+            description: 'An error occurred while logging out.',
+            variant: 'destructive',
+          });
+        }
+    })();
   };
 
   if (!isMounted) {
@@ -130,12 +130,6 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href={settingsPath}>
-              <User className="mr-2 size-4" />
-              <span>Profile</span>
-            </Link>
-          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href={settingsPath}>
               <Settings className="mr-2 size-4" />
