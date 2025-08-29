@@ -8,7 +8,7 @@ import DashboardHeader from '@/components/dashboard-header';
 import { ClassContext } from '@/contexts/class-context';
 import { Class } from '@/contexts/class-context';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -49,23 +49,29 @@ export default function TeacherLayout({
     try {
       const batch = writeBatch(db);
       
+      // Create a new document reference with a unique ID first
+      const newClassRef = doc(collection(db, 'classes'));
+      
       const classToAdd = {
+        id: newClassRef.id,
         ...newClassData,
         studentCount: 0,
         pendingSubmissions: 0,
       }
+
+      batch.set(newClassRef, {
+        name: classToAdd.name,
+        studentCount: classToAdd.studentCount,
+        pendingSubmissions: classToAdd.pendingSubmissions,
+      });
       
-      const classDocRef = doc(collection(db, 'classes'));
-      batch.set(classDocRef, classToAdd);
-      
-      const rubricDocRef = doc(db, 'rubrics', classDocRef.id);
+      const rubricDocRef = doc(db, 'rubrics', newClassRef.id);
       batch.set(rubricDocRef, { content: '' });
 
       await batch.commit();
 
-      const newClass = { id: classDocRef.id, ...classToAdd };
-      setClasses((prevClasses) => [...prevClasses, newClass]);
-      return newClass;
+      setClasses((prevClasses) => [...prevClasses, classToAdd]);
+      return classToAdd;
 
     } catch (error) {
       console.error('Error creating class: ', error);
