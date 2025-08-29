@@ -96,6 +96,9 @@ export default function RegisterPage() {
         case 'auth/configuration-not-found':
             errorMessage = 'Firebase configuration error. Please ensure Firebase Authentication is enabled with the Email/Password provider in your Firebase project console.';
             break;
+        default:
+           errorMessage = `An unexpected error occurred: ${error.message}`;
+           break;
       }
        toast({
         title: 'Registration Failed',
