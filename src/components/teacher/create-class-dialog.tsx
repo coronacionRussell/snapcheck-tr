@@ -66,7 +66,12 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      if (!isOpen) {
+        handleClose();
+      }
+    }}>
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2 size-4" />
@@ -75,6 +80,7 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => {
           if (createdClass) {
+            e.preventDefault();
             handleClose();
           }
       }}>
