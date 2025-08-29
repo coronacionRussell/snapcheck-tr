@@ -12,49 +12,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { CreateClassDialog } from '@/components/teacher/create-class-dialog';
-import { GradeSubmissionDialog } from '@/components/teacher/grade-submission-dialog';
 import { ClassContext } from '@/contexts/class-context';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const submissions = [
-  {
-    id: 'SUB001',
-    studentName: 'Alice Johnson',
-    className: 'English Literature 101',
-    submittedAt: '2 days ago',
-    status: 'Pending Review',
-  },
-  {
-    id: 'SUB002',
-    studentName: 'Bob Williams',
-    className: 'Advanced Composition',
-    submittedAt: '3 days ago',
-    status: 'Pending Review',
-  },
-  {
-    id: 'SUB003',
-    studentName: 'Charlie Brown',
-    className: 'English Literature 101',
-    submittedAt: '1 day ago',
-    status: 'Pending Review',
-  },
-  {
-    id: 'SUB004',
-    studentName: 'Diana Miller',
-    className: 'English Literature 101',
-    submittedAt: '5 hours ago',
-    status: 'Pending Review',
-  },
-];
 
 export default function TeacherDashboard() {
   const { classes, onClassCreated, isLoading } = useContext(ClassContext);
@@ -111,36 +71,10 @@ export default function TeacherDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student</TableHead>
-                <TableHead className="hidden sm:table-cell">Class</TableHead>
-                <TableHead className="hidden md:table-cell">
-                  Submitted
-                </TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {submissions.map((sub) => (
-                <TableRow key={sub.id}>
-                  <TableCell>
-                    <div className="font-medium">{sub.studentName}</div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    {sub.className}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {sub.submittedAt}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <GradeSubmissionDialog submission={sub} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+           <div className="py-8 text-center text-muted-foreground">
+              <p>No student submissions yet.</p>
+              <p className="text-sm">When students submit essays, they will appear here.</p>
+            </div>
         </CardContent>
       </Card>
     </div>
