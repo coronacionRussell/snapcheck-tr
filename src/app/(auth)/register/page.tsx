@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 import {
@@ -55,8 +56,17 @@ export default function RegisterPage() {
     }
     setIsLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      // In a real app, you'd likely save the role and full name to Firestore here.
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Save user data to Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        fullName,
+        email,
+        role,
+      });
+
       toast({
         title: 'Account Created!',
         description: "You've been successfully registered.",
@@ -74,6 +84,8 @@ export default function RegisterPage() {
         errorMessage = 'This email address is already in use.';
       } else if (error.code === 'auth/weak-password') {
         errorMessage = 'The password is too weak. Please use at least 6 characters.';
+      } else if (error.code === 'auth/configuration-not-found') {
+        errorMessage = 'Firebase configuration error. Please contact support.';
       }
        toast({
         title: 'Registration Failed',
