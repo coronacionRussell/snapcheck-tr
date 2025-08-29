@@ -1,5 +1,9 @@
 
+
+import Link from 'next/link';
 import { RubricEditor } from "@/components/teacher/rubric-editor";
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 const MOCK_RUBRICS: { [key: string]: string } = {
     ENG101: '1. Thesis Statement (25pts): Is the thesis clear, concise, and arguable? \n2. Evidence & Analysis (40pts): Does the essay use relevant textual evidence? Is the analysis of this evidence insightful and well-developed? \n3. Structure & Organization (20pts): Is the essay logically structured with clear topic sentences and smooth transitions? \n4. Clarity & Style (15pts): Is the language clear, precise, and free of grammatical errors?',
@@ -20,11 +24,19 @@ export default function ClassDetailsPage({ params }: { params: { classId: string
 
     return (
         <div className="grid flex-1 items-start gap-4 md:gap-8">
-            <div>
-                <h1 className="font-headline text-3xl font-bold">Manage Class: {classInfo.name}</h1>
-                <p className="text-muted-foreground">
-                    Edit the grading rubric for this class. This will be shown to students when they submit their essays.
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <Button variant="outline" asChild>
+                        <Link href="/teacher/classes">
+                            <ArrowLeft className="mr-2" />
+                            Back to Classes
+                        </Link>
+                    </Button>
+                    <h1 className="font-headline mt-4 text-3xl font-bold">Manage Class: {classInfo.name}</h1>
+                    <p className="text-muted-foreground">
+                        Edit the grading rubric for this class. This will be shown to students when they submit their essays.
+                    </p>
+                </div>
             </div>
             <RubricEditor classId={classId} initialRubric={initialRubric} />
         </div>
