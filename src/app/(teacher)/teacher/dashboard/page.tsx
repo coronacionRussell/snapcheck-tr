@@ -44,7 +44,7 @@ export default function TeacherDashboard() {
               </CardContent>
             </Card>
           ))}
-        {!isLoading &&
+        {!isLoading && classes.length > 0 &&
           classes.map((c) => (
             <Card key={c.id}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -62,6 +62,21 @@ export default function TeacherDashboard() {
             </Card>
           ))}
       </div>
+      
+      {!isLoading && classes.length === 0 && (
+        <Card className="col-span-full">
+            <CardHeader>
+                <CardTitle className="font-headline">Welcome to SnapCheck!</CardTitle>
+                <CardDescription>It looks like you're new here. Let's get you started.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="text-center py-8 px-4 border-2 border-dashed rounded-lg">
+                    <h3 className="font-semibold text-lg">You haven't created any classes yet.</h3>
+                    <p className="text-muted-foreground mt-2">Click the "Create New Class" button to set up your first class and start receiving essay submissions from your students.</p>
+                </div>
+            </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
