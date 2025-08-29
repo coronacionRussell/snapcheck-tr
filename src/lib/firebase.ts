@@ -12,6 +12,11 @@ const firebaseConfig = {
   "messagingSenderId": "782806426721"
 };
 
+// Log the configuration to the console for debugging
+if (typeof window !== 'undefined') {
+  console.log("Using Firebase Config:", firebaseConfig);
+}
+
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
