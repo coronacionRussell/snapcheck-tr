@@ -52,9 +52,10 @@ export default function TeacherLayout({
       // Create a new document reference with a unique ID first
       const newClassRef = doc(collection(db, 'classes'));
       
-      const classToAdd = {
+      const classToAdd: Class = {
         id: newClassRef.id,
-        ...newClassData,
+        name: newClassData.name,
+        teacherName: newClassData.teacherName,
         studentCount: 0,
         pendingSubmissions: 0,
       }

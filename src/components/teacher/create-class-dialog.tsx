@@ -112,8 +112,12 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
         </DialogHeader>
         {createdClass ? (
           <div className="space-y-4 py-4">
+             <div className="space-y-2">
+                <p className="text-sm font-medium">Class Name: <span className="font-normal">{createdClass.name}</span></p>
+                <p className="text-sm font-medium">Teacher: <span className="font-normal">{createdClass.teacherName}</span></p>
+            </div>
             <div className="flex items-center space-x-2 rounded-lg border bg-secondary p-4">
-              <p className="flex-1 font-mono text-2xl tracking-widest">
+              <p className="flex-1 font-mono text-lg tracking-widest sm:text-2xl">
                 {createdClass.id}
               </p>
               <Button variant="outline" size="icon" onClick={handleCopyCode}>
