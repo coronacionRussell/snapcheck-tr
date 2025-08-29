@@ -9,22 +9,12 @@ const firebaseConfig = {
   "storageBucket": "snapcheck-7jrhc.firebasestorage.app",
   "apiKey": "AIzaSyBrfQahV6yO9jGQfO3ORnbI065qcSk1N2w",
   "authDomain": "snapcheck-7jrhc.firebaseapp.com",
-  "messagingSenderId": "782806426721",
-  "measurementId": ""
+  "messagingSenderId": "782806426721"
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-
-try {
-  app = getApp();
-} catch (e) {
-  app = initializeApp(firebaseConfig);
-}
-
-auth = getAuth(app);
-db = getFirestore(app);
-
+// Initialize Firebase
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
 
 export { app, db, auth };

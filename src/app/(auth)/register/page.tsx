@@ -91,10 +91,10 @@ export default function RegisterPage() {
             errorMessage = 'The email address is not valid.';
             break;
         case 'auth/network-request-failed':
-            errorMessage = 'Network error. Please check your connection or Firebase authorized domains.';
+            errorMessage = 'Network error. Please check your connection and authorized domains in Firebase.';
             break;
         case 'auth/configuration-not-found':
-            errorMessage = 'Firebase configuration error. Please contact support.';
+            errorMessage = 'Firebase configuration error. The app is not connected to Firebase correctly.';
             break;
       }
        toast({
