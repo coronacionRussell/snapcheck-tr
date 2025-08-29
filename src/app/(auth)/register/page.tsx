@@ -94,7 +94,7 @@ export default function RegisterPage() {
             errorMessage = 'Network error. Please check your connection and authorized domains in Firebase.';
             break;
         case 'auth/configuration-not-found':
-            errorMessage = 'Firebase configuration error. The app is not connected to Firebase correctly.';
+            errorMessage = 'Firebase configuration error. Please ensure Firebase Authentication is enabled with the Email/Password provider in your Firebase project console.';
             break;
       }
        toast({
