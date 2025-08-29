@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { BookOpen, Plus } from 'lucide-react';
+import { JoinClassCard } from '@/components/student/join-class-card';
 
 const enrolledClasses = [
   {
@@ -91,28 +92,7 @@ export default function StudentDashboard() {
         </div>
 
         <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">Join a New Class</CardTitle>
-              <CardDescription>
-                Enter the code provided by your teacher.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form>
-                <div className="flex w-full items-center space-x-2">
-                  <Input
-                    type="text"
-                    placeholder="Class Code"
-                    className="font-code tracking-wider"
-                  />
-                  <Button type="submit">
-                    <Plus className="mr-2 size-4" /> Join
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+          <JoinClassCard />
         </div>
       </div>
 
