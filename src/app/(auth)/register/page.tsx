@@ -1,8 +1,12 @@
+
 'use client';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 import {
   Card,
@@ -23,16 +27,55 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const [role, setRole] = useState('student');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
-  const handleCreateAccount = () => {
-    if (role === 'teacher') {
-      router.push('/teacher/dashboard');
-    } else {
-      router.push('/student/dashboard');
+  const handleCreateAccount = async () => {
+    if (!fullName || !email || !password) {
+      toast({
+        title: 'Missing Fields',
+        description: 'Please fill out all fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      // In a real app, you'd likely save the role and full name to Firestore here.
+      toast({
+        title: 'Account Created!',
+        description: "You've been successfully registered.",
+      });
+
+      if (role === 'teacher') {
+        router.push('/teacher/dashboard');
+      } else {
+        router.push('/student/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      let errorMessage = 'An unknown error occurred.';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email address is already in use.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'The password is too weak. Please use at least 6 characters.';
+      }
+       toast({
+        title: 'Registration Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -50,19 +93,19 @@ export default function RegisterPage() {
       <CardContent className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="full-name">Full Name</Label>
-          <Input id="full-name" placeholder="John Doe" required />
+          <Input id="full-name" placeholder="John Doe" required value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isLoading} />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="m@example.com" required />
+          <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" required />
+          <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="role">I am a</Label>
-          <Select value={role} onValueChange={setRole}>
+          <Select value={role} onValueChange={setRole} disabled={isLoading}>
             <SelectTrigger id="role">
               <SelectValue placeholder="Select your role" />
             </SelectTrigger>
@@ -74,8 +117,9 @@ export default function RegisterPage() {
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        <Button className="w-full" onClick={handleCreateAccount}>
-          Create Account
+        <Button className="w-full" onClick={handleCreateAccount} disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 animate-spin" />}
+          {isLoading ? 'Creating Account...' : 'Create Account'}
         </Button>
         <div className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
