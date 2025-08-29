@@ -3,13 +3,14 @@
 
 import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Loader2, Sparkles, UploadCloud } from 'lucide-react';
-import { useState } from 'react';
+import { Bot, Camera, Loader2, Sparkles, UploadCloud, Video } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 const MOCK_ESSAY_TEXT =
   "To be or not to be, that is the question. This seminal line from Shakespeare's Hamlet encapsulates the central theme of existential dread and the internal conflict of the protagonist. Hamlet's contemplation of suicide is not merely a moment of weakness, but a profound philosophical inquiry into the nature of life, death, and the afterlife. The play explores the human condition, forcing the audience to confront their own mortality and the choices they make.";
@@ -22,19 +23,76 @@ export function EssaySubmissionForm() {
   const [rubric, setRubric] = useState('');
   const [feedback, setFeedback] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (isCameraOpen) {
+      const getCameraPermission = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          setHasCameraPermission(true);
+
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to use this feature.',
+          });
+          setIsCameraOpen(false);
+        }
+      };
+
+      getCameraPermission();
+    } else {
+      // Stop camera stream when not in use
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
+      }
+    }
+  }, [isCameraOpen, toast]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // In a real app, you would process the file with OCR here.
-      // For this demo, we'll simulate it by setting mock text.
       toast({
         title: 'File Uploaded',
         description:
           'OCR simulation: Essay text has been populated automatically.',
       });
       setEssayText(MOCK_ESSAY_TEXT);
+    }
+  };
+
+  const handleCapture = () => {
+    const video = videoRef.current;
+    if (video) {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // const dataUri = canvas.toDataURL('image/png');
+        // In a real app, you would send this dataUri to an OCR service.
+        // For this demo, we'll simulate it.
+        toast({
+          title: 'Image Captured',
+          description:
+            'OCR simulation: Essay text has been populated automatically.',
+        });
+        setEssayText(MOCK_ESSAY_TEXT);
+        setIsCameraOpen(false);
+      }
     }
   };
 
@@ -76,27 +134,65 @@ export function EssaySubmissionForm() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid w-full max-w-sm items-center gap-1.5">
-            <Label htmlFor="essay-photo">Upload Photo (optional)</Label>
-            <div className="relative">
-              <UploadCloud className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                id="essay-photo"
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="pl-10"
-              />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="essay-photo">Upload Photo</Label>
+              <div className="relative">
+                <UploadCloud className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  id="essay-photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="pl-10"
+                />
+              </div>
+               <p className="text-xs text-muted-foreground">
+                Our OCR will convert it to text.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Our OCR will convert it to text.
-            </p>
+             <div className="space-y-1.5">
+               <Label>Or Use Camera</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => setIsCameraOpen(true)}
+              >
+                <Video className="mr-2 size-4" /> Open Camera
+              </Button>
+               <p className="text-xs text-muted-foreground invisible">
+                Placeholder
+              </p>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="essay-text">Or Paste Essay Text</Label>
+
+           {isCameraOpen && (
+            <div className="space-y-4 rounded-lg border p-4">
+              <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
+              {hasCameraPermission === false && (
+                 <Alert variant="destructive">
+                    <AlertTitle>Camera Access Required</AlertTitle>
+                    <AlertDescription>
+                      Please allow camera access to use this feature. You may need to change permissions in your browser settings.
+                    </AlertDescription>
+                </Alert>
+              )}
+               <div className="flex justify-end gap-2">
+                 <Button variant="secondary" onClick={() => setIsCameraOpen(false)}>Cancel</Button>
+                <Button onClick={handleCapture} disabled={!hasCameraPermission}>
+                  <Camera className="mr-2" />
+                  Capture
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2 pt-4">
+            <Label htmlFor="essay-text">Essay Text</Label>
             <Textarea
               id="essay-text"
-              placeholder="Paste your essay here..."
+              placeholder="Your essay text will appear here after uploading or capturing a photo..."
               rows={10}
               value={essayText}
               onChange={(e) => setEssayText(e.target.value)}
