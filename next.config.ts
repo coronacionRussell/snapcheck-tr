@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const withPWA = require('@ducanh2912/next-pwa').default({
@@ -38,4 +39,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
+const applyPwa = (config: NextConfig) => {
+  // Do not apply PWA wrapper if Turbopack is enabled, as it conflicts.
+  if (process.env.TURBOPACK) {
+    return config;
+  }
+  return withPWA(config);
+}
+
+export default applyPwa(nextConfig);
