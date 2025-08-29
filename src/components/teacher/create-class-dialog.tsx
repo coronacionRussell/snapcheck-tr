@@ -18,13 +18,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Class, ClassContext } from '@/contexts/class-context';
 
-type CreateClassDialogProps = {
-  onClassCreated: (
-    newClass: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>
-  ) => Promise<Class | null>;
-};
-
-export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
+export function CreateClassDialog() {
+  const { onClassCreated } = useContext(ClassContext);
   const [open, setOpen] = useState(false);
   const [className, setClassName] = useState('');
   const [createdClass, setCreatedClass] = useState<Class | null>(null);
@@ -49,7 +44,7 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
         setCreatedClass(result);
       }
     } catch (error) {
-        // Error is already toasted in the layout
+        // Error is already toasted in the provider
     } finally {
       setIsCreating(false);
     }

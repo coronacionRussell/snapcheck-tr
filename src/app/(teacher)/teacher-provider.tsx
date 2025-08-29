@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ClassContext } from '@/contexts/class-context';
 import { Class } from '@/contexts/class-context';
 import { db } from '@/lib/firebase';
@@ -18,29 +18,31 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'classes'));
-        const classesData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Class[];
-        setClasses(classesData);
-      } catch (error) {
-        console.error('Error fetching classes: ', error);
-        toast({
-          title: 'Error',
-          description: 'Could not fetch classes from the database.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchClasses();
+  const fetchClasses = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const querySnapshot = await getDocs(collection(db, 'classes'));
+      const classesData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Class[];
+      setClasses(classesData);
+    } catch (error) {
+      console.error('Error fetching classes: ', error);
+      toast({
+        title: 'Error',
+        description: 'Could not fetch classes from the database.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, [toast]);
+
+
+  useEffect(() => {
+    fetchClasses();
+  }, [fetchClasses]);
 
   const handleClassCreated = async (
     newClassData: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>
@@ -71,7 +73,15 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
 
       await batch.commit();
 
+      // We should re-fetch classes to get the most up-to-date list.
+      // Or simply add the new class to the existing state.
       setClasses((prevClasses) => [...prevClasses, classToAdd]);
+
+      toast({
+          title: 'Class Created!',
+          description: `The class "${classToAdd.name}" has been created.`,
+      })
+
       return classToAdd;
     } catch (error) {
       console.error('Error creating class: ', error);

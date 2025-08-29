@@ -17,7 +17,7 @@ import { ClassContext } from '@/contexts/class-context';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TeacherDashboard() {
-  const { classes, onClassCreated, isLoading } = useContext(ClassContext);
+  const { classes, isLoading } = useContext(ClassContext);
 
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
@@ -28,7 +28,7 @@ export default function TeacherDashboard() {
             Welcome back, here's your teaching overview.
           </p>
         </div>
-        <CreateClassDialog onClassCreated={onClassCreated} />
+        <CreateClassDialog />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

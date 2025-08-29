@@ -26,7 +26,12 @@ type ClassContextType = {
 
 export const ClassContext = createContext<ClassContextType>({
   classes: [],
-  onClassCreated: async () => null,
-  onClassDeleted: async () => {},
+  onClassCreated: async (newClass: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>) => {
+    console.error('onClassCreated not implemented');
+    return null;
+  },
+  onClassDeleted: async (classId: string) => {
+    console.error('onClassDeleted not implemented');
+  },
   isLoading: true,
 });
