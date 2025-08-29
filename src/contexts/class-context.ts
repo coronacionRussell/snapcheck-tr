@@ -25,9 +25,11 @@ export const initialClasses: Class[] = [
 type ClassContextType = {
   classes: Class[];
   onClassCreated: (newClass: Class) => void;
+  onClassDeleted: (classId: string) => void;
 };
 
 export const ClassContext = createContext<ClassContextType>({
   classes: initialClasses,
   onClassCreated: () => {},
+  onClassDeleted: () => {},
 });

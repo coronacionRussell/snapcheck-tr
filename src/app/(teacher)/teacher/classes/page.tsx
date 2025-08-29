@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useContext } from 'react';
-import { Users, FileText } from 'lucide-react';
+import { Users, FileText, Trash2 } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -11,9 +11,21 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { ClassContext } from '@/contexts/class-context';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function ClassesPage() {
-  const { classes } = useContext(ClassContext);
+  const { classes, onClassDeleted } = useContext(ClassContext);
 
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
@@ -28,20 +40,54 @@ export default function ClassesPage() {
         {classes.map((c) => (
           <Card key={c.id}>
             <CardHeader>
-              <CardTitle className="font-headline">
-                <Link href={`/teacher/classes/${c.id}`} className="hover:underline">{c.name}</Link>
-              </CardTitle>
-              <CardDescription>Class Code: {c.id}</CardDescription>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="font-headline pr-2">
+                    <Link
+                      href={`/teacher/classes/${c.id}`}
+                      className="hover:underline"
+                    >
+                      {c.name}
+                    </Link>
+                  </CardTitle>
+                  <CardDescription>Class Code: {c.id}</CardDescription>
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-8 shrink-0">
+                      <Trash2 className="size-4 text-destructive" />
+                      <span className="sr-only">Delete class</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete the class "{c.name}" and all associated data. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => onClassDeleted(c.id)}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </CardHeader>
             <CardContent className="grid gap-4">
-               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="size-4" />
-                  <span>{c.studentCount} Students</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <FileText className="size-4" />
-                  <span>{c.pendingSubmissions} Submissions Pending</span>
-                </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="size-4" />
+                <span>{c.studentCount} Students</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <FileText className="size-4" />
+                <span>{c.pendingSubmissions} Submissions Pending</span>
+              </div>
             </CardContent>
           </Card>
         ))}

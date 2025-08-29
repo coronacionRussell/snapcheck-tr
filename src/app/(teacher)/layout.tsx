@@ -18,8 +18,12 @@ export default function TeacherLayout({
     setClasses((prevClasses) => [...prevClasses, newClass]);
   };
 
+  const handleClassDeleted = (classId: string) => {
+    setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
+    };
+
   return (
-    <ClassContext.Provider value={{ classes, onClassCreated: handleClassCreated }}>
+    <ClassContext.Provider value={{ classes, onClassCreated: handleClassCreated, onClassDeleted: handleClassDeleted }}>
       <SidebarProvider>
         <Sidebar>
           <TeacherSidebar />
