@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -10,32 +11,97 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus } from 'lucide-react';
-import { Skeleton } from '../ui/skeleton';
+import { Plus, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import {
+  doc,
+  getDoc,
+  writeBatch,
+  collection,
+  increment,
+} from 'firebase/firestore';
 
 export function JoinClassCard() {
-  const [isMounted, setIsMounted] = useState(false);
+  const [classCode, setClassCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const handleJoinClass = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!classCode.trim()) {
+      toast({
+        title: 'Class Code Required',
+        description: 'Please enter a class code to join.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsLoading(true);
 
-  if (!isMounted) {
-    return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-        </CardHeader>
-        <CardContent>
-          <div className="flex w-full items-center space-x-2">
-            <Skeleton className="h-10 flex-1" />
-            <Skeleton className="h-10 w-20" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+    try {
+      const classRef = doc(db, 'classes', classCode.trim());
+      const classDoc = await getDoc(classRef);
+
+      if (!classDoc.exists()) {
+        toast({
+          title: 'Invalid Class Code',
+          description:
+            'The class code you entered does not exist. Please check with your teacher.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // In a real app, studentId would come from auth state.
+      const studentId = 'student-alex-doe'; 
+      const studentName = 'Alex Doe';
+
+      const studentRef = doc(db, `classes/${classCode.trim()}/students`, studentId);
+      const studentDoc = await getDoc(studentRef);
+
+      if (studentDoc.exists()) {
+        toast({
+            title: 'Already Enrolled',
+            description: 'You are already enrolled in this class.',
+        });
+        return;
+      }
+
+      const batch = writeBatch(db);
+      
+      // Add student to the students subcollection
+      batch.set(studentRef, {
+        name: studentName,
+        joinedAt: new Date(),
+      });
+
+      // Increment the studentCount on the class document
+      batch.update(classRef, {
+        studentCount: increment(1),
+      });
+
+      await batch.commit();
+
+      toast({
+        title: 'Success!',
+        description: `You have successfully joined the class "${classDoc.data().name}".`,
+      });
+
+      // TODO: Re-fetch enrolled classes list to update the UI
+      setClassCode('');
+
+    } catch (error) {
+      console.error('Error joining class:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not join the class. Please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Card>
@@ -46,15 +112,23 @@ export function JoinClassCard() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form>
+        <form onSubmit={handleJoinClass}>
           <div className="flex w-full items-center space-x-2">
             <Input
               type="text"
               placeholder="Class Code"
               className="font-code tracking-wider"
+              value={classCode}
+              onChange={(e) => setClassCode(e.target.value)}
+              disabled={isLoading}
             />
-            <Button type="submit">
-              <Plus className="mr-2 size-4" /> Join
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <Plus className="mr-2 size-4" />
+              )}
+              Join
             </Button>
           </div>
         </form>
