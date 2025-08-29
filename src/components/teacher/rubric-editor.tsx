@@ -1,28 +1,45 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Save } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export function RubricEditor({ classId, initialRubric }: { classId: string; initialRubric: string }) {
   const [rubricText, setRubricText] = useState(initialRubric);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
+  // Update state if the initial rubric changes (e.g., after fetching)
+  useEffect(() => {
+    setRubricText(initialRubric);
+  }, [initialRubric]);
+
   const handleSaveChanges = async () => {
     setIsSaving(true);
-    // In a real app, you would save this to your database, associated with the classId.
-    // We'll simulate a save with a timeout.
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    toast({
-      title: 'Rubric Saved',
-      description: `The rubric for class ${classId} has been updated successfully.`,
-    });
+    try {
+      const rubricRef = doc(db, 'rubrics', classId);
+      await setDoc(rubricRef, { content: rubricText });
+      toast({
+        title: 'Rubric Saved',
+        description: `The rubric for this class has been updated successfully.`,
+      });
+    } catch (error) {
+      console.error('Error saving rubric: ', error);
+      toast({
+        title: 'Error',
+        description: 'Could not save the rubric. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -47,7 +64,11 @@ export function RubricEditor({ classId, initialRubric }: { classId: string; init
         </div>
         <div className="flex justify-end">
           <Button onClick={handleSaveChanges} disabled={isSaving}>
-            <Save className="mr-2" />
+            {isSaving ? (
+              <Loader2 className="mr-2 animate-spin" />
+            ) : (
+              <Save className="mr-2" />
+            )}
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>

@@ -1,4 +1,6 @@
 
+'use client';
+
 import {
   Table,
   TableBody,
@@ -15,25 +17,19 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
+import { useEffect, useState } from 'react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Skeleton } from '../ui/skeleton';
 
-const MOCK_ROSTER: { [key: string]: any[] } = {
-  ENG101: [
-    { id: 'STU001', name: 'Alice Johnson', status: 'Graded', grade: '88/100' },
-    { id: 'STU002', name: 'Charlie Brown', status: 'Pending Review' },
-    { id: 'STU003', name: 'Diana Miller', status: 'Pending Review' },
-    { id: 'STU004', name: 'Ethan Hunt', status: 'Not Submitted' },
-    { id: 'STU005', name: 'Fiona Glenanne', status: 'Graded', grade: '95/100' },
-  ],
-  WRI202: [
-    { id: 'STU006', name: 'Bob Williams', status: 'Pending Review' },
-    { id: 'STU007', name: 'Grace Turner', status: 'Not Submitted' },
-    { id: 'STU008', name: 'Henry White', status: 'Graded', grade: 'A-' },
-  ],
-  HIS301: [
-    { id: 'STU009', name: 'Ivy Green', status: 'Not Submitted' },
-    { id: 'STU010', name: 'Jack Black', status: 'Not Submitted' },
-  ],
-};
+// This will be expanded later
+interface Student {
+    id: string;
+    name: string;
+    // For now, we'll keep these statuses hardcoded
+    status: 'Not Submitted' | 'Pending Review' | 'Graded';
+    grade?: string;
+}
 
 const getStatusVariant = (status: string) => {
     switch (status) {
@@ -49,7 +45,26 @@ const getStatusVariant = (status: string) => {
 }
 
 export function ClassRoster({ classId }: { classId: string }) {
-  const roster = MOCK_ROSTER[classId] || [];
+  const [roster, setRoster] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRoster = async () => {
+        setIsLoading(true);
+        // In a real app, you would have a 'students' collection
+        // and query for students where `classId` matches.
+        // For now, we will simulate this by keeping an empty roster.
+        // const studentsCollection = collection(db, 'students');
+        // const q = query(studentsCollection, where("classId", "==", classId));
+        // const querySnapshot = await getDocs(q);
+        // const studentData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Student[];
+        // setRoster(studentData);
+        setRoster([]); // Keeping this empty until student enrollment is implemented
+        setIsLoading(false);
+    }
+
+    fetchRoster();
+  }, [classId]);
 
   return (
     <Card>
@@ -69,7 +84,16 @@ export function ClassRoster({ classId }: { classId: string }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {roster.length > 0 ? (
+            {isLoading ? (
+                <TableRow>
+                    <TableCell colSpan={3}>
+                        <div className="space-y-2">
+                           <Skeleton className="h-4 w-full" />
+                           <Skeleton className="h-4 w-full" />
+                        </div>
+                    </TableCell>
+                </TableRow>
+            ) : roster.length > 0 ? (
               roster.map((student) => (
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">{student.name}</TableCell>

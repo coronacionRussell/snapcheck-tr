@@ -6,9 +6,9 @@ import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar'
 import TeacherSidebar from '@/components/teacher/teacher-sidebar';
 import DashboardHeader from '@/components/dashboard-header';
 import { ClassContext } from '@/contexts/class-context';
-import { Class, ClassFromFirestore } from '@/contexts/class-context';
+import { Class } from '@/contexts/class-context';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -47,14 +47,26 @@ export default function TeacherLayout({
 
   const handleClassCreated = async (newClassData: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>) => {
     try {
+      const batch = writeBatch(db);
+      
       const classToAdd = {
         ...newClassData,
         studentCount: 0,
         pendingSubmissions: 0,
       }
-      const docRef = await addDoc(collection(db, 'classes'), classToAdd);
-      setClasses((prevClasses) => [...prevClasses, { id: docRef.id, ...classToAdd }]);
-      return { id: docRef.id, ...classToAdd };
+      
+      const classDocRef = doc(collection(db, 'classes'));
+      batch.set(classDocRef, classToAdd);
+      
+      const rubricDocRef = doc(db, 'rubrics', classDocRef.id);
+      batch.set(rubricDocRef, { content: '' });
+
+      await batch.commit();
+
+      const newClass = { id: classDocRef.id, ...classToAdd };
+      setClasses((prevClasses) => [...prevClasses, newClass]);
+      return newClass;
+
     } catch (error) {
       console.error('Error creating class: ', error);
        toast({
@@ -68,7 +80,18 @@ export default function TeacherLayout({
 
   const handleClassDeleted = async (classId: string) => {
     try {
-      await deleteDoc(doc(db, 'classes', classId));
+      const batch = writeBatch(db);
+
+      const classDocRef = doc(db, 'classes', classId);
+      batch.delete(classDocRef);
+
+      const rubricDocRef = doc(db, 'rubrics', classId);
+      batch.delete(rubricDocRef);
+
+      // We can also delete students subcollection here in the future
+
+      await batch.commit();
+      
       setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
       toast({
         title: 'Success',
