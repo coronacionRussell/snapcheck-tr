@@ -1,3 +1,6 @@
+
+'use client';
+
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -14,39 +17,72 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const grades: any[] = [
-  // {
-  //   id: 'GRD001',
-  //   assignment: 'Hamlet Analysis Essay',
-  //   class: 'English Literature 101',
-  //   grade: '88/100',
-  //   status: 'Graded',
-  // },
-  // {
-  //   id: 'GRD002',
-  //   assignment: 'Rhetorical Strategies Paper',
-  //   class: 'Advanced Composition',
-  //   grade: '-',
-  //   status: 'Pending',
-  // },
-  // {
-  //   id: 'GRD003',
-  //   assignment: 'The Great Gatsby: Symbolism Essay',
-  //   class: 'English Literature 101',
-  //   grade: '92/100',
-  //   status: 'Graded',
-  // },
-  // {
-  //   id: 'GRD004',
-  //   assignment: 'Research Proposal',
-  //   class: 'Advanced Composition',
-  //   grade: 'A-',
-  //   status: 'Graded',
-  // },
-];
+interface Grade {
+  id: string;
+  assignment: string;
+  class: string;
+  grade: string;
+  status: 'Graded' | 'Pending Review';
+}
+
 
 export default function StudentGradesPage() {
+  const [grades, setGrades] = useState<Grade[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchGrades = async () => {
+      setIsLoading(true);
+      try {
+        const studentId = 'student-alex-doe';
+
+        const classesSnapshot = await getDocs(collection(db, 'classes'));
+        const gradesData: Grade[] = [];
+
+        for (const classDoc of classesSnapshot.docs) {
+          const studentSubcollectionDoc = await getDoc(doc(db, `classes/${classDoc.id}/students`, studentId));
+
+          if(studentSubcollectionDoc.exists()){
+             const submissionsQuery = query(
+              collection(db, 'classes', classDoc.id, 'submissions'),
+              where('studentId', '==', studentId)
+            );
+
+            const submissionsSnapshot = await getDocs(submissionsQuery);
+            submissionsSnapshot.forEach(submissionDoc => {
+                const data = submissionDoc.data();
+                gradesData.push({
+                    id: submissionDoc.id,
+                    assignment: 'Essay Submission',
+                    class: classDoc.data().name,
+                    grade: data.grade || '-',
+                    status: data.status,
+                });
+            });
+          }
+        }
+        setGrades(gradesData);
+      } catch (error) {
+        console.error("Error fetching grades: ", error);
+        toast({
+          title: 'Error',
+          description: 'Could not fetch your grades.',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchGrades();
+  }, [toast]);
+
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
       <div>
@@ -64,7 +100,13 @@ export default function StudentGradesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {grades.length > 0 ? (
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          ) : grades.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>

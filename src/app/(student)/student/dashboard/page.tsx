@@ -19,9 +19,9 @@ import {
 } from '@/components/ui/table';
 import { BookOpen, Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, limit } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -33,60 +33,95 @@ const JoinClassCard = dynamic(
 interface EnrolledClass {
     id: string;
     name: string;
-    teacher: string; // We'll add this later
+    teacher: string;
+}
+
+interface RecentGrade {
+    id: string;
+    assignment: string; // We'll use the class name for now
+    class: string;
+    grade: string;
+    status: 'Graded' | 'Pending Review';
 }
 
 
-const recentGrades: any[] = [];
-
 export default function StudentDashboard() {
   const [enrolledClasses, setEnrolledClasses] = useState<EnrolledClass[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [recentGrades, setRecentGrades] = useState<RecentGrade[]>([]);
+  const [isClassesLoading, setIsClassesLoading] = useState(true);
+  const [isGradesLoading, setIsGradesLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchEnrolledClasses = async () => {
-      setIsLoading(true);
-      try {
-        // In a real app, studentId would come from auth state.
-        const studentId = 'student-alex-doe'; 
+  // Using useCallback to prevent re-creation of the function on each render
+  const fetchStudentData = useCallback(async () => {
+    setIsClassesLoading(true);
+    setIsGradesLoading(true);
+    try {
+      // In a real app, studentId would come from auth state.
+      const studentId = 'student-alex-doe';
 
-        // This is not the most efficient query, but it works for this prototype.
-        // A better structure would be a user document with a list of class IDs.
-        const classesCollection = collection(db, 'classes');
-        const classesSnapshot = await getDocs(classesCollection);
-        
-        const classesData: EnrolledClass[] = [];
+      // Fetch all classes
+      const classesCollection = collection(db, 'classes');
+      const classesSnapshot = await getDocs(classesCollection);
+      const allClasses = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string, name: string }));
+      
+      const classesData: EnrolledClass[] = [];
+      const gradesData: RecentGrade[] = [];
 
-        for (const classDoc of classesSnapshot.docs) {
-            const studentDocRef = doc(db, `classes/${classDoc.id}/students`, studentId);
-            const studentDoc = await getDoc(studentDocRef);
+      // Find which classes the student is in and fetch their submissions
+      for (const classInfo of allClasses) {
+          const studentDocRef = doc(db, `classes/${classInfo.id}/students`, studentId);
+          const studentDoc = await getDoc(studentDocRef);
 
-            if (studentDoc.exists()) {
-                // In a real app, teacher name would be stored on the class document
-                classesData.push({
-                    id: classDoc.id,
-                    name: classDoc.data().name,
-                    teacher: 'Teacher Name', 
+          if (studentDoc.exists()) {
+              classesData.push({
+                  id: classInfo.id,
+                  name: classInfo.name,
+                  teacher: 'Teacher Name', // Placeholder
+              });
+              
+              // Fetch recent graded submissions for this class
+              const submissionsQuery = query(
+                collection(db, 'classes', classInfo.id, 'submissions'),
+                where('studentId', '==', studentId),
+                where('status', '==', 'Graded'),
+                limit(5) 
+              );
+              const submissionsSnapshot = await getDocs(submissionsQuery);
+              submissionsSnapshot.forEach(submissionDoc => {
+                const data = submissionDoc.data();
+                gradesData.push({
+                    id: submissionDoc.id,
+                    assignment: 'Essay Submission', // Placeholder, could be improved
+                    class: classInfo.name,
+                    grade: data.grade,
+                    status: data.status,
                 });
-            }
-        }
-        setEnrolledClasses(classesData);
-
-      } catch (error) {
-        console.error("Error fetching enrolled classes: ", error);
-        toast({
-            title: 'Error',
-            description: 'Could not fetch your classes.',
-            variant: 'destructive',
-        })
-      } finally {
-        setIsLoading(false);
+              });
+          }
       }
-    };
 
-    fetchEnrolledClasses();
+      setEnrolledClasses(classesData);
+      // Sort grades by date (most recent first) - assuming submission doc has a timestamp
+      // For now, we don't have a reliable timestamp, so we'll just set them.
+      setRecentGrades(gradesData);
+
+    } catch (error) {
+      console.error("Error fetching student data: ", error);
+      toast({
+          title: 'Error',
+          description: 'Could not fetch your classes or grades.',
+          variant: 'destructive',
+      })
+    } finally {
+      setIsClassesLoading(false);
+      setIsGradesLoading(false);
+    }
   }, [toast]);
+
+  useEffect(() => {
+    fetchStudentData();
+  }, [fetchStudentData]);
 
 
   return (
@@ -105,7 +140,7 @@ export default function StudentDashboard() {
               <CardTitle className="font-headline">My Classes</CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {isClassesLoading ? (
                  <div className="space-y-4">
                     {[...Array(2)].map((_, i) => (
                         <div key={i} className="flex items-center justify-between rounded-lg border p-4">
@@ -153,11 +188,7 @@ export default function StudentDashboard() {
         </div>
 
         <div className="lg:col-span-2">
-          <JoinClassCard onClassJoined={() => {
-            // This is a temporary solution to refresh the class list.
-            // A more robust solution would use a state management library.
-            window.location.reload();
-          }} />
+          <JoinClassCard onClassJoined={fetchStudentData} />
         </div>
       </div>
 
@@ -169,7 +200,12 @@ export default function StudentDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-           {recentGrades.length > 0 ? (
+           {isGradesLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : recentGrades.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
