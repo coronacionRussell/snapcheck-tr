@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,10 +12,18 @@ import { Save } from 'lucide-react';
 
 export default function StudentSettingsPage() {
   const { toast } = useToast();
-  const [name, setName] = useState('Alex Doe');
-  const [email, setEmail] = useState('alex.doe@example.com');
-  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailNotifications, setEmailNotifications] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(false);
+
+  useEffect(() => {
+    // Set initial values on client-side to avoid hydration mismatch
+    setName('Alex Doe');
+    setEmail('alex.doe@example.com');
+    setEmailNotifications(true);
+    setPushNotifications(false);
+  }, []);
 
   const handleSaveChanges = () => {
     // In a real app, you'd save these settings to Firestore or a backend.
