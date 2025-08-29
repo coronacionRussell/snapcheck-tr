@@ -8,34 +8,62 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Save } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function TeacherSettingsPage() {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [weeklySummary, setWeeklySummary] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
-    setName('Ms. Davis');
-    setEmail('teacher.davis@example.com');
-    setEmailNotifications(true);
-    setWeeklySummary(false);
-  }, []);
+    if (user) {
+      setName(user.fullName);
+      setEmail(user.email);
+      // Mocked preferences for now
+      setEmailNotifications(true);
+      setWeeklySummary(false);
+    }
+  }, [user]);
 
-  const handleSaveChanges = () => {
-    console.log('Saving settings:', { name, email, emailNotifications, weeklySummary });
-    toast({
-      title: 'Settings Saved',
-      description: 'Your profile and notification preferences have been updated.',
-    });
+  const handleSaveChanges = async () => {
+    if (!user) {
+      toast({ title: 'Not authenticated', variant: 'destructive' });
+      return;
+    }
+    if (!name.trim()) {
+        toast({ title: "Name cannot be empty", variant: 'destructive' });
+        return;
+    }
+
+    setIsSaving(true);
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        fullName: name,
+      });
+      console.log('Saving settings:', { name, email, emailNotifications, weeklySummary });
+      toast({
+        title: 'Settings Saved',
+        description: 'Your profile and notification preferences have been updated.',
+      });
+    } catch (error) {
+      console.error("Error saving settings: ", error);
+      toast({ title: "Error", description: "Could not save your settings.", variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  if (!isClient) {
+  if (isAuthLoading) {
     return (
       <div className="grid flex-1 items-start gap-4 md:gap-8">
         <div>
@@ -94,11 +122,11 @@ export default function TeacherSettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} disabled={isSaving} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input id="email" type="email" value={email} disabled readOnly />
             </div>
           </CardContent>
         </Card>
@@ -118,7 +146,7 @@ export default function TeacherSettingsPage() {
                   Receive an email when a student submits a new essay.
                 </p>
               </div>
-              <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
+              <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} disabled={isSaving} />
             </div>
              <div className="flex items-center justify-between rounded-lg border p-4">
               <div>
@@ -127,15 +155,15 @@ export default function TeacherSettingsPage() {
                   Get a weekly email summarizing class activity.
                 </p>
               </div>
-              <Switch checked={weeklySummary} onCheckedChange={setWeeklySummary} />
+              <Switch checked={weeklySummary} onCheckedChange={setWeeklySummary} disabled={isSaving}/>
             </div>
           </CardContent>
         </Card>
 
          <div className="flex justify-end">
-            <Button onClick={handleSaveChanges}>
-                <Save className="mr-2" />
-                Save Changes
+            <Button onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
+                {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
         </div>
       </div>

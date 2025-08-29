@@ -3,12 +3,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Settings } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { LogOut, Settings } from 'lucide-react';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -23,88 +22,42 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from './ui/skeleton';
 
-interface AppUser {
-  fullName: string;
-  email: string;
-  role: 'student' | 'teacher';
-}
-
 export function UserNav() {
-  const [isMounted, setIsMounted] = useState(false);
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
-  const settingsPath = user?.role === 'student' ? '/student/settings' : '/teacher/settings';
-
-  useEffect(() => {
-    setIsMounted(true);
-
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setFirebaseUser(user);
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          setUser(userDoc.data() as AppUser);
-        } else {
-          setUser(null);
-        }
-      } else {
-        setFirebaseUser(null);
-        setUser(null);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogout = () => {
-    (async () => {
-        try {
-          await signOut(auth);
-          router.push('/login');
-          toast({
-            title: 'Logged Out',
-            description: 'You have been successfully logged out.',
-          });
-        } catch (error) {
-          toast({
-            title: 'Logout Failed',
-            description: 'An error occurred while logging out.',
-            variant: 'destructive',
-          });
-        }
-    })();
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // The useAuth hook will handle redirecting and state changes.
+      router.push('/login');
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  if (!isMounted) {
+  if (isLoading) {
     return <Skeleton className="size-8 rounded-full" />;
   }
-  
-  if (!firebaseUser || !user) {
-     return (
-       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative size-8 rounded-full">
-            <Avatar className="size-8">
-              <AvatarFallback>?</AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
-           <DropdownMenuItem asChild>
-              <Link href="/login">
-                <LogOut className="mr-2 size-4" />
-                <span>Login</span>
-              </Link>
-            </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-     )
+
+  if (!user) {
+    return (
+      <Button asChild variant="outline">
+        <Link href="/login">Login</Link>
+      </Button>
+    );
   }
+
+  const settingsPath = user.role === 'teacher' ? '/teacher/settings' : '/student/settings';
 
   return (
     <DropdownMenu>
@@ -139,8 +92,8 @@ export function UserNav() {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-            <LogOut className="mr-2 size-4" />
-            <span>Log out</span>
+          <LogOut className="mr-2 size-4" />
+          <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
