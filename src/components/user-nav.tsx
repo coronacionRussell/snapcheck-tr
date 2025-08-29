@@ -1,9 +1,8 @@
+'use client';
+
 import Link from 'next/link';
-import {
-  LogOut,
-  User,
-  Settings,
-} from 'lucide-react';
+import { LogOut, User, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -16,14 +15,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from './ui/skeleton';
 
 export function UserNav() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return <Skeleton className="size-8 rounded-full" />;
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative size-8 rounded-full">
           <Avatar className="size-8">
-            <AvatarImage src="https://picsum.photos/id/237/100/100" alt="User avatar" data-ai-hint="person avatar" />
+            <AvatarImage
+              src="https://picsum.photos/id/237/100/100"
+              alt="User avatar"
+              data-ai-hint="person avatar"
+            />
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
         </Button>
