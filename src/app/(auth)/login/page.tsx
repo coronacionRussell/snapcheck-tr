@@ -1,7 +1,8 @@
+
 'use client';
 
 import Link from 'next/link';
-
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -14,8 +15,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/logo';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function LoginPage() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="w-full max-w-sm">
+        <Skeleton className="h-[480px] w-full" />
+      </div>
+    );
+  }
+
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="text-center">
