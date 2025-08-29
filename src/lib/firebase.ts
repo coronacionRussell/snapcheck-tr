@@ -9,8 +9,7 @@ const firebaseConfig = {
   "storageBucket": "snapcheck-7jrhc.firebasestorage.app",
   "apiKey": "AIzaSyBrfQahV6yO9jGQfO3ORnbI065qcSk1N2w",
   "authDomain": "snapcheck-7jrhc.firebaseapp.com",
-  "messagingSenderId": "782806426721",
-  "measurementId": ""
+  "messagingSenderId": "782806426721"
 };
 
 // Initialize Firebase
