@@ -136,7 +136,7 @@ export default function AdminDashboard() {
                       <Button 
                         size="sm"
                         onClick={() => handleVerifyTeacher(teacher.uid, !!teacher.isVerified)}
-                        disabled={isVerifying === teacher.uid || !teacher.verificationIdUrl}
+                        disabled={isVerifying === teacher.uid}
                         variant={teacher.isVerified ? 'secondary' : 'default'}
                       >
                          {isVerifying === teacher.uid && <Loader2 className="mr-2 size-4 animate-spin" />}
