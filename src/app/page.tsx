@@ -90,10 +90,10 @@ export default function Home() {
             </div>
             <div className="relative">
               <Image
-                src="https://picsum.photos/seed/studious-dog/600/400"
-                width={600}
-                height={400}
-                alt="A dog wearing glasses, appearing to study"
+                src="https://media.istockphoto.com/id/469090060/photo/smart-jack-russell-terrier.jpg?s=612x612&w=0&k=20&c=jr3vERTtcaXUjn5rYtW3KiixND9CWBrNvZr-ogfyowo="
+                width={612}
+                height={612}
+                alt="A smart Jack Russell Terrier wearing glasses and a bow tie"
                 data-ai-hint="dog studying"
                 className="rounded-lg object-cover shadow-2xl"
               />
