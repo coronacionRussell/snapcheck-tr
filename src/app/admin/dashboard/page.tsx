@@ -24,7 +24,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, FileBadge } from 'lucide-react';
+import Link from 'next/link';
 
 
 export default function AdminDashboard() {
@@ -38,7 +39,7 @@ export default function AdminDashboard() {
         const q = query(usersCollection, where('role', '==', 'teacher'));
     
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const teachersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as AppUser[];
+            const teachersData = querySnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as AppUser[];
             setTeachers(teachersData);
             setIsLoading(false);
         }, (error) => {
@@ -90,6 +91,7 @@ export default function AdminDashboard() {
               <TableRow>
                 <TableHead>Full Name</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Verification ID</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
@@ -98,7 +100,7 @@ export default function AdminDashboard() {
               {isLoading ? (
                 [...Array(3)].map((_, i) => (
                     <TableRow key={i}>
-                        <TableCell colSpan={4}>
+                        <TableCell colSpan={5}>
                             <Skeleton className="h-4 w-full" />
                         </TableCell>
                     </TableRow>
@@ -108,6 +110,18 @@ export default function AdminDashboard() {
                   <TableRow key={teacher.uid}>
                     <TableCell className="font-medium">{teacher.fullName}</TableCell>
                     <TableCell>{teacher.email}</TableCell>
+                    <TableCell>
+                        {teacher.verificationIdUrl ? (
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={teacher.verificationIdUrl} target="_blank" rel="noopener noreferrer">
+                                    <FileBadge className="mr-2 size-4" />
+                                    View ID
+                                </Link>
+                            </Button>
+                        ) : (
+                            <span className="text-muted-foreground text-sm">Not provided</span>
+                        )}
+                    </TableCell>
                     <TableCell>
                         {teacher.isVerified ? (
                             <Badge>
@@ -122,7 +136,7 @@ export default function AdminDashboard() {
                       <Button 
                         size="sm"
                         onClick={() => handleVerifyTeacher(teacher.uid, !!teacher.isVerified)}
-                        disabled={isVerifying === teacher.uid}
+                        disabled={isVerifying === teacher.uid || !teacher.verificationIdUrl}
                         variant={teacher.isVerified ? 'secondary' : 'default'}
                       >
                          {isVerifying === teacher.uid && <Loader2 className="mr-2 size-4 animate-spin" />}
@@ -133,7 +147,7 @@ export default function AdminDashboard() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center">
+                  <TableCell colSpan={5} className="text-center">
                     No teachers have registered yet.
                   </TableCell>
                 </TableRow>

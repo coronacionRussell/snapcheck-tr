@@ -54,6 +54,19 @@ export default function LoginPage() {
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
+        
+        if (userData.role === 'teacher' && !userData.isVerified) {
+             toast({
+                title: 'Verification Pending',
+                description: "Your account is pending verification. You cannot log in until an administrator approves your account.",
+                variant: 'destructive',
+                duration: 9000,
+            });
+             await auth.signOut(); // Log them out
+             setIsLoading(false);
+             return;
+        }
+        
         toast({
           title: 'Login Successful!',
           description: `Welcome back, ${userData.fullName}.`,
@@ -61,6 +74,8 @@ export default function LoginPage() {
 
         if (userData.role === 'teacher') {
           router.push('/teacher/dashboard');
+        } else if (userData.role === 'admin') {
+          router.push('/admin/dashboard');
         } else {
           router.push('/student/dashboard');
         }

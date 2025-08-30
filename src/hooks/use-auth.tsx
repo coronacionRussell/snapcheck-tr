@@ -13,6 +13,7 @@ export interface AppUser {
   email: string;
   role: 'student' | 'teacher' | 'admin';
   isVerified?: boolean;
+  verificationIdUrl?: string;
 }
 
 export function useAuth() {
@@ -58,6 +59,13 @@ export function useAuth() {
     const isAppPage = pathname.startsWith('/student') || pathname.startsWith('/teacher') || pathname.startsWith('/admin');
 
     if (user) {
+       // If a teacher is not verified, they should be stuck on the login page with a message
+      if (user.role === 'teacher' && !user.isVerified && !isAuthPage) {
+        // Allow them to be on the login page to see any toasts, but redirect from anywhere else
+        router.replace('/login');
+        return;
+      }
+      
       // User is logged in
       let targetDashboard = '/';
       if (user.role === 'admin') {
@@ -75,7 +83,7 @@ export function useAuth() {
       } else if (user.role === 'student' && !pathname.startsWith('/student')) {
          if (isAppPage) router.replace(targetDashboard);
       } else if (user.role === 'admin' && !pathname.startsWith('/admin')) {
-         if (isAppPage) router.replace(targetDashboard);
+         if.isAppPage) router.replace(targetDashboard);
       }
 
     } else {
