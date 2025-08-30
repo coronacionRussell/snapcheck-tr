@@ -2,6 +2,7 @@
 'use client';
 
 import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
+import { scanEssay } from '@/ai/flows/scan-essay';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, Camera, Loader2, Sparkles, UploadCloud, Video } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
@@ -14,9 +15,6 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-
-const MOCK_ESSAY_TEXT =
-  "To be or not to be, that is the question. This seminal line from Shakespeare's Hamlet encapsulates the central theme of existential dread and the internal conflict of the protagonist. Hamlet's contemplation of suicide is not merely a moment of weakness, but a profound philosophical inquiry into the nature of life, death, and the afterlife. The play explores the human condition, forcing the audience to confront their own mortality and the choices they make.";
 
 interface EnrolledClass {
     id: string;
@@ -32,6 +30,7 @@ export function EssaySubmissionForm() {
   const [isRubricLoading, setIsRubricLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -117,7 +116,6 @@ export function EssaySubmissionForm() {
   useEffect(() => {
     const getCameraPermission = async () => {
       try {
-        // Prefer the rear camera
         const constraints = {
             video: {
                 facingMode: 'environment'
@@ -128,7 +126,6 @@ export function EssaySubmissionForm() {
         try {
            stream = await navigator.mediaDevices.getUserMedia(constraints);
         } catch (err) {
-            // If environment camera fails, fall back to any camera
             console.warn("Could not get environment camera, falling back to default");
             stream = await navigator.mediaDevices.getUserMedia({ video: true });
         }
@@ -161,15 +158,43 @@ export function EssaySubmissionForm() {
     }
   }, [isCameraOpen, toast]);
 
+  const processImage = async (imageDataUri: string) => {
+    setIsScanning(true);
+    setEssayText('');
+    try {
+        toast({
+            title: 'Scanning Essay...',
+            description: 'The AI is extracting text from your image. This may take a moment.'
+        });
+        const result = await scanEssay({ imageDataUri });
+        setEssayText(result.extractedText);
+        toast({
+            title: 'Scan Complete!',
+            description: 'The extracted text has been added to the text area.'
+        });
+    } catch (error) {
+        console.error("Error scanning essay: ", error);
+        toast({
+            title: 'Scan Failed',
+            description: 'Could not extract text from the image. Please try again with a clearer photo.',
+            variant: 'destructive'
+        });
+    } finally {
+        setIsScanning(false);
+    }
+  }
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      toast({
-        title: 'File Uploaded',
-        description:
-          'OCR simulation: Essay text has been populated automatically.',
-      });
-      setEssayText(MOCK_ESSAY_TEXT);
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        const dataUri = loadEvent.target?.result as string;
+        if (dataUri) {
+            processImage(dataUri);
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -182,12 +207,8 @@ export function EssaySubmissionForm() {
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        toast({
-          title: 'Image Captured',
-          description:
-            'OCR simulation: Essay text has been populated automatically.',
-        });
-        setEssayText(MOCK_ESSAY_TEXT);
+        const dataUri = canvas.toDataURL('image/jpeg');
+        processImage(dataUri);
         setIsCameraOpen(false);
       }
     }
@@ -250,7 +271,6 @@ export function EssaySubmissionForm() {
 
     setIsSubmitting(true);
     try {
-      // In a real app, student ID and name would come from auth state.
       const studentId = 'student-alex-doe'; 
       const studentName = 'Alex Doe';
 
@@ -268,7 +288,6 @@ export function EssaySubmissionForm() {
         description: 'Your teacher has received your essay for grading.',
       });
       
-      // Reset form
       setEssayText('');
       setFeedback('');
       setSelectedClass(null);
@@ -329,10 +348,11 @@ export function EssaySubmissionForm() {
                   accept="image/*"
                   onChange={handleFileUpload}
                   className="pl-10"
+                  disabled={isScanning || isSubmitting || isLoading}
                 />
               </div>
                <p className="text-xs text-muted-foreground">
-                Our OCR will convert it to text.
+                Our AI will convert it to text.
               </p>
             </div>
              <div className="space-y-1.5">
@@ -342,6 +362,7 @@ export function EssaySubmissionForm() {
                 variant="outline"
                 className="w-full"
                 onClick={() => setIsCameraOpen(true)}
+                 disabled={isScanning || isSubmitting || isLoading}
               >
                 <Video className="mr-2 size-4" /> Open Camera
               </Button>
@@ -376,12 +397,13 @@ export function EssaySubmissionForm() {
             <Label htmlFor="essay-text">Essay Text</Label>
             <Textarea
               id="essay-text"
-              placeholder="Your essay text will appear here after uploading or capturing a photo..."
+              placeholder={isScanning ? "Scanning... please wait." : "Your essay text will appear here after uploading or capturing a photo..."}
               rows={10}
               value={essayText}
               onChange={(e) => setEssayText(e.target.value)}
               required
               className="font-code"
+              disabled={isScanning}
             />
           </div>
         </CardContent>
@@ -407,7 +429,7 @@ export function EssaySubmissionForm() {
       </Card>
 
       <div className="flex flex-col gap-4 sm:flex-row">
-         <Button type="button" size="lg" className="flex-1" disabled={isLoading || isSubmitting} onClick={handleGetFeedback}>
+         <Button type="button" size="lg" className="flex-1" disabled={isLoading || isSubmitting || isScanning} onClick={handleGetFeedback}>
             {isLoading ? (
             <>
                 <Loader2 className="mr-2 size-4 animate-spin" />
@@ -420,7 +442,7 @@ export function EssaySubmissionForm() {
             </>
             )}
         </Button>
-        <Button type="submit" size="lg" className="flex-1" disabled={isSubmitting || isLoading}>
+        <Button type="submit" size="lg" className="flex-1" disabled={isSubmitting || isLoading || isScanning}>
             {isSubmitting ? (
             <>
                 <Loader2 className="mr-2 size-4 animate-spin" />
