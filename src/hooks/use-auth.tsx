@@ -46,8 +46,6 @@ export function useAuth() {
                   ...userData,
               });
             } else {
-              // This can happen if a user is deleted from Firestore but not from Auth.
-              // Log them out to clear the session.
               await auth.signOut();
               setUser(null);
             }
@@ -63,52 +61,48 @@ export function useAuth() {
 
  useEffect(() => {
     if (isLoading) {
-      return; // Don't do anything while loading auth state
+      return; 
     }
 
-    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
-    const isLandingPage = pathname === '/';
+    const publicPages = ['/login', '/register', '/'];
+    const isPublicPage = publicPages.includes(pathname);
 
-    // If user is not logged in
-    if (!user) {
-      // If they are on a protected page, redirect to login. Otherwise, allow access.
-      if (!isAuthPage && !isLandingPage) {
+    if (user) {
+      // User is logged in
+      let targetDashboard: string;
+      let allowedPaths: string[];
+
+      switch (user.role) {
+        case 'admin':
+          targetDashboard = '/app/admin/dashboard';
+          allowedPaths = ['/app/admin'];
+          break;
+        case 'teacher':
+          targetDashboard = '/app/teacher/dashboard';
+          allowedPaths = ['/app/teacher'];
+          break;
+        case 'student':
+          targetDashboard = '/app/student/dashboard';
+          allowedPaths = ['/app/student'];
+          break;
+        default:
+            targetDashboard = '/login';
+            allowedPaths = [];
+      }
+
+      if (isPublicPage) {
+        router.replace(targetDashboard);
+      } else {
+        const isPathAllowed = allowedPaths.some(path => pathname.startsWith(path));
+        if (!isPathAllowed) {
+            router.replace(targetDashboard);
+        }
+      }
+    } else {
+      // User is not logged in
+      if (!isPublicPage) {
         router.replace('/login');
       }
-      return;
-    }
-
-    // If user IS logged in
-    const role = user.role;
-    let targetDashboard = '/';
-    let allowedPaths: string[] = [];
-
-    switch (role) {
-      case 'admin':
-        targetDashboard = '/app/admin/dashboard';
-        allowedPaths = ['/app/admin'];
-        break;
-      case 'teacher':
-        targetDashboard = '/app/teacher/dashboard';
-        allowedPaths = ['/app/teacher'];
-        break;
-      case 'student':
-        targetDashboard = '/app/student/dashboard';
-        allowedPaths = ['/app/student'];
-        break;
-    }
-
-    // Redirect logged-in users from auth or landing pages to their dashboard
-    if (isAuthPage || isLandingPage) {
-      router.replace(targetDashboard);
-      return;
-    }
-    
-    // Enforce role-based access for /app routes
-    const isPathAllowed = allowedPaths.some(path => pathname.startsWith(path));
-
-    if (!isPathAllowed) {
-       router.replace(targetDashboard);
     }
   }, [user, isLoading, pathname, router]);
 
