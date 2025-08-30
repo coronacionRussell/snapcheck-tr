@@ -37,10 +37,10 @@ export function CreateClassDialog() {
       });
       return;
     }
-     if (!user?.fullName) {
+     if (!user) {
       toast({
         title: 'Error',
-        description: 'Could not identify teacher. Please try logging in again.',
+        description: 'You must be logged in to create a class.',
         variant: 'destructive',
       });
       return;

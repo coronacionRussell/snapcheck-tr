@@ -13,6 +13,7 @@ import {
   writeBatch,
   query,
   where,
+  addDoc,
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -60,19 +61,20 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const handleClassCreated = async (
     newClassData: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions' | 'teacherId' | 'teacherName'>
   ) => {
-    if (!user) {
-        toast({ title: "Not authenticated", variant: "destructive" });
+    if (!user?.uid || !user?.fullName) {
+        toast({ title: "Not authenticated properly", variant: "destructive" });
         return null;
     }
     try {
       const batch = writeBatch(db);
+      
       const newClassRef = doc(collection(db, 'classes'));
 
       const classToAdd: Class = {
         id: newClassRef.id,
         name: newClassData.name,
         teacherId: user.uid,
-        teacherName: user.fullName,
+        teacherName: user.fullName, // Use authenticated user's name
         studentCount: 0,
         pendingSubmissions: 0,
       };
