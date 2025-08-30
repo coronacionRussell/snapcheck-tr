@@ -90,11 +90,11 @@ export default function Home() {
             </div>
             <div className="relative">
               <Image
-                src="https://picsum.photos/seed/dog-reading/600/400"
+                src="https://picsum.photos/seed/person-studying/600/400"
                 width={600}
                 height={400}
-                alt="A smart dog wearing glasses and reading a book"
-                data-ai-hint="dog reading"
+                alt="A person studying with books and a laptop"
+                data-ai-hint="person studying"
                 className="rounded-lg object-cover shadow-2xl"
               />
               <div className="absolute -bottom-4 -right-4 w-full max-w-xs rounded-lg border bg-card p-4 shadow-xl">
