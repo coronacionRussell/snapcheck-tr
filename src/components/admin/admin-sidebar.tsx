@@ -18,7 +18,7 @@ export function AdminSidebar() {
 
   const menuItems = [
     {
-      href: '/app/admin/dashboard',
+      href: '/admin/dashboard',
       label: 'Dashboard',
       icon: <Home />,
     },

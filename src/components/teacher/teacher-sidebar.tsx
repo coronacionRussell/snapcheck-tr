@@ -18,17 +18,17 @@ export default function TeacherSidebar() {
 
   const menuItems = [
     {
-      href: '/app/teacher/dashboard',
+      href: '/teacher/dashboard',
       label: 'Dashboard',
       icon: <Home />,
     },
     {
-      href: '/app/teacher/classes',
+      href: '/teacher/classes',
       label: 'Classes',
       icon: <BookCopy />,
     },
     {
-      href: '/app/teacher/settings',
+      href: '/teacher/settings',
       label: 'Settings',
       icon: <Settings />,
     },

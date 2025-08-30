@@ -85,7 +85,7 @@ export default function ClassDetailsPage({
       <div className="flex flex-col items-center justify-center text-center py-10">
           <p className="text-destructive font-bold text-lg">{error}</p>
           <Button variant="outline" asChild className="mt-4">
-            <Link href="/app/teacher/classes">
+            <Link href="/teacher/classes">
               <ArrowLeft className="mr-2" />
               Back to Classes
             </Link>
@@ -99,7 +99,7 @@ export default function ClassDetailsPage({
       <div className="flex items-center justify-between">
         <div>
           <Button variant="outline" asChild>
-            <Link href="/app/teacher/classes">
+            <Link href="/teacher/classes">
               <ArrowLeft className="mr-2" />
               Back to Classes
             </Link>

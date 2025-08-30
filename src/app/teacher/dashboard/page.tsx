@@ -73,7 +73,7 @@ export default function TeacherDashboard() {
             <Card key={c.id}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="font-headline text-sm font-medium">
-                  <Link href={`/app/teacher/classes/${c.id}`} className="hover:underline">{c.name}</Link>
+                  <Link href={`/teacher/classes/${c.id}`} className="hover:underline">{c.name}</Link>
                 </CardTitle>
                 <BookOpen className="size-4 text-muted-foreground" />
               </CardHeader>
@@ -114,7 +114,7 @@ export default function TeacherDashboard() {
               <p>No student submissions yet.</p>
               <p className="text-sm">When students submit essays, they will appear here.</p>
             </div>
-        </CardContent>
+        </Content>
       </Card>
     </div>
   );

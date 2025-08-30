@@ -60,11 +60,11 @@ export function UserNav() {
 
   let settingsPath = '/';
   if (user.role === 'teacher') {
-    settingsPath = '/app/teacher/settings';
+    settingsPath = '/teacher/settings';
   } else if (user.role === 'student') {
-    settingsPath = '/app/student/settings';
+    settingsPath = '/student/settings';
   } else if (user.role === 'admin') {
-    settingsPath = '/app/admin/dashboard';
+    settingsPath = '/admin/dashboard';
   }
 
 
@@ -94,7 +94,7 @@ export function UserNav() {
         <DropdownMenuGroup>
            {user.role === 'admin' ? (
             <DropdownMenuItem asChild>
-              <Link href="/app/admin/dashboard">
+              <Link href="/admin/dashboard">
                 <Shield className="mr-2 size-4" />
                 <span>Admin Dashboard</span>
               </Link>

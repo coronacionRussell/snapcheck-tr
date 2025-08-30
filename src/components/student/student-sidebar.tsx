@@ -18,22 +18,22 @@ export default function StudentSidebar() {
 
   const menuItems = [
     {
-      href: '/app/student/dashboard',
+      href: '/student/dashboard',
       label: 'Dashboard',
       icon: <LayoutDashboard />,
     },
     {
-      href: '/app/student/submit-essay',
+      href: '/student/submit-essay',
       label: 'Submit Essay',
       icon: <FilePenLine />,
     },
     {
-      href: '/app/student/grades',
+      href: '/student/grades',
       label: 'My Grades',
       icon: <Star />,
     },
     {
-      href: '/app/student/settings',
+      href: '/student/settings',
       label: 'Settings',
       icon: <Settings />,
     },
