@@ -66,32 +66,32 @@ export function useAuth() {
 
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname);
-    const isAppPage = pathname.startsWith('/app');
+    const isAppPage = pathname.startsWith('/student') || pathname.startsWith('/teacher') || pathname.startsWith('/admin');
 
     if (user) {
       // User is logged in
       let targetDashboard: string;
 
-      const isAdminPage = pathname.startsWith('/app/admin');
-      const isTeacherPage = pathname.startsWith('/app/teacher');
-      const isStudentPage = pathname.startsWith('/app/student');
+      const isAdminPage = pathname.startsWith('/admin');
+      const isTeacherPage = pathname.startsWith('/teacher');
+      const isStudentPage = pathname.startsWith('/student');
 
       if (user.role === 'admin') {
-        targetDashboard = '/app/admin/dashboard';
+        targetDashboard = '/admin/dashboard';
         if (!isAdminPage && isAppPage) {
           router.replace(targetDashboard);
         } else if (isPublicPage) {
           router.replace(targetDashboard);
         }
       } else if (user.role === 'teacher') {
-        targetDashboard = '/app/teacher/dashboard';
+        targetDashboard = '/teacher/dashboard';
         if (!isTeacherPage && isAppPage) {
           router.replace(targetDashboard);
         } else if (isPublicPage) {
           router.replace(targetDashboard);
         }
       } else if (user.role === 'student') {
-        targetDashboard = '/app/student/dashboard';
+        targetDashboard = '/student/dashboard';
         if (!isStudentPage && isAppPage) {
           router.replace(targetDashboard);
         } else if (isPublicPage) {
