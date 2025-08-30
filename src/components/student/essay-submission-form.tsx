@@ -117,7 +117,22 @@ export function EssaySubmissionForm() {
   useEffect(() => {
     const getCameraPermission = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // Prefer the rear camera
+        const constraints = {
+            video: {
+                facingMode: 'environment'
+            }
+        };
+        
+        let stream;
+        try {
+           stream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (err) {
+            // If environment camera fails, fall back to any camera
+            console.warn("Could not get environment camera, falling back to default");
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+        
         setHasCameraPermission(true);
 
         if (videoRef.current) {
