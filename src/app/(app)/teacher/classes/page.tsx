@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useContext } from 'react';
-import { Users, FileText, Trash2, Loader2 } from 'lucide-react';
+import { Users, FileText, Trash2 } from 'lucide-react';
 import {
   Card,
   CardContent,
