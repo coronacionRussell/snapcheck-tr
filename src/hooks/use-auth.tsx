@@ -83,7 +83,7 @@ export function useAuth() {
       } else if (user.role === 'student' && !pathname.startsWith('/student')) {
          if (isAppPage) router.replace(targetDashboard);
       } else if (user.role === 'admin' && !pathname.startsWith('/admin')) {
-         if.isAppPage) router.replace(targetDashboard);
+         if (isAppPage) router.replace(targetDashboard);
       }
 
     } else {
