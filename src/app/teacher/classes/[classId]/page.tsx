@@ -11,11 +11,12 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { ClassRoster } from '@/components/teacher/class-roster';
+import { ClassSubmissions } from '@/components/teacher/class-submissions';
 import { useEffect, useState, use } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ClassRoster } from '@/components/teacher/class-roster';
 
 interface ClassInfo {
   name: string;
@@ -26,7 +27,8 @@ export default function ClassDetailsPage({
 }: {
   params: { classId: string };
 }) {
-  const { classId } = params;
+  const resolvedParams = use(params);
+  const { classId } = resolvedParams;
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
   const [initialRubric, setInitialRubric] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -117,10 +119,14 @@ export default function ClassDetailsPage({
       <Tabs defaultValue="submissions">
         <TabsList>
           <TabsTrigger value="submissions">Submissions</TabsTrigger>
+          <TabsTrigger value="roster">Roster</TabsTrigger>
           <TabsTrigger value="rubric">Grading Rubric</TabsTrigger>
         </TabsList>
         <TabsContent value="submissions" className="mt-4">
-          <ClassRoster classId={classId} className={classInfo?.name || ''} rubric={initialRubric} />
+          <ClassSubmissions classId={classId} className={classInfo?.name || ''} rubric={initialRubric} />
+        </TabsContent>
+         <TabsContent value="roster" className="mt-4">
+          <ClassRoster classId={classId} />
         </TabsContent>
         <TabsContent value="rubric" className="mt-4">
           <RubricEditor classId={classId} initialRubric={initialRubric} />

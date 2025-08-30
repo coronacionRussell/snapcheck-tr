@@ -16,55 +16,37 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Badge } from '../ui/badge';
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '../ui/skeleton';
-import { GradeSubmissionDialog } from './grade-submission-dialog';
-import { Button } from '../ui/button';
 
-export interface Submission {
+interface Student {
     id: string;
-    studentName: string;
-    studentId: string;
-    essayText: string;
-    submittedAt: {
+    name: string;
+    joinedAt: {
         seconds: number;
         nanoseconds: number;
     };
-    status: 'Pending Review' | 'Graded';
-    grade?: string;
 }
 
-const getStatusVariant = (status: string) => {
-    switch (status) {
-        case 'Graded':
-            return 'default';
-        case 'Pending Review':
-            return 'secondary';
-        default:
-            return 'secondary';
-    }
-}
-
-export function ClassRoster({ classId, className, rubric }: { classId: string, className: string, rubric: string }) {
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+export function ClassRoster({ classId }: { classId: string }) {
+  const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!classId) return;
 
     setIsLoading(true);
-    const submissionsCollection = collection(db, 'classes', classId, 'submissions');
-    const q = query(submissionsCollection, orderBy('submittedAt', 'desc'));
+    const studentsCollection = collection(db, 'classes', classId, 'students');
+    const q = query(studentsCollection, orderBy('name', 'asc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const submissionData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Submission[];
-        setSubmissions(submissionData);
+        const studentData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Student[];
+        setStudents(studentData);
         setIsLoading(false);
     }, (error) => {
-        console.error("Error fetching submissions: ", error);
+        console.error("Error fetching students: ", error);
         setIsLoading(false);
     });
 
@@ -74,9 +56,9 @@ export function ClassRoster({ classId, className, rubric }: { classId: string, c
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Student Submissions</CardTitle>
+        <CardTitle className="font-headline">Student Roster</CardTitle>
         <CardDescription>
-          An overview of student submissions for this class.
+          A list of all students enrolled in this class.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -84,43 +66,32 @@ export function ClassRoster({ classId, className, rubric }: { classId: string, c
           <TableHeader>
             <TableRow>
               <TableHead>Student Name</TableHead>
-              <TableHead>Submitted At</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>Date Joined</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
                 <TableRow>
-                    <TableCell colSpan={4}>
+                    <TableCell colSpan={2}>
                         <div className="space-y-2">
                            <Skeleton className="h-4 w-full" />
                            <Skeleton className="h-4 w-full" />
                         </div>
                     </TableCell>
                 </TableRow>
-            ) : submissions.length > 0 ? (
-              submissions.map((submission) => (
-                <TableRow key={submission.id}>
-                  <TableCell className="font-medium">{submission.studentName}</TableCell>
+            ) : students.length > 0 ? (
+              students.map((student) => (
+                <TableRow key={student.id}>
+                  <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>
-                    {submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleString() : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(submission.status)}
-                     className={getStatusVariant(submission.status) === 'default' ? 'bg-primary/80' : ''}>
-                        {submission.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <GradeSubmissionDialog submission={submission} className={className} rubric={rubric} classId={classId} />
+                    {student.joinedAt ? new Date(student.joinedAt.seconds * 1000).toLocaleDateString() : 'N/A'}
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="text-center">
-                  No students have submitted essays for this class yet.
+                <TableCell colSpan={2} className="text-center">
+                  No students have enrolled in this class yet.
                 </TableCell>
               </TableRow>
             )}
@@ -130,5 +101,3 @@ export function ClassRoster({ classId, className, rubric }: { classId: string, c
     </Card>
   );
 }
-
-    
