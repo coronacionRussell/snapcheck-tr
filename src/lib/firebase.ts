@@ -6,10 +6,17 @@ import { getFirestore, Firestore } from 'firebase/firestore';
 const firebaseConfigString = process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
 
 if (!firebaseConfigString) {
-    throw new Error('Missing Firebase config environment variable');
+    throw new Error('Missing Firebase config environment variable. Make sure NEXT_PUBLIC_FIREBASE_CONFIG is set in your .env file.');
 }
 
-const firebaseConfig = JSON.parse(firebaseConfigString);
+let firebaseConfig;
+try {
+  firebaseConfig = JSON.parse(firebaseConfigString);
+} catch (error) {
+  console.error("Failed to parse Firebase config:", error);
+  throw new Error("Firebase config is not valid JSON.");
+}
+
 
 // Initialize Firebase
 let app: FirebaseApp;
