@@ -91,20 +91,21 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-           {user.role === 'admin' && (
+           {user.role === 'admin' ? (
             <DropdownMenuItem asChild>
               <Link href="/admin/dashboard">
                 <Shield className="mr-2 size-4" />
                 <span>Admin Dashboard</span>
               </Link>
             </DropdownMenuItem>
+           ) : (
+             <DropdownMenuItem asChild>
+              <Link href={settingsPath}>
+                <Settings className="mr-2 size-4" />
+                <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
            )}
-          <DropdownMenuItem asChild>
-            <Link href={settingsPath}>
-              <Settings className="mr-2 size-4" />
-              <span>Settings</span>
-            </Link>
-          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
