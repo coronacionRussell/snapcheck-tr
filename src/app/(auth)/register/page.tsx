@@ -106,9 +106,9 @@ export default function RegisterPage() {
         case 'auth/network-request-failed':
             errorMessage = 'Network error: Could not connect to Firebase. Please check your internet connection and ensure your app\'s domain is added to the "Authorized domains" list in the Firebase console (Authentication > Settings > Authorized domains).';
             break;
-        case 'auth/configuration-not-found':
-            errorMessage = 'Firebase configuration error. Please ensure Firebase Authentication is enabled with the Email/Password provider in your Firebase project console.';
-            break;
+        case 'auth/operation-not-allowed':
+             errorMessage = 'Email/password sign-in is not enabled. Please enable it in the Firebase console (Authentication > Sign-in method).';
+             break;
         default:
            errorMessage = `An unexpected error occurred: ${error.message}`;
            break;
