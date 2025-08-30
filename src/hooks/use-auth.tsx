@@ -66,43 +66,56 @@ export function useAuth() {
 
   useEffect(() => {
     // This effect handles redirection logic after auth state is determined.
-    if (!isLoading) {
-      const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
-      const isAdminPage = pathname.startsWith('/admin');
-      const isTeacherPage = pathname.startsWith('/teacher');
-      const isStudentPage = pathname.startsWith('/student');
+    if (isLoading) {
+      return;
+    }
 
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+    const isAdminPage = pathname.startsWith('/admin');
+    const isTeacherPage = pathname.startsWith('/teacher');
+    const isStudentPage = pathname.startsWith('/student');
 
-      if (user) {
-         if (isAuthPage) {
-            // If user is logged in and on an auth page, redirect them to their dashboard
-            let dashboardPath = '/';
-            switch(user.role) {
-                case 'teacher':
-                    dashboardPath = '/teacher/dashboard';
-                    break;
-                case 'student':
-                    dashboardPath = '/student/dashboard';
-                    break;
-                case 'admin':
-                    dashboardPath = '/admin/dashboard';
-                    break;
-            }
-            router.replace(dashboardPath);
-         } else if (user.role !== 'admin' && isAdminPage) {
-            // If a non-admin tries to access an admin page, redirect them
-            router.replace('/login');
-         } else if (user.role !== 'teacher' && isTeacherPage) {
-            router.replace('/login');
-         } else if (user.role !== 'student' && isStudentPage) {
-            router.replace('/login');
-         }
-      } else if (!user && !isAuthPage && pathname !== '/') {
-        // If user is not logged in and not on an auth page or the landing page, redirect to login
+    if (user) {
+      // User is logged in
+      if (isAuthPage) {
+        // Redirect from auth pages to their dashboard
+        let dashboardPath = '/';
+        switch(user.role) {
+            case 'teacher':
+                dashboardPath = '/teacher/dashboard';
+                break;
+            case 'student':
+                dashboardPath = '/student/dashboard';
+                break;
+            case 'admin':
+                dashboardPath = '/admin/dashboard';
+                break;
+        }
+        router.replace(dashboardPath);
+      } else {
+        // Role-based route protection
+        if (user.role === 'admin' && !isAdminPage) {
+          // Admin should only be on admin pages after login
+          // but we allow them to go to the root page, for example.
+          // This check is tricky. Let's make sure admin is NOT on student/teacher pages.
+           if (isTeacherPage || isStudentPage) {
+             router.replace('/admin/dashboard');
+           }
+        } else if (user.role === 'teacher' && !isTeacherPage) {
+          router.replace('/teacher/dashboard');
+        } else if (user.role === 'student' && !isStudentPage) {
+          router.replace('/student/dashboard');
+        }
+      }
+    } else {
+      // User is not logged in
+      if (!isAuthPage && pathname !== '/') {
+        // If not on auth pages or landing page, redirect to login
         router.replace('/login');
       }
     }
   }, [user, isLoading, pathname, router]);
+
 
   return { user, isLoading };
 }
