@@ -92,8 +92,8 @@ export default function Home() {
                 src="https://picsum.photos/600/400"
                 width={600}
                 height={400}
-                alt="A student writing an essay"
-                data-ai-hint="education technology"
+                alt="A person studying with books and a laptop"
+                data-ai-hint="person studying"
                 className="rounded-lg object-cover shadow-2xl"
               />
               <div className="absolute -bottom-4 -right-4 w-full max-w-xs rounded-lg border bg-card p-4 shadow-xl">
