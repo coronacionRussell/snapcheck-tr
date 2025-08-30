@@ -90,7 +90,7 @@ export default function Home() {
             </div>
             <div className="relative">
               <Image
-                src="https://picsum.photos/600/400"
+                src="https://picsum.photos/seed/student/600/400"
                 width={600}
                 height={400}
                 alt="A person studying with books and a laptop"
