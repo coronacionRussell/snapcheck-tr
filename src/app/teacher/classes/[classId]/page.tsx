@@ -12,7 +12,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { ClassRoster } from '@/components/teacher/class-roster';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
