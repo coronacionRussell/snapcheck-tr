@@ -63,8 +63,6 @@ export function UserNav() {
     settingsPath = '/teacher/settings';
   } else if (user.role === 'student') {
     settingsPath = '/student/settings';
-  } else if (user.role === 'admin') {
-    settingsPath = '/admin/dashboard'; // Admins might not have a settings page, direct to dashboard
   }
 
   return (
