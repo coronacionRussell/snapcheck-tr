@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings, ShieldCheck } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -58,7 +58,9 @@ export function UserNav() {
     );
   }
 
-  const settingsPath = user.role === 'teacher' ? '/teacher/settings' : '/student/settings';
+  const settingsPath = user.role === 'teacher' ? '/teacher/settings' : user.role === 'admin' ? '/admin/settings' : '/student/settings';
+  const dashboardPath = user.role === 'teacher' ? '/teacher/dashboard' : user.role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
+
 
   return (
     <DropdownMenu>
@@ -84,6 +86,14 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
+          {user.role === 'admin' && (
+             <DropdownMenuItem asChild>
+                <Link href={dashboardPath}>
+                <ShieldCheck className="mr-2 size-4" />
+                <span>Admin Dashboard</span>
+                </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem asChild>
             <Link href={settingsPath}>
               <Settings className="mr-2 size-4" />

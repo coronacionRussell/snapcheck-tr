@@ -1,0 +1,126 @@
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Save } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+export default function AdminSettingsPage() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { toast } = useToast();
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setName(user.fullName);
+      setEmail(user.email);
+    }
+  }, [user]);
+
+  const handleSaveChanges = async () => {
+    if (!user) {
+      toast({ title: 'Not authenticated', variant: 'destructive' });
+      return;
+    }
+    if (!name.trim()) {
+        toast({ title: "Name cannot be empty", variant: 'destructive' });
+        return;
+    }
+
+    setIsSaving(true);
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        fullName: name,
+      });
+      toast({
+        title: 'Settings Saved',
+        description: 'Your profile has been updated.',
+      });
+    } catch (error) {
+      console.error("Error saving settings: ", error);
+      toast({ title: "Error", description: "Could not save your settings.", variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isAuthLoading) {
+    return (
+      <div className="grid flex-1 items-start gap-4 md:gap-8">
+        <div>
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="mt-2 h-5 w-64" />
+        </div>
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="mt-1 h-4 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid flex-1 items-start gap-4 md:gap-8">
+      <div>
+        <h1 className="font-headline text-3xl font-bold">Settings</h1>
+        <p className="text-muted-foreground">
+          Manage your administrator account.
+        </p>
+      </div>
+
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline">Profile</CardTitle>
+            <CardDescription>
+              This is how your name will be displayed in the application.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} disabled={isSaving} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={email} disabled readOnly />
+            </div>
+          </CardContent>
+        </Card>
+
+         <div className="flex justify-end">
+            <Button onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
+                {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

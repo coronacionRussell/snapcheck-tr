@@ -11,7 +11,8 @@ export interface AppUser {
   uid: string;
   fullName: string;
   email: string;
-  role: 'student' | 'teacher';
+  role: 'student' | 'teacher' | 'admin';
+  isVerified?: boolean;
 }
 
 export function useAuth() {
@@ -54,12 +55,14 @@ export function useAuth() {
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname);
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
-    const isAppPage = pathname.startsWith('/student') || pathname.startsWith('/teacher');
+    const isAppPage = pathname.startsWith('/student') || pathname.startsWith('/teacher') || pathname.startsWith('/admin');
 
     if (user) {
       // User is logged in
       let targetDashboard = '/';
-      if (user.role === 'teacher') {
+      if (user.role === 'admin') {
+        targetDashboard = '/admin/dashboard';
+      } else if (user.role === 'teacher') {
         targetDashboard = '/teacher/dashboard';
       } else if (user.role === 'student') {
         targetDashboard = '/student/dashboard';
@@ -70,6 +73,8 @@ export function useAuth() {
       } else if (user.role === 'teacher' && !pathname.startsWith('/teacher')) {
          if (isAppPage) router.replace(targetDashboard);
       } else if (user.role === 'student' && !pathname.startsWith('/student')) {
+         if (isAppPage) router.replace(targetDashboard);
+      } else if (user.role === 'admin' && !pathname.startsWith('/admin')) {
          if (isAppPage) router.replace(targetDashboard);
       }
 
