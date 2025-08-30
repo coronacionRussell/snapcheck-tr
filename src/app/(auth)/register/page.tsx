@@ -59,13 +59,21 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Save user data to Firestore
-      await setDoc(doc(db, 'users', user.uid), {
+      // Base user data
+      const userData: any = {
         uid: user.uid,
         fullName,
         email,
         role,
-      });
+      };
+
+      // Add verification status for teachers
+      if (role === 'teacher') {
+        userData.verified = false;
+      }
+
+      // Save user data to Firestore
+      await setDoc(doc(db, 'users', user.uid), userData);
 
       toast({
         title: 'Account Created!',
