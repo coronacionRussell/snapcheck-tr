@@ -2,9 +2,8 @@
 'use client';
 
 import Link from 'next/link';
-import { BookOpen, ShieldCheck } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { useContext } from 'react';
-import { useAuth } from '@/hooks/use-auth';
 
 import {
   Card,
@@ -16,32 +15,10 @@ import {
 import { CreateClassDialog } from '@/components/teacher/create-class-dialog';
 import { ClassContext } from '@/contexts/class-context';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 export default function TeacherDashboard() {
-  const { user } = useAuth();
   const { classes, isLoading } = useContext(ClassContext);
-
-  if (user && !user.verified && user.role === 'teacher') {
-    return (
-        <div className="grid flex-1 items-start gap-4 md:gap-8">
-             <div>
-                <h1 className="font-headline text-3xl font-bold">Dashboard</h1>
-                <p className="text-muted-foreground">
-                    Welcome, {user.fullName}. Your account is pending approval.
-                </p>
-            </div>
-             <Alert>
-                <ShieldCheck className="size-4" />
-                <AlertTitle>Account Pending Verification</AlertTitle>
-                <AlertDescription>
-                    Your teacher account is currently under review by an administrator. You will receive an email once your account has been verified. You will not be able to create classes until your account is approved.
-                </AlertDescription>
-            </Alert>
-        </div>
-    )
-  }
 
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
@@ -114,7 +91,7 @@ export default function TeacherDashboard() {
               <p>No student submissions yet.</p>
               <p className="text-sm">When students submit essays, they will appear here.</p>
             </div>
-        </Content>
+        </CardContent>
       </Card>
     </div>
   );
