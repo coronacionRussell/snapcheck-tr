@@ -63,7 +63,10 @@ export function UserNav() {
     settingsPath = '/teacher/settings';
   } else if (user.role === 'student') {
     settingsPath = '/student/settings';
+  } else if (user.role === 'admin') {
+    settingsPath = '/admin/dashboard';
   }
+
 
   return (
     <DropdownMenu>
