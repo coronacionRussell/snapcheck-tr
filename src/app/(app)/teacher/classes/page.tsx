@@ -78,7 +78,7 @@ export default function ClassesPage() {
                 <div className="flex-1">
                   <CardTitle className="font-headline pr-2">
                     <Link
-                      href={`/teacher/classes/${c.id}`}
+                      href={`/app/teacher/classes/${c.id}`}
                       className="hover:underline"
                     >
                       {c.name}

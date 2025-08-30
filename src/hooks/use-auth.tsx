@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -27,7 +27,6 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       setIsLoading(true);
       if (firebaseUser) {
-        // Special case for admin user. This check is the single source of truth for the admin role.
         if (firebaseUser.email === ADMIN_EMAIL) {
            const adminUser: AppUser = {
               uid: firebaseUser.uid,
@@ -38,7 +37,6 @@ export function useAuth() {
             };
             setUser(adminUser);
         } else {
-            // Logic for regular users
             const userDocRef = doc(db, 'users', firebaseUser.uid);
             const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
@@ -48,9 +46,8 @@ export function useAuth() {
                   ...userData,
               });
             } else {
-              // This can happen if a user is created in Auth but their Firestore doc fails to be created.
-              // Or if the admin user somehow gets here.
-              // To be safe, we sign them out.
+              // This can happen if a user is deleted from Firestore but not from Auth.
+              // Log them out to clear the session.
               await auth.signOut();
               setUser(null);
             }
@@ -66,42 +63,52 @@ export function useAuth() {
 
  useEffect(() => {
     if (isLoading) {
-      return; // Don't do anything while loading
+      return; // Don't do anything while loading auth state
     }
 
-    const isAuthPage = pathname === '/login' || pathname === '/register';
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
     const isLandingPage = pathname === '/';
 
-    // If there is no user...
+    // If user is not logged in
     if (!user) {
-      // and they are not on the landing or an auth page, redirect to login
-      if (!isLandingPage && !isAuthPage) {
+      // If they are on a protected page, redirect to login. Otherwise, allow access.
+      if (!isAuthPage && !isLandingPage) {
         router.replace('/login');
       }
       return;
     }
 
-    // If there IS a user...
-    const { role } = user;
-    const isStudentPage = pathname.startsWith('/student');
-    const isTeacherPage = pathname.startsWith('/teacher');
-    const isAdminPage = pathname.startsWith('/admin');
+    // If user IS logged in
+    const role = user.role;
+    let targetDashboard = '/';
+    let allowedPaths: string[] = [];
 
-    // If they are on an auth page, redirect them to their dashboard
-    if (isAuthPage) {
-      if (role === 'admin') router.replace('/admin/dashboard');
-      else if (role === 'teacher') router.replace('/teacher/dashboard');
-      else if (role === 'student') router.replace('/student/dashboard');
-      return;
+    switch (role) {
+      case 'admin':
+        targetDashboard = '/app/admin/dashboard';
+        allowedPaths = ['/app/admin'];
+        break;
+      case 'teacher':
+        targetDashboard = '/app/teacher/dashboard';
+        allowedPaths = ['/app/teacher'];
+        break;
+      case 'student':
+        targetDashboard = '/app/student/dashboard';
+        allowedPaths = ['/app/student'];
+        break;
     }
 
-    // Role-based route protection
-    if (role === 'admin' && !isAdminPage) {
-      router.replace('/admin/dashboard');
-    } else if (role === 'teacher' && !isTeacherPage) {
-      router.replace('/teacher/dashboard');
-    } else if (role === 'student' && !isStudentPage) {
-      router.replace('/student/dashboard');
+    // Redirect logged-in users from auth or landing pages to their dashboard
+    if (isAuthPage || isLandingPage) {
+      router.replace(targetDashboard);
+      return;
+    }
+    
+    // Enforce role-based access for /app routes
+    const isPathAllowed = allowedPaths.some(path => pathname.startsWith(path));
+
+    if (!isPathAllowed) {
+       router.replace(targetDashboard);
     }
   }, [user, isLoading, pathname, router]);
 

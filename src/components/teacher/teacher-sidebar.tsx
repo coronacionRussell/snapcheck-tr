@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -17,17 +18,17 @@ export default function TeacherSidebar() {
 
   const menuItems = [
     {
-      href: '/teacher/dashboard',
+      href: '/app/teacher/dashboard',
       label: 'Dashboard',
       icon: <Home />,
     },
     {
-      href: '/teacher/classes',
+      href: '/app/teacher/classes',
       label: 'Classes',
       icon: <BookCopy />,
     },
     {
-      href: '/teacher/settings',
+      href: '/app/teacher/settings',
       label: 'Settings',
       icon: <Settings />,
     },

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -17,22 +18,22 @@ export default function StudentSidebar() {
 
   const menuItems = [
     {
-      href: '/student/dashboard',
+      href: '/app/student/dashboard',
       label: 'Dashboard',
       icon: <LayoutDashboard />,
     },
     {
-      href: '/student/submit-essay',
+      href: '/app/student/submit-essay',
       label: 'Submit Essay',
       icon: <FilePenLine />,
     },
     {
-      href: '/student/grades',
+      href: '/app/student/grades',
       label: 'My Grades',
       icon: <Star />,
     },
     {
-      href: '/student/settings',
+      href: '/app/student/settings',
       label: 'Settings',
       icon: <Settings />,
     },
