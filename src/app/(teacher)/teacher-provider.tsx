@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 import { ClassContext } from '@/contexts/class-context';
 import { Class } from '@/contexts/class-context';
 import { db } from '@/lib/firebase';
@@ -10,18 +11,30 @@ import {
   getDocs,
   doc,
   writeBatch,
+  query,
+  where,
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 export function TeacherProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [classes, setClasses] = useState<Class[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchClasses = useCallback(async () => {
+    if (!user) {
+      setClasses([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
-      const querySnapshot = await getDocs(collection(db, 'classes'));
+      const q = query(
+        collection(db, 'classes'),
+        where('teacherId', '==', user.uid)
+      );
+      const querySnapshot = await getDocs(q);
       const classesData = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -37,7 +50,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, user]);
 
 
   useEffect(() => {
@@ -45,24 +58,28 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   }, [fetchClasses]);
 
   const handleClassCreated = async (
-    newClassData: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>
+    newClassData: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions' | 'teacherId' | 'teacherName'>
   ) => {
+    if (!user) {
+        toast({ title: "Not authenticated", variant: "destructive" });
+        return null;
+    }
     try {
       const batch = writeBatch(db);
-
-      // Create a new document reference with a unique ID first
       const newClassRef = doc(collection(db, 'classes'));
 
       const classToAdd: Class = {
         id: newClassRef.id,
         name: newClassData.name,
-        teacherName: newClassData.teacherName,
+        teacherId: user.uid,
+        teacherName: user.fullName,
         studentCount: 0,
         pendingSubmissions: 0,
       };
 
       batch.set(newClassRef, {
         name: classToAdd.name,
+        teacherId: classToAdd.teacherId,
         teacherName: classToAdd.teacherName,
         studentCount: classToAdd.studentCount,
         pendingSubmissions: classToAdd.pendingSubmissions,
@@ -72,10 +89,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       batch.set(rubricDocRef, { content: '' });
 
       await batch.commit();
-
-      // We should re-fetch classes to get the most up-to-date list.
-      // Or simply add the new class to the existing state.
-      setClasses((prevClasses) => [...prevClasses, classToAdd]);
+      
+      await fetchClasses();
 
       toast({
           title: 'Class Created!',
@@ -104,11 +119,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       const rubricDocRef = doc(db, 'rubrics', classId);
       batch.delete(rubricDocRef);
 
-      // We can also delete students subcollection here in the future
-
       await batch.commit();
+      
+      await fetchClasses();
 
-      setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
       toast({
         title: 'Success',
         description: 'Class has been deleted.',

@@ -47,8 +47,7 @@ export function CreateClassDialog() {
     }
     setIsCreating(true);
     try {
-      const teacherName = user.fullName;
-      const result = await onClassCreated({ name: className, teacherName });
+      const result = await onClassCreated({ name: className });
       if (result) {
         setCreatedClass(result);
       }

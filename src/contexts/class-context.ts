@@ -5,6 +5,7 @@ import { DocumentData, DocumentReference } from 'firebase/firestore';
 export interface Class {
   id: string;
   name: string;
+  teacherId: string;
   teacherName: string;
   studentCount: number;
   pendingSubmissions: number;
@@ -12,6 +13,7 @@ export interface Class {
 
 export interface ClassFromFirestore {
     name: string;
+    teacherId: string;
     teacherName: string;
     studentCount: number;
     pendingSubmissions: number;
@@ -19,14 +21,14 @@ export interface ClassFromFirestore {
 
 type ClassContextType = {
   classes: Class[];
-  onClassCreated: (newClass: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>) => Promise<Class | null>;
+  onClassCreated: (newClass: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions' | 'teacherId' | 'teacherName'>) => Promise<Class | null>;
   onClassDeleted: (classId: string) => Promise<void>;
   isLoading: boolean;
 };
 
 export const ClassContext = createContext<ClassContextType>({
   classes: [],
-  onClassCreated: async (newClass: Omit<Class, 'id' | 'studentCount' | 'pendingSubmissions'>) => {
+  onClassCreated: async (newClass) => {
     console.error('onClassCreated not implemented');
     return null;
   },
