@@ -18,21 +18,26 @@ import {
   doc,
   getDoc,
   writeBatch,
-  collection,
   increment,
 } from 'firebase/firestore';
+import { useAuth } from '@/hooks/use-auth';
 
 interface JoinClassCardProps {
   onClassJoined: () => void;
 }
 
 export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [classCode, setClassCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const handleJoinClass = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) {
+        toast({ title: "Not authenticated", variant: 'destructive' });
+        return;
+    }
     if (!classCode.trim()) {
       toast({
         title: 'Class Code Required',
@@ -57,9 +62,8 @@ export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
         return;
       }
 
-      // In a real app, studentId would come from auth state.
-      const studentId = 'student-alex-doe'; 
-      const studentName = 'Alex Doe';
+      const studentId = user.uid; 
+      const studentName = user.fullName;
 
       const studentRef = doc(db, `classes/${classCode.trim()}/students`, studentId);
       const studentDoc = await getDoc(studentRef);
@@ -106,6 +110,8 @@ export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
       setIsLoading(false);
     }
   };
+  
+  const isDisabled = isLoading || isAuthLoading;
 
   return (
     <Card>
@@ -124,9 +130,9 @@ export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
               className="font-code tracking-wider"
               value={classCode}
               onChange={(e) => setClassCode(e.target.value)}
-              disabled={isLoading}
+              disabled={isDisabled}
             />
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isDisabled}>
               {isLoading ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />
               ) : (

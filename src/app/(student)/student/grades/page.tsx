@@ -22,6 +22,7 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
 
 interface Grade {
   id: string;
@@ -33,15 +34,17 @@ interface Grade {
 
 
 export default function StudentGradesPage() {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [grades, setGrades] = useState<Grade[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchGrades = async () => {
-      setIsLoading(true);
+      if (!user) return;
+      setIsDataLoading(true);
       try {
-        const studentId = 'student-alex-doe';
+        const studentId = user.uid;
 
         const classesSnapshot = await getDocs(collection(db, 'classes'));
         const gradesData: Grade[] = [];
@@ -77,11 +80,15 @@ export default function StudentGradesPage() {
           variant: 'destructive'
         });
       } finally {
-        setIsLoading(false);
+        setIsDataLoading(false);
       }
     };
-    fetchGrades();
-  }, [toast]);
+    if (user) {
+        fetchGrades();
+    }
+  }, [user, toast]);
+
+  const isLoading = isAuthLoading || isDataLoading;
 
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">

@@ -5,7 +5,7 @@ import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
 import { scanEssay } from '@/ai/flows/scan-essay';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, Camera, Loader2, Sparkles, UploadCloud, Video } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Label } from '../ui/label';
@@ -15,6 +15,7 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '@/hooks/use-auth';
 
 interface EnrolledClass {
     id: string;
@@ -22,6 +23,7 @@ interface EnrolledClass {
 }
 
 export function EssaySubmissionForm() {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [essayText, setEssayText] = useState('');
   const [enrolledClasses, setEnrolledClasses] = useState<EnrolledClass[]>([]);
   const [isClassListLoading, setIsClassListLoading] = useState(true);
@@ -37,44 +39,47 @@ export function EssaySubmissionForm() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchEnrolledClasses = async () => {
-        setIsClassListLoading(true);
-      try {
-        const studentId = 'student-alex-doe'; 
+  const fetchEnrolledClasses = useCallback(async () => {
+    if (!user) return;
+    setIsClassListLoading(true);
+    try {
+      const studentId = user.uid;
 
-        const classesCollection = collection(db, 'classes');
-        const classesSnapshot = await getDocs(classesCollection);
-        
-        const classesData: EnrolledClass[] = [];
+      const classesCollection = collection(db, 'classes');
+      const classesSnapshot = await getDocs(classesCollection);
+      
+      const classesData: EnrolledClass[] = [];
 
-        for (const classDoc of classesSnapshot.docs) {
-            const studentDocRef = doc(db, `classes/${classDoc.id}/students`, studentId);
-            const studentDoc = await getDoc(studentDocRef);
+      for (const classDoc of classesSnapshot.docs) {
+          const studentDocRef = doc(db, `classes/${classDoc.id}/students`, studentId);
+          const studentDoc = await getDoc(studentDocRef);
 
-            if (studentDoc.exists()) {
-                classesData.push({
-                    id: classDoc.id,
-                    name: classDoc.data().name,
-                });
-            }
-        }
-        setEnrolledClasses(classesData);
-
-      } catch (error) {
-        console.error("Error fetching enrolled classes: ", error);
-        toast({
-            title: 'Error',
-            description: 'Could not fetch your classes.',
-            variant: 'destructive',
-        })
-      } finally {
-        setIsClassListLoading(false);
+          if (studentDoc.exists()) {
+              classesData.push({
+                  id: classDoc.id,
+                  name: classDoc.data().name,
+              });
+          }
       }
-    };
+      setEnrolledClasses(classesData);
 
-    fetchEnrolledClasses();
-  }, [toast]);
+    } catch (error) {
+      console.error("Error fetching enrolled classes: ", error);
+      toast({
+          title: 'Error',
+          description: 'Could not fetch your classes.',
+          variant: 'destructive',
+      })
+    } finally {
+      setIsClassListLoading(false);
+    }
+  }, [toast, user]);
+
+  useEffect(() => {
+    if (user) {
+        fetchEnrolledClasses();
+    }
+  }, [user, fetchEnrolledClasses]);
 
   useEffect(() => {
     const fetchRubric = async () => {
@@ -252,6 +257,10 @@ export function EssaySubmissionForm() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!user) {
+        toast({ title: "Not authenticated", variant: 'destructive'});
+        return;
+    }
     if (!selectedClass) {
         toast({
             title: 'Missing Class',
@@ -271,8 +280,8 @@ export function EssaySubmissionForm() {
 
     setIsSubmitting(true);
     try {
-      const studentId = 'student-alex-doe'; 
-      const studentName = 'Alex Doe';
+      const studentId = user.uid; 
+      const studentName = user.fullName;
 
       const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
       await addDoc(submissionsCollection, {
@@ -304,6 +313,8 @@ export function EssaySubmissionForm() {
       setIsSubmitting(false);
     }
   };
+  
+  const formDisabled = isAuthLoading || isLoading || isScanning || isSubmitting;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -316,9 +327,9 @@ export function EssaySubmissionForm() {
         <CardContent>
           <div className="space-y-2">
             <Label htmlFor="class-select">Class</Label>
-            <Select onValueChange={setSelectedClass} required disabled={isClassListLoading || enrolledClasses.length === 0} value={selectedClass || ''}>
+            <Select onValueChange={setSelectedClass} required disabled={isAuthLoading || isClassListLoading || enrolledClasses.length === 0} value={selectedClass || ''}>
                 <SelectTrigger id="class-select">
-                    <SelectValue placeholder={isClassListLoading ? "Loading classes..." : "Enroll in a class to get started..."} />
+                    <SelectValue placeholder={isAuthLoading || isClassListLoading ? "Loading classes..." : "Enroll in a class to get started..."} />
                 </SelectTrigger>
                 <SelectContent>
                     {enrolledClasses.map(c => (
@@ -348,7 +359,7 @@ export function EssaySubmissionForm() {
                   accept="image/*"
                   onChange={handleFileUpload}
                   className="pl-10"
-                  disabled={isScanning || isSubmitting || isLoading}
+                  disabled={formDisabled}
                 />
               </div>
                <p className="text-xs text-muted-foreground">
@@ -362,7 +373,7 @@ export function EssaySubmissionForm() {
                 variant="outline"
                 className="w-full"
                 onClick={() => setIsCameraOpen(true)}
-                 disabled={isScanning || isSubmitting || isLoading}
+                 disabled={formDisabled}
               >
                 <Video className="mr-2 size-4" /> Open Camera
               </Button>
@@ -403,7 +414,7 @@ export function EssaySubmissionForm() {
               onChange={(e) => setEssayText(e.target.value)}
               required
               className="font-code"
-              disabled={isScanning}
+              disabled={isScanning || isSubmitting}
             />
           </div>
         </CardContent>
@@ -429,7 +440,7 @@ export function EssaySubmissionForm() {
       </Card>
 
       <div className="flex flex-col gap-4 sm:flex-row">
-         <Button type="button" size="lg" className="flex-1" disabled={isLoading || isSubmitting || isScanning} onClick={handleGetFeedback}>
+         <Button type="button" size="lg" className="flex-1" disabled={formDisabled} onClick={handleGetFeedback}>
             {isLoading ? (
             <>
                 <Loader2 className="mr-2 size-4 animate-spin" />
@@ -442,7 +453,7 @@ export function EssaySubmissionForm() {
             </>
             )}
         </Button>
-        <Button type="submit" size="lg" className="flex-1" disabled={isSubmitting || isLoading || isScanning}>
+        <Button type="submit" size="lg" className="flex-1" disabled={formDisabled}>
             {isSubmitting ? (
             <>
                 <Loader2 className="mr-2 size-4 animate-spin" />

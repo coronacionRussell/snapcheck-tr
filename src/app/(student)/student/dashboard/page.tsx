@@ -24,6 +24,7 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, query, where, limit } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
 
 const JoinClassCard = dynamic(
   () => import('@/components/student/join-class-card').then((mod) => mod.JoinClassCard),
@@ -38,7 +39,7 @@ interface EnrolledClass {
 
 interface RecentGrade {
     id: string;
-    assignment: string; // We'll use the class name for now
+    assignment: string;
     class: string;
     grade: string;
     status: 'Graded' | 'Pending Review';
@@ -46,19 +47,20 @@ interface RecentGrade {
 
 
 export default function StudentDashboard() {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [enrolledClasses, setEnrolledClasses] = useState<EnrolledClass[]>([]);
   const [recentGrades, setRecentGrades] = useState<RecentGrade[]>([]);
   const [isClassesLoading, setIsClassesLoading] = useState(true);
   const [isGradesLoading, setIsGradesLoading] = useState(true);
   const { toast } = useToast();
 
-  // Using useCallback to prevent re-creation of the function on each render
   const fetchStudentData = useCallback(async () => {
+    if (!user) return;
+
     setIsClassesLoading(true);
     setIsGradesLoading(true);
     try {
-      // In a real app, studentId would come from auth state.
-      const studentId = 'student-alex-doe';
+      const studentId = user.uid;
 
       // Fetch all classes
       const classesCollection = collection(db, 'classes');
@@ -92,7 +94,7 @@ export default function StudentDashboard() {
                 const data = submissionDoc.data();
                 gradesData.push({
                     id: submissionDoc.id,
-                    assignment: 'Essay Submission', // Placeholder, could be improved
+                    assignment: 'Essay Submission',
                     class: classInfo.name,
                     grade: data.grade,
                     status: data.status,
@@ -102,8 +104,6 @@ export default function StudentDashboard() {
       }
 
       setEnrolledClasses(classesData);
-      // Sort grades by date (most recent first) - assuming submission doc has a timestamp
-      // For now, we don't have a reliable timestamp, so we'll just set them.
       setRecentGrades(gradesData);
 
     } catch (error) {
@@ -117,19 +117,22 @@ export default function StudentDashboard() {
       setIsClassesLoading(false);
       setIsGradesLoading(false);
     }
-  }, [toast]);
+  }, [toast, user]);
 
   useEffect(() => {
-    fetchStudentData();
-  }, [fetchStudentData]);
+    if (user) {
+        fetchStudentData();
+    }
+  }, [fetchStudentData, user]);
 
+  const isLoading = isAuthLoading || isClassesLoading || isGradesLoading;
 
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
       <div>
         <h1 className="font-headline text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome, here is your academic summary.
+          Welcome back, {user?.fullName || 'student'}. Here is your academic summary.
         </p>
       </div>
 
@@ -140,7 +143,7 @@ export default function StudentDashboard() {
               <CardTitle className="font-headline">My Classes</CardTitle>
             </CardHeader>
             <CardContent>
-              {isClassesLoading ? (
+              {isLoading ? (
                  <div className="space-y-4">
                     {[...Array(2)].map((_, i) => (
                         <div key={i} className="flex items-center justify-between rounded-lg border p-4">
@@ -200,7 +203,7 @@ export default function StudentDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-           {isGradesLoading ? (
+           {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-8 w-full" />
                 <Skeleton className="h-8 w-full" />
