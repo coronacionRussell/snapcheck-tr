@@ -64,38 +64,38 @@ export function useAuth() {
       return; 
     }
 
-    const publicPages = ['/login', '/register', '/'];
+    const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname);
+    const isAppPage = pathname.startsWith('/app');
 
     if (user) {
       // User is logged in
       let targetDashboard: string;
-      let allowedPaths: string[];
 
-      switch (user.role) {
-        case 'admin':
-          targetDashboard = '/app/admin/dashboard';
-          allowedPaths = ['/app/admin'];
-          break;
-        case 'teacher':
-          targetDashboard = '/app/teacher/dashboard';
-          allowedPaths = ['/app/teacher'];
-          break;
-        case 'student':
-          targetDashboard = '/app/student/dashboard';
-          allowedPaths = ['/app/student'];
-          break;
-        default:
-            targetDashboard = '/login';
-            allowedPaths = [];
-      }
+      const isAdminPage = pathname.startsWith('/app/admin');
+      const isTeacherPage = pathname.startsWith('/app/teacher');
+      const isStudentPage = pathname.startsWith('/app/student');
 
-      if (isPublicPage) {
-        router.replace(targetDashboard);
-      } else {
-        const isPathAllowed = allowedPaths.some(path => pathname.startsWith(path));
-        if (!isPathAllowed) {
-            router.replace(targetDashboard);
+      if (user.role === 'admin') {
+        targetDashboard = '/app/admin/dashboard';
+        if (!isAdminPage && isAppPage) {
+          router.replace(targetDashboard);
+        } else if (isPublicPage) {
+          router.replace(targetDashboard);
+        }
+      } else if (user.role === 'teacher') {
+        targetDashboard = '/app/teacher/dashboard';
+        if (!isTeacherPage && isAppPage) {
+          router.replace(targetDashboard);
+        } else if (isPublicPage) {
+          router.replace(targetDashboard);
+        }
+      } else if (user.role === 'student') {
+        targetDashboard = '/app/student/dashboard';
+        if (!isStudentPage && isAppPage) {
+          router.replace(targetDashboard);
+        } else if (isPublicPage) {
+          router.replace(targetDashboard);
         }
       }
     } else {
