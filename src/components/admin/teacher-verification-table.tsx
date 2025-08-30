@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -45,31 +45,30 @@ export function TeacherVerificationTable() {
   const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
-  const fetchTeachers = async () => {
+  useEffect(() => {
     setIsLoading(true);
-    try {
-      const q = query(collection(db, 'users'), where('role', '==', 'teacher'));
-      const querySnapshot = await getDocs(q);
+    const q = query(collection(db, 'users'), where('role', '==', 'teacher'));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const teachersData = querySnapshot.docs.map((doc) => ({
         uid: doc.id,
         ...doc.data(),
       })) as Teacher[];
       setTeachers(teachersData);
-    } catch (error) {
+      setIsLoading(false);
+    }, (error) => {
       console.error('Error fetching teachers:', error);
       toast({
         title: 'Error',
         description: 'Could not fetch the list of teachers.',
         variant: 'destructive',
       });
-    } finally {
       setIsLoading(false);
-    }
-  };
+    });
 
-  useEffect(() => {
-    fetchTeachers();
-  }, []);
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [toast]);
 
   const handleVerification = async (teacherId: string, newStatus: boolean) => {
     setIsUpdating((prev) => ({ ...prev, [teacherId]: true }));
@@ -77,11 +76,7 @@ export function TeacherVerificationTable() {
       const teacherRef = doc(db, 'users', teacherId);
       await updateDoc(teacherRef, { verified: newStatus });
       
-      setTeachers((prevTeachers) => 
-        prevTeachers.map((teacher) => 
-            teacher.uid === teacherId ? {...teacher, verified: newStatus } : teacher
-        )
-      );
+      // No need to setTeachers locally, onSnapshot will handle it.
 
       toast({
           title: 'Success',
