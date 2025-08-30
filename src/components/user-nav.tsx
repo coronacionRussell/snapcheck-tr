@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogOut, Settings, Shield } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -58,15 +58,7 @@ export function UserNav() {
     );
   }
 
-  let settingsPath = '/';
-  if (user.role === 'teacher') {
-    settingsPath = '/teacher/settings';
-  } else if (user.role === 'student') {
-    settingsPath = '/student/settings';
-  } else if (user.role === 'admin') {
-    settingsPath = '/admin/dashboard';
-  }
-
+  const settingsPath = user.role === 'teacher' ? '/teacher/settings' : '/student/settings';
 
   return (
     <DropdownMenu>
@@ -92,21 +84,12 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-           {user.role === 'admin' ? (
-            <DropdownMenuItem asChild>
-              <Link href="/admin/dashboard">
-                <Shield className="mr-2 size-4" />
-                <span>Admin Dashboard</span>
-              </Link>
-            </DropdownMenuItem>
-           ) : (
-             <DropdownMenuItem asChild>
-              <Link href={settingsPath}>
-                <Settings className="mr-2 size-4" />
-                <span>Settings</span>
-              </Link>
-            </DropdownMenuItem>
-           )}
+          <DropdownMenuItem asChild>
+            <Link href={settingsPath}>
+              <Settings className="mr-2 size-4" />
+              <span>Settings</span>
+            </Link>
+          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">

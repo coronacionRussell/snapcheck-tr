@@ -31,8 +31,6 @@ import {
 import { Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const ADMIN_EMAIL = 'admin@snapcheck.com';
-
 export default function RegisterPage() {
   const [role, setRole] = useState('student');
   const [email, setEmail] = useState('');
@@ -61,34 +59,25 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      let targetDashboard = '/student/dashboard';
+      const userData = {
+        uid: user.uid,
+        fullName,
+        email,
+        role,
+      };
 
-      // Only create a Firestore document for non-admin users
-      if (email !== ADMIN_EMAIL) {
-        const userData: any = {
-          uid: user.uid,
-          fullName,
-          email,
-          role,
-        };
-
-        if (role === 'teacher') {
-          userData.verified = false;
-          targetDashboard = '/teacher/dashboard';
-        }
-        await setDoc(doc(db, 'users', user.uid), userData);
-      } else {
-        // This is the admin user
-        targetDashboard = '/admin/dashboard';
-      }
-
+      await setDoc(doc(db, 'users', user.uid), userData);
 
       toast({
         title: 'Account Created!',
         description: "You've been successfully registered.",
       });
 
-      router.push(targetDashboard);
+      if (role === 'teacher') {
+        router.push('/teacher/dashboard');
+      } else {
+        router.push('/student/dashboard');
+      }
 
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -158,7 +147,7 @@ export default function RegisterPage() {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="role">I am a</Label>
-          <Select value={role} onValueChange={setRole} disabled={isLoading || email === ADMIN_EMAIL}>
+          <Select value={role} onValueChange={setRole} disabled={isLoading}>
             <SelectTrigger id="role">
               <SelectValue placeholder="Select your role" />
             </SelectTrigger>

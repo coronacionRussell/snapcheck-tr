@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -11,11 +11,8 @@ export interface AppUser {
   uid: string;
   fullName: string;
   email: string;
-  role: 'student' | 'teacher' | 'admin';
-  verified?: boolean;
+  role: 'student' | 'teacher';
 }
-
-const ADMIN_EMAIL = 'admin@snapcheck.com';
 
 export function useAuth() {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -27,28 +24,18 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       setIsLoading(true);
       if (firebaseUser) {
-        if (firebaseUser.email === ADMIN_EMAIL) {
-           const adminUser: AppUser = {
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as Omit<AppUser, 'uid'>;
+          setUser({
               uid: firebaseUser.uid,
-              fullName: 'Admin User',
-              email: firebaseUser.email,
-              role: 'admin',
-              verified: true
-            };
-            setUser(adminUser);
+              ...userData,
+          });
         } else {
-            const userDocRef = doc(db, 'users', firebaseUser.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              const userData = userDoc.data() as Omit<AppUser, 'uid'>;
-              setUser({
-                  uid: firebaseUser.uid,
-                  ...userData,
-              });
-            } else {
-              await auth.signOut();
-              setUser(null);
-            }
+          // If user exists in auth but not firestore, sign them out.
+          await auth.signOut();
+          setUser(null);
         }
       } else {
         setUser(null);
@@ -59,45 +46,33 @@ export function useAuth() {
     return () => unsubscribe();
   }, []);
 
- useEffect(() => {
+  useEffect(() => {
     if (isLoading) {
       return; 
     }
 
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname);
-    const isAppPage = pathname.startsWith('/student') || pathname.startsWith('/teacher') || pathname.startsWith('/admin');
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+    const isAppPage = pathname.startsWith('/student') || pathname.startsWith('/teacher');
 
     if (user) {
       // User is logged in
-      let targetDashboard: string;
-
-      const isAdminPage = pathname.startsWith('/admin');
-      const isTeacherPage = pathname.startsWith('/teacher');
-      const isStudentPage = pathname.startsWith('/student');
-
-      if (user.role === 'admin') {
-        targetDashboard = '/admin/dashboard';
-        if (!isAdminPage && isAppPage) {
-          router.replace(targetDashboard);
-        } else if (isPublicPage) {
-          router.replace(targetDashboard);
-        }
-      } else if (user.role === 'teacher') {
+      let targetDashboard = '/';
+      if (user.role === 'teacher') {
         targetDashboard = '/teacher/dashboard';
-        if (!isTeacherPage && isAppPage) {
-          router.replace(targetDashboard);
-        } else if (isPublicPage) {
-          router.replace(targetDashboard);
-        }
       } else if (user.role === 'student') {
         targetDashboard = '/student/dashboard';
-        if (!isStudentPage && isAppPage) {
-          router.replace(targetDashboard);
-        } else if (isPublicPage) {
-          router.replace(targetDashboard);
-        }
       }
+      
+      if (isAuthPage) {
+        router.replace(targetDashboard);
+      } else if (user.role === 'teacher' && !pathname.startsWith('/teacher')) {
+         if (isAppPage) router.replace(targetDashboard);
+      } else if (user.role === 'student' && !pathname.startsWith('/student')) {
+         if (isAppPage) router.replace(targetDashboard);
+      }
+
     } else {
       // User is not logged in
       if (!isPublicPage) {
