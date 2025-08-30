@@ -75,43 +75,37 @@ export function useAuth() {
     const isTeacherPage = pathname.startsWith('/teacher');
     const isStudentPage = pathname.startsWith('/student');
 
-    if (user) {
-      // User is logged in
-      if (isAuthPage) {
-        // Redirect from auth pages to their dashboard
-        let dashboardPath = '/';
-        switch(user.role) {
-            case 'teacher':
-                dashboardPath = '/teacher/dashboard';
-                break;
-            case 'student':
-                dashboardPath = '/student/dashboard';
-                break;
-            case 'admin':
-                dashboardPath = '/admin/dashboard';
-                break;
-        }
-        router.replace(dashboardPath);
-      } else {
-        // Role-based route protection
-        if (user.role === 'admin' && !isAdminPage) {
-          // Admin should only be on admin pages after login
-          // but we allow them to go to the root page, for example.
-          // This check is tricky. Let's make sure admin is NOT on student/teacher pages.
-           if (isTeacherPage || isStudentPage) {
-             router.replace('/admin/dashboard');
-           }
-        } else if (user.role === 'teacher' && !isTeacherPage) {
-          router.replace('/teacher/dashboard');
-        } else if (user.role === 'student' && !isStudentPage) {
-          router.replace('/student/dashboard');
-        }
+    if (!user) {
+      // User is not logged in, redirect to login from protected pages
+      if (!isAuthPage && pathname !== '/') {
+        router.replace('/login');
       }
     } else {
-      // User is not logged in
-      if (!isAuthPage && pathname !== '/') {
-        // If not on auth pages or landing page, redirect to login
-        router.replace('/login');
+      // User is logged in
+      if (isAuthPage) {
+        // Redirect from auth pages to the appropriate dashboard
+        switch (user.role) {
+          case 'admin':
+            router.replace('/admin/dashboard');
+            break;
+          case 'teacher':
+            router.replace('/teacher/dashboard');
+            break;
+          case 'student':
+            router.replace('/student/dashboard');
+            break;
+          default:
+            router.replace('/');
+        }
+      } else {
+        // Enforce role-based access to protected routes
+        if (user.role === 'admin' && !isAdminPage && (isTeacherPage || isStudentPage)) {
+            router.replace('/admin/dashboard');
+        } else if (user.role === 'teacher' && !isTeacherPage && (isAdminPage || isStudentPage)) {
+            router.replace('/teacher/dashboard');
+        } else if (user.role === 'student' && !isStudentPage && (isAdminPage || isTeacherPage)) {
+            router.replace('/student/dashboard');
+        }
       }
     }
   }, [user, isLoading, pathname, router]);
