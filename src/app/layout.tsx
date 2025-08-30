@@ -5,6 +5,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'SnapCheck',
   description: 'AI-Powered Essay Grading and Feedback',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
