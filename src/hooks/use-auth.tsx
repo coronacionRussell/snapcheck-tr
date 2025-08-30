@@ -27,7 +27,7 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       setIsLoading(true);
       if (firebaseUser) {
-        // Special case for admin user
+        // Special case for admin user. This check is the single source of truth for the admin role.
         if (firebaseUser.email === ADMIN_EMAIL) {
            const adminUser: AppUser = {
               uid: firebaseUser.uid,
@@ -38,18 +38,21 @@ export function useAuth() {
             };
             setUser(adminUser);
         } else {
+            // Logic for regular users
             const userDocRef = doc(db, 'users', firebaseUser.uid);
             const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
-            const userData = userDoc.data() as Omit<AppUser, 'uid'>;
-            setUser({
-                uid: firebaseUser.uid,
-                ...userData,
-            });
+              const userData = userDoc.data() as Omit<AppUser, 'uid'>;
+              setUser({
+                  uid: firebaseUser.uid,
+                  ...userData,
+              });
             } else {
-            // If user exists in Auth but not in Firestore, sign them out.
-            await auth.signOut();
-            setUser(null);
+              // This can happen if a user is created in Auth but their Firestore doc fails to be created.
+              // Or if the admin user somehow gets here.
+              // To be safe, we sign them out.
+              await auth.signOut();
+              setUser(null);
             }
         }
       } else {
@@ -66,6 +69,9 @@ export function useAuth() {
     if (!isLoading) {
       const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
       const isAdminPage = pathname.startsWith('/admin');
+      const isTeacherPage = pathname.startsWith('/teacher');
+      const isStudentPage = pathname.startsWith('/student');
+
 
       if (user) {
          if (isAuthPage) {
@@ -85,6 +91,10 @@ export function useAuth() {
             router.replace(dashboardPath);
          } else if (user.role !== 'admin' && isAdminPage) {
             // If a non-admin tries to access an admin page, redirect them
+            router.replace('/login');
+         } else if (user.role !== 'teacher' && isTeacherPage) {
+            router.replace('/login');
+         } else if (user.role !== 'student' && isStudentPage) {
             router.replace('/login');
          }
       } else if (!user && !isAuthPage && pathname !== '/') {

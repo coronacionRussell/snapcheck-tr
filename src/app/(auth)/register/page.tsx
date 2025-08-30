@@ -31,6 +31,8 @@ import {
 import { Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
+const ADMIN_EMAIL = 'admin@snapcheck.com';
+
 export default function RegisterPage() {
   const [role, setRole] = useState('student');
   const [email, setEmail] = useState('');
@@ -58,33 +60,36 @@ export default function RegisterPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      
+      let targetDashboard = '/student/dashboard';
 
-      // Base user data
-      const userData: any = {
-        uid: user.uid,
-        fullName,
-        email,
-        role,
-      };
+      // Only create a Firestore document for non-admin users
+      if (email !== ADMIN_EMAIL) {
+        const userData: any = {
+          uid: user.uid,
+          fullName,
+          email,
+          role,
+        };
 
-      // Add verification status for teachers
-      if (role === 'teacher') {
-        userData.verified = false;
+        if (role === 'teacher') {
+          userData.verified = false;
+          targetDashboard = '/teacher/dashboard';
+        }
+        await setDoc(doc(db, 'users', user.uid), userData);
+      } else {
+        // This is the admin user
+        targetDashboard = '/admin/dashboard';
       }
 
-      // Save user data to Firestore
-      await setDoc(doc(db, 'users', user.uid), userData);
 
       toast({
         title: 'Account Created!',
         description: "You've been successfully registered.",
       });
 
-      if (role === 'teacher') {
-        router.push('/teacher/dashboard');
-      } else {
-        router.push('/student/dashboard');
-      }
+      router.push(targetDashboard);
+
     } catch (error: any) {
       console.error('Registration error:', error);
       let errorMessage = 'An unknown error occurred. Please try again.';
@@ -153,7 +158,7 @@ export default function RegisterPage() {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="role">I am a</Label>
-          <Select value={role} onValueChange={setRole} disabled={isLoading}>
+          <Select value={role} onValueChange={setRole} disabled={isLoading || email === ADMIN_EMAIL}>
             <SelectTrigger id="role">
               <SelectValue placeholder="Select your role" />
             </SelectTrigger>
