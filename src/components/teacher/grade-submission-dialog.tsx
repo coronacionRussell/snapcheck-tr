@@ -128,7 +128,7 @@ export function GradeSubmissionDialog({ submission, className, rubric, classId }
             Grade Submission: {submission.studentName}
           </DialogTitle>
           <DialogDescription>
-            Class: {className} | Submitted: {new Date(submission.submittedAt.seconds * 1000).toLocaleString()}
+            Class: {className} | Submitted: {submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleString() : 'N/A'}
           </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[70vh] grid-cols-1 gap-4 overflow-y-auto p-1 md:grid-cols-2">

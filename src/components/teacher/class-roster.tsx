@@ -104,7 +104,7 @@ export function ClassRoster({ classId, className, rubric }: { classId: string, c
                 <TableRow key={submission.id}>
                   <TableCell className="font-medium">{submission.studentName}</TableCell>
                   <TableCell>
-                    {new Date(submission.submittedAt.seconds * 1000).toLocaleString()}
+                    {submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleString() : 'N/A'}
                   </TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(submission.status)}
