@@ -23,6 +23,8 @@ import Logo from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 
+const ADMIN_EMAIL = 'admin@snapcheck.com';
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,7 +51,17 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Fetch user role from Firestore
+      // Special case for admin user
+      if (user.email === ADMIN_EMAIL) {
+        toast({
+          title: 'Admin Login Successful!',
+          description: 'Redirecting to the admin dashboard.',
+        });
+        router.push('/admin/dashboard');
+        return;
+      }
+
+      // Fetch user role from Firestore for regular users
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
