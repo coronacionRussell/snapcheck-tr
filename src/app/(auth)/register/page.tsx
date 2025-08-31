@@ -141,7 +141,7 @@ export default function RegisterPage() {
     <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-lg border bg-card shadow-lg md:grid-cols-2">
       <div className="relative aspect-square items-center justify-center md:flex">
          <Image
-            src="https://i.imgur.com/4IbzC4B.png"
+            src="https://i.imgur.com/XsSu2FC.png"
             fill
             alt="Abstract branding image"
             className="object-cover"
