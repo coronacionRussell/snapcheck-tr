@@ -2,6 +2,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -130,14 +131,24 @@ export default function RegisterPage() {
 
   if (!isMounted) {
     return (
-       <div className="w-full max-w-sm">
-        <Skeleton className="h-[580px] w-full" />
+       <div className="w-full max-w-4xl">
+        <Skeleton className="h-[620px] w-full" />
       </div>
     )
   }
 
   return (
-    <Card className="w-full max-w-sm">
+    <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-lg border bg-card shadow-lg md:grid-cols-2">
+      <div className="relative hidden aspect-square items-center justify-center md:flex">
+         <Image
+            src="https://storage.googleapis.com/gemini-studio-assets/project-images/b489d2c2-d284-4638-a151-69e1f57252a1.png"
+            fill
+            alt="Abstract branding image"
+            className="object-cover"
+            data-ai-hint="abstract logo"
+            />
+      </div>
+       <Card className="border-0 shadow-none">
       <CardHeader className="text-center">
         <div className="mb-4 flex justify-center">
           <Logo />
@@ -196,5 +207,6 @@ export default function RegisterPage() {
         </div>
       </CardFooter>
     </Card>
+    </div>
   );
 }
