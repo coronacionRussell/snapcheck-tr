@@ -139,7 +139,7 @@ export default function RegisterPage() {
 
   return (
     <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-lg border bg-card shadow-lg md:grid-cols-2">
-      <div className="relative hidden aspect-square items-center justify-center md:flex">
+      <div className="relative aspect-square items-center justify-center md:flex">
          <Image
             src="https://storage.googleapis.com/gemini-studio-assets/project-images/b489d2c2-d284-4638-a151-69e1f57252a1.png"
             fill
