@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookCopy, Home, Settings } from 'lucide-react';
+import { BookCopy, Home, Settings, ScanLine } from 'lucide-react';
 import {
   SidebarContent,
   SidebarHeader,
@@ -26,6 +26,11 @@ export default function TeacherSidebar() {
       href: '/teacher/classes',
       label: 'Classes',
       icon: <BookCopy />,
+    },
+    {
+      href: '/teacher/scan-essay',
+      label: 'Scan Essay',
+      icon: <ScanLine />,
     },
     {
       href: '/teacher/settings',
