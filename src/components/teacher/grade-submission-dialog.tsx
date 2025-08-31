@@ -18,7 +18,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Submission } from './class-roster';
+import { Submission } from './class-submissions';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
@@ -128,7 +128,7 @@ export function GradeSubmissionDialog({ submission, className, rubric, classId }
             Grade Submission: {submission.studentName}
           </DialogTitle>
           <DialogDescription>
-            Class: {className} | Submitted: {submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleString() : 'N/A'}
+            Assignment: {submission.assignmentName || 'Essay Submission'} | Class: {className} | Submitted: {submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleString() : 'N/A'}
           </DialogDescription>
         </DialogHeader>
         <div className="grid max-h-[70vh] grid-cols-1 gap-4 overflow-y-auto p-1 md:grid-cols-2">
@@ -229,5 +229,3 @@ export function GradeSubmissionDialog({ submission, className, rubric, classId }
     </Dialog>
   );
 }
-
-    

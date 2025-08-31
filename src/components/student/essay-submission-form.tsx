@@ -290,6 +290,7 @@ export function EssaySubmissionForm() {
         essayText,
         submittedAt: serverTimestamp(),
         status: 'Pending Review',
+        assignmentName: 'Student Essay Submission'
       });
       
       toast({

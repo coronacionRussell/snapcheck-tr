@@ -63,7 +63,7 @@ export default function StudentGradesPage() {
                 const data = submissionDoc.data();
                 gradesData.push({
                     id: submissionDoc.id,
-                    assignment: 'Essay Submission',
+                    assignment: data.assignmentName || 'Essay Submission',
                     class: classDoc.data().name,
                     grade: data.grade || '-',
                     status: data.status,

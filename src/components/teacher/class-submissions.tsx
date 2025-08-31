@@ -27,6 +27,7 @@ export interface Submission {
     id: string;
     studentName: string;
     studentId: string;
+    assignmentName?: string;
     essayText: string;
     submittedAt: {
         seconds: number;
@@ -83,6 +84,7 @@ export function ClassSubmissions({ classId, className, rubric }: { classId: stri
           <TableHeader>
             <TableRow>
               <TableHead>Student Name</TableHead>
+              <TableHead>Assignment</TableHead>
               <TableHead>Submitted At</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -91,7 +93,7 @@ export function ClassSubmissions({ classId, className, rubric }: { classId: stri
           <TableBody>
             {isLoading ? (
                 <TableRow>
-                    <TableCell colSpan={4}>
+                    <TableCell colSpan={5}>
                         <div className="space-y-2">
                            <Skeleton className="h-4 w-full" />
                            <Skeleton className="h-4 w-full" />
@@ -102,6 +104,7 @@ export function ClassSubmissions({ classId, className, rubric }: { classId: stri
               submissions.map((submission) => (
                 <TableRow key={submission.id}>
                   <TableCell className="font-medium">{submission.studentName}</TableCell>
+                   <TableCell>{submission.assignmentName || 'Essay Submission'}</TableCell>
                   <TableCell>
                     {submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleString() : 'N/A'}
                   </TableCell>
@@ -118,7 +121,7 @@ export function ClassSubmissions({ classId, className, rubric }: { classId: stri
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="text-center">
+                <TableCell colSpan={5} className="text-center">
                   No students have submitted essays for this class yet.
                 </TableCell>
               </TableRow>

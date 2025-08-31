@@ -94,7 +94,7 @@ export default function StudentDashboard() {
                 const data = submissionDoc.data();
                 gradesData.push({
                     id: submissionDoc.id,
-                    assignment: 'Essay Submission',
+                    assignment: data.assignmentName || 'Essay Submission',
                     class: classInfo.name,
                     grade: data.grade,
                     status: data.status,

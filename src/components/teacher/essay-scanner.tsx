@@ -3,22 +3,65 @@
 
 import { scanEssay } from '@/ai/flows/scan-essay';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, ClipboardCopy, Loader2, ScanLine, Trash2, UploadCloud, Video } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { Camera, ClipboardCopy, Loader2, ScanLine, Trash2, UploadCloud, Video, Save } from 'lucide-react';
+import { useState, useRef, useEffect, useContext } from 'react';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { ClassContext } from '@/contexts/class-context';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
+import { collection, onSnapshot, query, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/hooks/use-auth';
+
+
+interface Student {
+    id: string;
+    name: string;
+}
 
 export function EssayScanner() {
+  const { user } = useAuth();
+  const { classes, isLoading: areClassesLoading } = useContext(ClassContext);
   const [essayText, setEssayText] = useState('');
+  const [assignmentName, setAssignmentName] = useState('');
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isStudentListLoading, setIsStudentListLoading] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+
+   useEffect(() => {
+    if (!selectedClass) {
+        setStudents([]);
+        setSelectedStudent(null);
+        return;
+    };
+
+    setIsStudentListLoading(true);
+    const studentsCollection = collection(db, 'classes', selectedClass, 'students');
+    const q = query(studentsCollection);
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const studentData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Student[];
+        setStudents(studentData);
+        setIsStudentListLoading(false);
+    }, (error) => {
+        console.error("Error fetching students: ", error);
+        toast({ title: 'Error', description: 'Could not fetch student list for this class.', variant: 'destructive'});
+        setIsStudentListLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [selectedClass, toast]);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -119,6 +162,48 @@ export function EssayScanner() {
     navigator.clipboard.writeText(essayText);
     toast({ title: 'Copied!', description: 'The essay text has been copied to your clipboard.' });
   }
+  
+  const handleSaveEssay = async () => {
+    if (!selectedClass || !selectedStudent || !assignmentName.trim() || !essayText.trim()) {
+        toast({ title: 'Missing Information', description: 'Please select a class, a student, and provide an assignment name and essay text.', variant: 'destructive'});
+        return;
+    }
+    if (!user) {
+        toast({ title: 'Not Authenticated', description: 'You must be logged in to save an essay.', variant: 'destructive' });
+        return;
+    }
+
+    setIsSaving(true);
+    try {
+        const studentName = students.find(s => s.id === selectedStudent)?.name || 'Unknown Student';
+
+        const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
+        await addDoc(submissionsCollection, {
+            studentId: selectedStudent,
+            studentName,
+            assignmentName,
+            essayText,
+            submittedAt: serverTimestamp(),
+            status: 'Pending Review',
+        });
+
+        toast({
+            title: 'Essay Saved!',
+            description: `The essay for ${studentName} has been saved to the class.`
+        });
+        
+        // Reset form
+        setEssayText('');
+        setAssignmentName('');
+        setSelectedStudent(null);
+
+    } catch (error) {
+        console.error("Error saving essay submission: ", error);
+        toast({ title: 'Error', description: 'Could not save the essay submission.', variant: 'destructive' });
+    } finally {
+        setIsSaving(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -128,6 +213,7 @@ export function EssayScanner() {
             <ScanLine className="size-5"/>
             Essay Input
           </CardTitle>
+          <CardDescription>First, scan the essay by uploading a photo or using your camera.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -141,7 +227,7 @@ export function EssayScanner() {
                   accept="image/*"
                   onChange={handleFileUpload}
                   className="pl-10"
-                  disabled={isScanning}
+                  disabled={isScanning || isSaving}
                 />
               </div>
             </div>
@@ -152,7 +238,7 @@ export function EssayScanner() {
                 variant="outline"
                 className="w-full"
                 onClick={() => setIsCameraOpen(true)}
-                disabled={isScanning}
+                disabled={isScanning || isSaving}
               >
                 <Video className="mr-2 size-4" /> Open Camera
               </Button>
@@ -186,21 +272,22 @@ export function EssayScanner() {
         <CardHeader className="flex flex-row items-center justify-between">
             <div className="space-y-1.5">
                 <CardTitle className="font-headline text-lg">
-                    Extracted Text
+                    Extracted Text & Submission
                 </CardTitle>
+                 <CardDescription>Next, verify the text, choose a student, and save it to your class.</CardDescription>
             </div>
             <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleCopyText} disabled={!essayText || isScanning}>
+                <Button variant="outline" size="sm" onClick={handleCopyText} disabled={!essayText || isScanning || isSaving}>
                     <ClipboardCopy className="mr-2" />
                     Copy
                 </Button>
-                 <Button variant="outline" size="sm" onClick={() => setEssayText('')} disabled={!essayText || isScanning}>
+                 <Button variant="outline" size="sm" onClick={() => setEssayText('')} disabled={!essayText || isScanning || isSaving}>
                     <Trash2 className="mr-2" />
                     Clear
                 </Button>
             </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
              {isScanning && (
                 <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed h-60">
                     <Loader2 className="size-8 animate-spin text-primary" />
@@ -208,14 +295,57 @@ export function EssayScanner() {
                 </div>
             )}
             {!isScanning && (
-                <Textarea
-                    id="essay-text"
-                    placeholder="The text extracted from the essay image will appear here..."
-                    rows={12}
-                    value={essayText}
-                    onChange={(e) => setEssayText(e.target.value)}
-                    className="font-code"
-                />
+              <>
+                 <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="class-select">Class</Label>
+                      <Select onValueChange={(value) => setSelectedClass(value)} value={selectedClass || ''} disabled={areClassesLoading || isSaving}>
+                          <SelectTrigger id="class-select">
+                              <SelectValue placeholder={areClassesLoading ? "Loading classes..." : "Select a class"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {classes.map(c => (
+                                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                    </div>
+                     <div className="space-y-2">
+                      <Label htmlFor="student-select">Student</Label>
+                      <Select onValueChange={(value) => setSelectedStudent(value)} value={selectedStudent || ''} disabled={!selectedClass || isStudentListLoading || isSaving}>
+                          <SelectTrigger id="student-select">
+                              <SelectValue placeholder={!selectedClass ? "First select a class" : isStudentListLoading ? "Loading students..." : "Select a student"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {students.map(s => (
+                                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="assignment-name">Assignment Name</Label>
+                    <Input id="assignment-name" placeholder="e.g., Mid-term Essay" value={assignmentName} onChange={e => setAssignmentName(e.target.value)} disabled={isSaving} />
+                  </div>
+
+                  <Textarea
+                      id="essay-text"
+                      placeholder="The text extracted from the essay image will appear here..."
+                      rows={12}
+                      value={essayText}
+                      onChange={(e) => setEssayText(e.target.value)}
+                      className="font-code"
+                      disabled={isSaving}
+                  />
+                   <div className="flex justify-end">
+                      <Button onClick={handleSaveEssay} disabled={isSaving || isScanning || !essayText}>
+                        {isSaving && <Loader2 className="mr-2 animate-spin" />}
+                        {isSaving ? 'Saving...' : <><Save className="mr-2"/> Save Essay to Class</>}
+                      </Button>
+                  </div>
+              </>
             )}
         </CardContent>
       </Card>
