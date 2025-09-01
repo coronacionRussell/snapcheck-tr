@@ -31,7 +31,7 @@ interface Student {
     joinedAt: {
         seconds: number;
         nanoseconds: number;
-    };
+    } | null;
 }
 
 export function ClassRoster({ classId }: { classId: string }) {

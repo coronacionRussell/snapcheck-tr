@@ -19,6 +19,7 @@ import {
   getDoc,
   writeBatch,
   increment,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -81,7 +82,7 @@ export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
       // Add student to the students subcollection
       batch.set(studentRef, {
         name: studentName,
-        joinedAt: new Date(),
+        joinedAt: serverTimestamp(),
       });
 
       // Increment the studentCount on the class document
