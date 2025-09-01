@@ -5,9 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, db, storage } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, UploadCloud } from 'lucide-react';
+import { Loader2, UploadCloud, CheckCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RegisterPage() {
@@ -41,12 +41,26 @@ export default function RegisterPage() {
   const [verificationId, setVerificationId] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+  
+  const uploadVerificationIdInBackground = async (userUid: string, file: File) => {
+    try {
+        const storageRef = ref(storage, `teacher_verification/${userUid}/${file.name}`);
+        const uploadResult = await uploadBytes(storageRef, file);
+        const verificationIdUrl = await getDownloadURL(uploadResult.ref);
+        const userDocRef = doc(db, 'users', userUid);
+        await updateDoc(userDocRef, { verificationIdUrl });
+    } catch (uploadError) {
+        console.error("Background verification ID upload failed:", uploadError);
+        // Optionally, you could add logic here to notify an admin about the failed upload.
+    }
+  }
 
   const handleCreateAccount = async () => {
     if (!fullName || !email || !password || (role === 'teacher' && !verificationId)) {
@@ -62,32 +76,29 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      let verificationIdUrl = '';
-      if (role === 'teacher' && verificationId) {
-        const storageRef = ref(storage, `teacher_verification/${user.uid}/${verificationId.name}`);
-        const uploadResult = await uploadBytes(storageRef, verificationId);
-        verificationIdUrl = await getDownloadURL(uploadResult.ref);
-      }
-
       const userData = {
         uid: user.uid,
         fullName,
         email,
         role,
-        isVerified: role === 'student', // Students are auto-verified, teachers are not
-        ...(role === 'teacher' && { verificationIdUrl }),
+        isVerified: role === 'student',
+        verificationIdUrl: '',
       };
 
       await setDoc(doc(db, 'users', user.uid), userData);
 
-      toast({
-        title: 'Account Created!',
-        description: "You've been successfully registered.",
-      });
-
       if (role === 'teacher') {
-        router.push('/teacher/dashboard');
+        if(verificationId){
+            // Don't await this, let it run in the background
+            uploadVerificationIdInBackground(user.uid, verificationId);
+        }
+        await signOut(auth);
+        setRegistrationComplete(true);
       } else {
+        toast({
+          title: 'Account Created!',
+          description: "You've been successfully registered.",
+        });
         router.push('/student/dashboard');
       }
 
@@ -145,6 +156,18 @@ export default function RegisterPage() {
             />
       </div>
        <Card className="border-0 shadow-none">
+        {registrationComplete ? (
+            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                <CheckCircle className="size-16 text-primary mb-4"/>
+                <CardTitle className="font-headline text-2xl">Registration Submitted</CardTitle>
+                <CardDescription className="mt-2 text-base">
+                    Thank you for registering. Your account is now pending verification from an administrator. You will receive an email once it's approved.
+                </CardDescription>
+                <Button className="mt-6 w-full" asChild>
+                    <Link href="/login">Back to Login</Link>
+                </Button>
+            </div>
+        ) : (
           <>
             <CardHeader className="text-center">
               <div className="mb-4 flex justify-center">
@@ -204,6 +227,7 @@ export default function RegisterPage() {
               </div>
             </CardFooter>
           </>
+        )}
       </Card>
     </div>
   );
