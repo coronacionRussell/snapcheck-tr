@@ -87,13 +87,14 @@ export function ClassSubmissions({ classId, className, rubric }: { classId: stri
               <TableHead>Assignment</TableHead>
               <TableHead>Submitted At</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Grade</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
                 <TableRow>
-                    <TableCell colSpan={5}>
+                    <TableCell colSpan={6}>
                         <div className="space-y-2">
                            <Skeleton className="h-4 w-full" />
                            <Skeleton className="h-4 w-full" />
@@ -114,6 +115,9 @@ export function ClassSubmissions({ classId, className, rubric }: { classId: stri
                         {submission.status}
                     </Badge>
                   </TableCell>
+                  <TableCell className="font-semibold">
+                    {submission.grade || '-'}
+                  </TableCell>
                   <TableCell className="text-right">
                     <GradeSubmissionDialog submission={submission} className={className} rubric={rubric} classId={classId} />
                   </TableCell>
@@ -121,7 +125,7 @@ export function ClassSubmissions({ classId, className, rubric }: { classId: stri
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={6} className="text-center">
                   No students have submitted essays for this class yet.
                 </TableCell>
               </TableRow>
