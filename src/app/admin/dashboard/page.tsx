@@ -26,6 +26,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import Image from 'next/image';
 
 export default function AdminDashboard() {
     const [teachers, setTeachers] = useState<AppUser[]>([]);
@@ -133,9 +135,24 @@ export default function AdminDashboard() {
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                         {teacher.verificationIdUrl && (
-                             <Button variant="outline" size="sm" asChild>
-                                <a href={teacher.verificationIdUrl} target="_blank" rel="noopener noreferrer">View ID</a>
-                            </Button>
+                             <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="outline" size="sm">View ID</Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[425px] md:max-w-[600px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Verification ID: {teacher.fullName}</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="relative mt-2 aspect-video w-full">
+                                        <Image
+                                            src={teacher.verificationIdUrl}
+                                            alt={`Verification ID for ${teacher.fullName}`}
+                                            fill
+                                            className="object-contain"
+                                        />
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
                         )}
                         {!teacher.isVerified ? (
                            <Button 
