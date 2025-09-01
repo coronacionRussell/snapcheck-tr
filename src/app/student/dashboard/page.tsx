@@ -17,14 +17,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { BookOpen, Loader2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { BookOpen, Loader2, LogOut } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useEffect, useState, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, where, limit } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, limit, deleteDoc, writeBatch, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
 
 const JoinClassCard = dynamic(
   () => import('@/components/student/join-class-card').then((mod) => mod.JoinClassCard),
@@ -52,6 +64,7 @@ export default function StudentDashboard() {
   const [recentGrades, setRecentGrades] = useState<RecentGrade[]>([]);
   const [isClassesLoading, setIsClassesLoading] = useState(true);
   const [isGradesLoading, setIsGradesLoading] = useState(true);
+  const [isLeavingClass, setIsLeavingClass] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchStudentData = useCallback(async () => {
@@ -125,6 +138,41 @@ export default function StudentDashboard() {
     }
   }, [fetchStudentData, user]);
 
+  const handleLeaveClass = async (classId: string, className: string) => {
+    if (!user) {
+        toast({ title: 'Not authenticated', variant: 'destructive'});
+        return;
+    }
+    setIsLeavingClass(classId);
+    try {
+        const batch = writeBatch(db);
+
+        const studentDocRef = doc(db, 'classes', classId, 'students', user.uid);
+        batch.delete(studentDocRef);
+        
+        const classDocRef = doc(db, 'classes', classId);
+        batch.update(classDocRef, { studentCount: increment(-1) });
+
+        await batch.commit();
+
+        toast({
+            title: 'Successfully Unenrolled',
+            description: `You have left the class "${className}".`
+        });
+        
+        fetchStudentData();
+    } catch(error) {
+        console.error("Error leaving class: ", error);
+        toast({
+            title: 'Error',
+            description: 'Could not leave the class. Please try again.',
+            variant: 'destructive'
+        });
+    } finally {
+        setIsLeavingClass(null);
+    }
+  }
+
   const isLoading = isAuthLoading || isClassesLoading || isGradesLoading;
 
   return (
@@ -154,7 +202,7 @@ export default function StudentDashboard() {
                                     <Skeleton className="h-4 w-24" />
                                 </div>
                             </div>
-                           <Skeleton className="h-6 w-16 rounded-full" />
+                           <Skeleton className="h-8 w-20" />
                         </div>
                     ))}
                  </div>
@@ -176,7 +224,28 @@ export default function StudentDashboard() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant="secondary">Enrolled</Badge>
+                      <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" disabled={isLeavingClass === c.id}>
+                                {isLeavingClass === c.id ? <Loader2 className="mr-2 size-4 animate-spin"/> : <LogOut className="mr-2 size-4"/>}
+                                Leave
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                You will be unenrolled from <strong>{c.name}</strong>. You will need a new class code from your teacher to join again.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleLeaveClass(c.id, c.name)}>
+                                Yes, Leave Class
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                   ))}
                 </div>
