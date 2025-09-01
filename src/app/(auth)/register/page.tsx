@@ -87,10 +87,9 @@ export default function RegisterPage() {
        if (role === 'teacher') {
          toast({
             title: 'Verification Pending',
-            description: "Your account is pending verification from an administrator. You will be notified once it's approved.",
-            duration: 7000,
+            description: "Your account is pending verification from an administrator. You will be notified once it's approved. You can now log in.",
+            duration: 9000,
         });
-        await auth.signOut();
         router.push('/login');
       } else {
         router.push('/student/dashboard');
