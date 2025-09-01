@@ -34,14 +34,14 @@ const prompt = ai.definePrompt({
     name: 'scanEssayPrompt',
     input: {schema: ScanEssayInputSchema},
     output: {schema: ScanEssayOutputSchema},
-    prompt: `You are an expert Optical Character Recognition (OCR) engine. Your primary task is to extract text from an image of an essay with the highest possible accuracy.
+    prompt: `You are a highly specialized Optical Character Recognition (OCR) engine with an exceptional ability to decipher handwritten text. Your primary task is to extract text from an image of an essay with the highest possible accuracy, paying special attention to the nuances of handwriting.
 
 Analyze the following image carefully. It may contain typed or handwritten text.
 
-- Be meticulous. Double-check for common OCR errors (e.g., confusing 'l' with '1', 'o' with '0').
-- Preserve the original formatting as much as possible, including paragraph breaks and indentation.
-- If the text is handwritten, pay close attention to the letter shapes and spacing to correctly transcribe the words.
-- Return only the extracted text. Do not add any commentary or extra information.
+- If the text is handwritten, engage your advanced handwriting analysis subroutines. Pay close attention to letter shapes, slant, spacing, and connections between letters to correctly transcribe the words. Decipher cursive and print with equal precision.
+- Be meticulous. Double-check for common OCR errors (e.g., confusing 'l' with '1', 'o' with '0', 'u' with 'v', 'cl' with 'd').
+- Preserve the original formatting as much as possible, including paragraph breaks, line breaks, and indentation.
+- Return only the extracted text. Do not add any commentary, interpretation, or extra information about the scan quality. Your output should be pure text.
 
 Image: {{media url=imageDataUri}}`
 });
