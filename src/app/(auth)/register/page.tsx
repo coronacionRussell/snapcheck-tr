@@ -5,10 +5,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth, db, storage } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 import {
   Card,
@@ -29,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, UploadCloud } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RegisterPage() {
@@ -37,6 +38,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [verificationId, setVerificationId] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
@@ -47,7 +49,7 @@ export default function RegisterPage() {
   }, []);
 
   const handleCreateAccount = async () => {
-    if (!fullName || !email || !password) {
+    if (!fullName || !email || !password || (role === 'teacher' && !verificationId)) {
       toast({
         title: 'Missing Fields',
         description: 'Please fill out all required fields.',
@@ -56,21 +58,28 @@ export default function RegisterPage() {
       return;
     }
     setIsLoading(true);
-    let userCredential;
     try {
-      userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
+      let verificationIdUrl = '';
+      if (role === 'teacher' && verificationId) {
+        const storageRef = ref(storage, `teacher_verification/${user.uid}/${verificationId.name}`);
+        const uploadResult = await uploadBytes(storageRef, verificationId);
+        verificationIdUrl = await getDownloadURL(uploadResult.ref);
+      }
+
       const userData = {
         uid: user.uid,
         fullName,
         email,
         role,
-        isVerified: true, // All users are now auto-verified
+        isVerified: role === 'student', // Students are auto-verified, teachers are not
+        ...(role === 'teacher' && { verificationIdUrl }),
       };
 
       await setDoc(doc(db, 'users', user.uid), userData);
-      
+
       toast({
         title: 'Account Created!',
         description: "You've been successfully registered.",
@@ -83,11 +92,6 @@ export default function RegisterPage() {
       }
 
     } catch (error: any) {
-      // If user was created in auth but something else failed, delete the user.
-      if (userCredential && userCredential.user) {
-        await deleteUser(userCredential.user);
-      }
-
       console.error('Registration error:', error);
       let errorMessage = 'An unknown error occurred. Please try again.';
       switch (error.code) {
@@ -176,6 +180,16 @@ export default function RegisterPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {role === 'teacher' && (
+                  <div className="grid gap-2">
+                      <Label htmlFor="verification-id">Verification ID</Label>
+                      <div className="relative">
+                          <UploadCloud className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                          <Input id="verification-id" type="file" accept="image/*,.pdf" className="pl-10" onChange={(e) => setVerificationId(e.target.files?.[0] || null)} required disabled={isLoading} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Please upload an image or PDF of your teaching ID for verification.</p>
+                  </div>
+              )}
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
               <Button className="w-full" onClick={handleCreateAccount} disabled={isLoading}>
