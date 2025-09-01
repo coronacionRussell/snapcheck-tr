@@ -28,7 +28,7 @@ export default function StudentSidebar() {
       icon: <FilePenLine />,
     },
     {
-      href: '/student/history',
+      href: '/student/grades',
       label: 'Submission History',
       icon: <History />,
     },

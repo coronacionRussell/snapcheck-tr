@@ -19,35 +19,41 @@ import {
 } from '@/components/ui/table';
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 
-interface Grade {
+interface Submission {
   id: string;
   assignment: string;
   class: string;
   grade: string;
   status: 'Graded' | 'Pending Review';
+  submittedAt: {
+    seconds: number;
+    nanoseconds: number;
+  }
 }
 
 
-export default function StudentGradesPage() {
+export default function StudentHistoryPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [grades, setGrades] = useState<Grade[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchGrades = async () => {
+    const fetchSubmissions = async () => {
       if (!user) return;
       setIsDataLoading(true);
       try {
         const studentId = user.uid;
+        const submissionsData: Submission[] = [];
 
+        // This is inefficient. A better approach would be to have a 'submissions' collection per user
+        // but for this project structure, we query through classes.
         const classesSnapshot = await getDocs(collection(db, 'classes'));
-        const gradesData: Grade[] = [];
 
         for (const classDoc of classesSnapshot.docs) {
           const studentSubcollectionDoc = await getDoc(doc(db, `classes/${classDoc.id}/students`, studentId));
@@ -55,28 +61,30 @@ export default function StudentGradesPage() {
           if(studentSubcollectionDoc.exists()){
              const submissionsQuery = query(
               collection(db, 'classes', classDoc.id, 'submissions'),
-              where('studentId', '==', studentId)
+              where('studentId', '==', studentId),
+              orderBy('submittedAt', 'desc')
             );
 
             const submissionsSnapshot = await getDocs(submissionsQuery);
             submissionsSnapshot.forEach(submissionDoc => {
                 const data = submissionDoc.data();
-                gradesData.push({
+                submissionsData.push({
                     id: submissionDoc.id,
                     assignment: data.assignmentName || 'Essay Submission',
                     class: classDoc.data().name,
                     grade: data.grade || '-',
                     status: data.status,
+                    submittedAt: data.submittedAt,
                 });
             });
           }
         }
-        setGrades(gradesData);
+        setSubmissions(submissionsData);
       } catch (error) {
-        console.error("Error fetching grades: ", error);
+        console.error("Error fetching submissions: ", error);
         toast({
           title: 'Error',
-          description: 'Could not fetch your grades.',
+          description: 'Could not fetch your submission history.',
           variant: 'destructive'
         });
       } finally {
@@ -84,16 +92,27 @@ export default function StudentGradesPage() {
       }
     };
     if (user) {
-        fetchGrades();
+        fetchSubmissions();
     }
   }, [user, toast]);
 
   const isLoading = isAuthLoading || isDataLoading;
 
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+        case 'Graded':
+            return 'default';
+        case 'Pending Review':
+            return 'secondary';
+        default:
+            return 'secondary';
+    }
+  }
+
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
       <div>
-        <h1 className="font-headline text-3xl font-bold">My Grades</h1>
+        <h1 className="font-headline text-3xl font-bold">Submission History</h1>
         <p className="text-muted-foreground">
           An overview of all your submitted and graded assignments.
         </p>
@@ -101,9 +120,9 @@ export default function StudentGradesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">All Grades</CardTitle>
+          <CardTitle className="font-headline">All Submissions</CardTitle>
           <CardDescription>
-            A summary of all your grades across all classes.
+            A detailed history of your submissions across all classes.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -113,45 +132,47 @@ export default function StudentGradesPage() {
               <Skeleton className="h-8 w-full" />
               <Skeleton className="h-8 w-full" />
             </div>
-          ) : grades.length > 0 ? (
+          ) : submissions.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Assignment</TableHead>
                   <TableHead>Class</TableHead>
-                  <TableHead>Grade</TableHead>
+                  <TableHead>Date Submitted</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Grade</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {grades.map((grade) => (
-                  <TableRow key={grade.id}>
+                {submissions.map((submission) => (
+                  <TableRow key={submission.id}>
                     <TableCell className="font-medium">
-                      {grade.assignment}
+                      {submission.assignment}
                     </TableCell>
-                    <TableCell>{grade.class}</TableCell>
-                    <TableCell className="font-semibold">{grade.grade}</TableCell>
+                    <TableCell>{submission.class}</TableCell>
+                     <TableCell>
+                      {submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleString() : 'N/A'}
+                    </TableCell>
                     <TableCell>
                       <Badge
-                        variant={
-                          grade.status === 'Graded' ? 'default' : 'secondary'
-                        }
+                        variant={getStatusVariant(submission.status)}
                         className={
-                          grade.status === 'Graded' ? 'bg-primary/80' : ''
+                          getStatusVariant(submission.status) === 'default' ? 'bg-primary/80' : ''
                         }
                       >
-                        {grade.status}
+                        {submission.status}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-right font-semibold">{submission.grade}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
             <div className="py-8 text-center text-muted-foreground">
-              <p>You do not have any grades yet.</p>
+              <p>You have not submitted any assignments yet.</p>
               <p className="text-sm">
-                When your assignments are graded, they will appear here.
+                Use the "Submit Essay" page to make your first submission.
               </p>
             </div>
           )}
