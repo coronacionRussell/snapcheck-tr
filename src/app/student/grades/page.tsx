@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table';
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
@@ -61,8 +61,7 @@ export default function StudentHistoryPage() {
           if(studentSubcollectionDoc.exists()){
              const submissionsQuery = query(
               collection(db, 'classes', classDoc.id, 'submissions'),
-              where('studentId', '==', studentId),
-              orderBy('submittedAt', 'desc')
+              where('studentId', '==', studentId)
             );
 
             const submissionsSnapshot = await getDocs(submissionsQuery);
@@ -79,12 +78,21 @@ export default function StudentHistoryPage() {
             });
           }
         }
+        
+        // Sort manually since we can't use orderBy without an index
+        submissionsData.sort((a, b) => {
+            if (a.submittedAt && b.submittedAt) {
+                return b.submittedAt.seconds - a.submittedAt.seconds;
+            }
+            return 0;
+        });
+
         setSubmissions(submissionsData);
       } catch (error) {
         console.error("Error fetching submissions: ", error);
         toast({
           title: 'Error',
-          description: 'Could not fetch your submission history.',
+          description: 'Could not fetch your submission history. You may need to create a Firestore index.',
           variant: 'destructive'
         });
       } finally {
