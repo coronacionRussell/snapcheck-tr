@@ -17,21 +17,15 @@ import {
     CardTitle,
   } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { AppUser } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { CheckCircle, Loader2, FileBadge } from 'lucide-react';
-import Link from 'next/link';
-
 
 export default function AdminDashboard() {
     const [teachers, setTeachers] = useState<AppUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isVerifying, setIsVerifying] = useState<string | null>(null);
 
     useEffect(() => {
         setIsLoading(true);
@@ -51,31 +45,12 @@ export default function AdminDashboard() {
         return () => unsubscribe();
       }, []);
 
-      const handleVerifyTeacher = async (teacherId: string, isVerified: boolean) => {
-        setIsVerifying(teacherId);
-        try {
-            const userDocRef = doc(db, 'users', teacherId);
-            await updateDoc(userDocRef, {
-                isVerified: !isVerified
-            });
-            toast({
-                title: 'Success',
-                description: `Teacher has been ${!isVerified ? 'verified' : 'unverified'}.`
-            })
-        } catch (error) {
-            console.error("Error verifying teacher: ", error);
-            toast({ title: 'Error', description: 'Could not update teacher verification status.', variant: 'destructive'});
-        } finally {
-            setIsVerifying(null);
-        }
-      }
-
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
       <div>
         <h1 className="font-headline text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground">
-          Verify and manage teacher accounts.
+          Manage teacher accounts.
         </p>
       </div>
       <Card>
@@ -91,16 +66,13 @@ export default function AdminDashboard() {
               <TableRow>
                 <TableHead>Full Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Verification ID</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 [...Array(3)].map((_, i) => (
                     <TableRow key={i}>
-                        <TableCell colSpan={5}>
+                        <TableCell colSpan={2}>
                             <Skeleton className="h-4 w-full" />
                         </TableCell>
                     </TableRow>
@@ -110,44 +82,11 @@ export default function AdminDashboard() {
                   <TableRow key={teacher.uid}>
                     <TableCell className="font-medium">{teacher.fullName}</TableCell>
                     <TableCell>{teacher.email}</TableCell>
-                    <TableCell>
-                        {teacher.verificationIdUrl ? (
-                            <Button variant="outline" size="sm" asChild>
-                                <Link href={teacher.verificationIdUrl} target="_blank" rel="noopener noreferrer">
-                                    <FileBadge className="mr-2 size-4" />
-                                    View ID
-                                </Link>
-                            </Button>
-                        ) : (
-                            <span className="text-muted-foreground text-sm">Not provided</span>
-                        )}
-                    </TableCell>
-                    <TableCell>
-                        {teacher.isVerified ? (
-                            <Badge>
-                                <CheckCircle className="mr-2 size-4"/>
-                                Verified
-                            </Badge>
-                        ) : (
-                            <Badge variant="secondary">Not Verified</Badge>
-                        )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        size="sm"
-                        onClick={() => handleVerifyTeacher(teacher.uid, !!teacher.isVerified)}
-                        disabled={isVerifying === teacher.uid}
-                        variant={teacher.isVerified ? 'secondary' : 'default'}
-                      >
-                         {isVerifying === teacher.uid && <Loader2 className="mr-2 size-4 animate-spin" />}
-                         {teacher.isVerified ? 'Unverify' : 'Verify'}
-                      </Button>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">
+                  <TableCell colSpan={2} className="text-center">
                     No teachers have registered yet.
                   </TableCell>
                 </TableRow>
