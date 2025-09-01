@@ -3,12 +3,13 @@
 
 import Link from 'next/link';
 import { useContext } from 'react';
-import { Users, FileText, Trash2 } from 'lucide-react';
+import { Users, FileText, Trash2, DoorOpen } from 'lucide-react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
+  CardFooter,
   CardTitle,
 } from '@/components/ui/card';
 import { ClassContext } from '@/contexts/class-context';
@@ -49,6 +50,9 @@ export default function ClassesPage() {
                              <Skeleton className="h-4 w-1/2" />
                              <Skeleton className="h-4 w-2/3" />
                         </CardContent>
+                         <CardFooter>
+                            <Skeleton className="h-10 w-full" />
+                        </CardFooter>
                     </Card>
                 ))}
             </div>
@@ -72,17 +76,12 @@ export default function ClassesPage() {
             </div>
         )}
         {classes.map((c) => (
-          <Card key={c.id}>
-            <CardHeader>
+          <Card key={c.id} className="flex flex-col">
+            <CardHeader className="flex-grow">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <CardTitle className="font-headline pr-2">
-                    <Link
-                      href={`/teacher/classes/${c.id}`}
-                      className="hover:underline"
-                    >
-                      {c.name}
-                    </Link>
+                    {c.name}
                   </CardTitle>
                   <CardDescription>Class Code: {c.id}</CardDescription>
                 </div>
@@ -113,7 +112,7 @@ export default function ClassesPage() {
                 </AlertDialog>
               </div>
             </CardHeader>
-            <CardContent className="grid gap-4">
+            <CardContent className="grid gap-4 flex-grow">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="size-4" />
                 <span>{c.studentCount} Students</span>
@@ -123,6 +122,14 @@ export default function ClassesPage() {
                 <span>{c.pendingSubmissions} Submissions Pending</span>
               </div>
             </CardContent>
+             <CardFooter>
+                <Button asChild className="w-full">
+                    <Link href={`/teacher/classes/${c.id}`}>
+                        <DoorOpen className="mr-2 size-4" />
+                        Enter Class
+                    </Link>
+                </Button>
+            </CardFooter>
           </Card>
         ))}
       </div>
