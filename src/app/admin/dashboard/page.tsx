@@ -25,11 +25,13 @@ import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export default function AdminDashboard() {
     const [teachers, setTeachers] = useState<AppUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isVerifying, setIsVerifying] = useState<string | null>(null);
+    const [isUnverifying, setIsUnverifying] = useState<string | null>(null);
 
     useEffect(() => {
         setIsLoading(true);
@@ -65,6 +67,24 @@ export default function AdminDashboard() {
             setIsVerifying(null);
         }
     }
+
+    const handleUnverifyTeacher = async (teacherId: string, teacherName: string) => {
+        setIsUnverifying(teacherId);
+        try {
+            const userDocRef = doc(db, 'users', teacherId);
+            await updateDoc(userDocRef, { isVerified: false });
+            toast({
+                title: 'Teacher Unverified',
+                description: `${teacherName}'s account status has been set to pending.`,
+            });
+        } catch (error) {
+            console.error("Error un-verifying teacher: ", error);
+            toast({ title: 'Error', description: 'Could not un-verify the teacher.', variant: 'destructive'});
+        } finally {
+            setIsUnverifying(null);
+        }
+    }
+
 
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
@@ -117,7 +137,7 @@ export default function AdminDashboard() {
                                 <a href={teacher.verificationIdUrl} target="_blank" rel="noopener noreferrer">View ID</a>
                             </Button>
                         )}
-                        {!teacher.isVerified && (
+                        {!teacher.isVerified ? (
                            <Button 
                              size="sm" 
                              onClick={() => handleVerifyTeacher(teacher.uid, teacher.fullName)}
@@ -126,6 +146,32 @@ export default function AdminDashboard() {
                                {isVerifying === teacher.uid && <Loader2 className="mr-2 animate-spin"/>}
                                Verify
                            </Button>
+                        ) : (
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="sm" disabled={isUnverifying === teacher.uid}>
+                                         {isUnverifying === teacher.uid && <Loader2 className="mr-2 animate-spin"/>}
+                                        Unverify
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    This will revoke verification for <strong>{teacher.fullName}</strong>. They will lose access to teacher functionalities until they are verified again.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={() => handleUnverifyTeacher(teacher.uid, teacher.fullName)}
+                                        className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                        Yes, Unverify
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         )}
                     </TableCell>
                   </TableRow>
