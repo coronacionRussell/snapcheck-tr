@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, UploadCloud } from 'lucide-react';
+import { Loader2, UploadCloud, CheckCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RegisterPage() {
@@ -41,6 +41,7 @@ export default function RegisterPage() {
   const [verificationId, setVerificationId] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -80,21 +81,15 @@ export default function RegisterPage() {
 
       await setDoc(doc(db, 'users', user.uid), userData);
 
-      toast({
-        title: 'Account Created!',
-        description: "You've been successfully registered.",
-      });
-
       if (role === 'teacher') {
-        await signOut(auth); // Sign out the teacher so they have to log in.
-        toast({
-            title: 'Verification Pending',
-            description: "Your account requires verification. You will be redirected to the login page.",
-            duration: 9000,
-        });
-        router.push('/login');
+        await signOut(auth); // Sign out teacher to enforce verification
+        setRegistrationComplete(true);
       } else {
-        // For students, we can log them in directly
+        // For students, log them in and redirect
+        toast({
+          title: 'Account Created!',
+          description: "You've been successfully registered.",
+        });
         router.push('/student/dashboard');
       }
 
@@ -152,64 +147,79 @@ export default function RegisterPage() {
             />
       </div>
        <Card className="border-0 shadow-none">
-      <CardHeader className="text-center">
-        <div className="mb-4 flex justify-center">
-          <Logo />
-        </div>
-        <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
-        <CardDescription>
-          Join SnapCheck to revolutionize your writing and grading.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="full-name">Full Name</Label>
-          <Input id="full-name" placeholder="John Doe" required value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isLoading} />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="role">I am a</Label>
-          <Select value={role} onValueChange={setRole} disabled={isLoading}>
-            <SelectTrigger id="role">
-              <SelectValue placeholder="Select your role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="student">Student</SelectItem>
-              <SelectItem value="teacher">Teacher</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        {role === 'teacher' && (
-            <div className="grid gap-2">
-                <Label htmlFor="verification-id">Verification ID</Label>
-                 <div className="relative">
-                    <UploadCloud className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                    <Input id="verification-id" type="file" accept="image/*" className="pl-10" onChange={(e) => setVerificationId(e.target.files?.[0] || null)} required disabled={isLoading} />
-                </div>
-                <p className="text-xs text-muted-foreground">Please upload an image of your teaching ID for verification.</p>
+        {registrationComplete ? (
+            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                <CheckCircle className="size-16 text-primary mb-4"/>
+                <CardTitle className="font-headline text-2xl">Registration Submitted</CardTitle>
+                <CardDescription className="mt-2 text-base">
+                    Thank you for registering. Your account is now pending verification from an administrator. You will receive an email once it's approved.
+                </CardDescription>
+                <Button className="mt-6 w-full" asChild>
+                    <Link href="/login">Back to Login</Link>
+                </Button>
             </div>
+        ) : (
+          <>
+            <CardHeader className="text-center">
+              <div className="mb-4 flex justify-center">
+                <Logo />
+              </div>
+              <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
+              <CardDescription>
+                Join SnapCheck to revolutionize your writing and grading.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="full-name">Full Name</Label>
+                <Input id="full-name" placeholder="John Doe" required value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isLoading} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="role">I am a</Label>
+                <Select value={role} onValueChange={setRole} disabled={isLoading}>
+                  <SelectTrigger id="role">
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="teacher">Teacher</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {role === 'teacher' && (
+                  <div className="grid gap-2">
+                      <Label htmlFor="verification-id">Verification ID</Label>
+                      <div className="relative">
+                          <UploadCloud className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                          <Input id="verification-id" type="file" accept="image/*,.pdf" className="pl-10" onChange={(e) => setVerificationId(e.target.files?.[0] || null)} required disabled={isLoading} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Please upload an image or PDF of your teaching ID for verification.</p>
+                  </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex flex-col gap-4">
+              <Button className="w-full" onClick={handleCreateAccount} disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 animate-spin" />}
+                {isLoading ? 'Creating Account...' : 'Create Account'}
+              </Button>
+              <div className="text-center text-sm text-muted-foreground">
+                Already have an account?{' '}
+                <Link href="/login" className="underline hover:text-primary">
+                  Login
+                </Link>
+              </div>
+            </CardFooter>
+          </>
         )}
-      </CardContent>
-      <CardFooter className="flex flex-col gap-4">
-        <Button className="w-full" onClick={handleCreateAccount} disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 animate-spin" />}
-          {isLoading ? 'Creating Account...' : 'Create Account'}
-        </Button>
-        <div className="text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <Link href="/login" className="underline hover:text-primary">
-            Login
-          </Link>
-        </div>
-      </CardFooter>
-    </Card>
+      </Card>
     </div>
   );
 }
