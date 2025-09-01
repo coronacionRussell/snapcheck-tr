@@ -56,15 +56,17 @@ export default function StudentHistoryPage() {
         const classesSnapshot = await getDocs(collection(db, 'classes'));
 
         for (const classDoc of classesSnapshot.docs) {
-          const studentSubcollectionDoc = await getDoc(doc(db, `classes/${classDoc.id}/students`, studentId));
+          // A student's submissions for a class can exist even if they are not in the 'students' subcollection
+          // (e.g., if the teacher scanned it for them before they joined).
+          // So we directly query the submissions subcollection for the student's ID.
+          const submissionsQuery = query(
+            collection(db, 'classes', classDoc.id, 'submissions'),
+            where('studentId', '==', studentId)
+          );
 
-          if(studentSubcollectionDoc.exists()){
-             const submissionsQuery = query(
-              collection(db, 'classes', classDoc.id, 'submissions'),
-              where('studentId', '==', studentId)
-            );
-
-            const submissionsSnapshot = await getDocs(submissionsQuery);
+          const submissionsSnapshot = await getDocs(submissionsQuery);
+          
+          if (!submissionsSnapshot.empty) {
             submissionsSnapshot.forEach(submissionDoc => {
                 const data = submissionDoc.data();
                 submissionsData.push({
@@ -79,7 +81,7 @@ export default function StudentHistoryPage() {
           }
         }
         
-        // Sort manually since we can't use orderBy without an index
+        // Sort manually since we can't use orderBy without an index across collections
         submissionsData.sort((a, b) => {
             if (a.submittedAt && b.submittedAt) {
                 return b.submittedAt.seconds - a.submittedAt.seconds;
@@ -92,7 +94,7 @@ export default function StudentHistoryPage() {
         console.error("Error fetching submissions: ", error);
         toast({
           title: 'Error',
-          description: 'Could not fetch your submission history. You may need to create a Firestore index.',
+          description: 'Could not fetch your submission history. You may need to create a Firestore index if this persists.',
           variant: 'destructive'
         });
       } finally {
