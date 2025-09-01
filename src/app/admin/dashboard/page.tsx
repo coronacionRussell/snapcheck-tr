@@ -39,7 +39,7 @@ export default function AdminDashboard() {
         const q = query(usersCollection, where('role', '==', 'teacher'));
     
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const teachersData = querySnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id })) as AppUser[];
+            const teachersData = querySnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
             setTeachers(teachersData);
             setIsLoading(false);
         }, (error) => {
