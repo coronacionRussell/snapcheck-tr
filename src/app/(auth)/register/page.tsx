@@ -74,7 +74,7 @@ export default function RegisterPage() {
         fullName,
         email,
         role,
-        isVerified: false,
+        isVerified: role === 'student', // Students are auto-verified
         ...(role === 'teacher' && { verificationIdUrl }),
       };
 
@@ -90,6 +90,7 @@ export default function RegisterPage() {
             description: "Your account is pending verification from an administrator. You will be notified once it's approved.",
             duration: 7000,
         });
+        await auth.signOut();
         router.push('/login');
       } else {
         router.push('/student/dashboard');

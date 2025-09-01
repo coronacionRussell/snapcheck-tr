@@ -63,7 +63,7 @@ export default function LoginPage() {
                 variant: 'destructive',
                 duration: 9000,
             });
-             await auth.signOut(); // Log them out
+             await auth.signOut();
              setIsLoading(false);
              return;
         }
