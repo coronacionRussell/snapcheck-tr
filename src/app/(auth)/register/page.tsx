@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signOut, deleteUser } from 'firebase/auth';
 import { auth, db, storage } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -59,8 +59,9 @@ export default function RegisterPage() {
       return;
     }
     setIsLoading(true);
+    let userCredential;
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
       let verificationIdUrl = '';
@@ -94,6 +95,11 @@ export default function RegisterPage() {
       }
 
     } catch (error: any) {
+      // If user was created in auth but something else failed, delete the user.
+      if (userCredential && userCredential.user) {
+        await deleteUser(userCredential.user);
+      }
+
       console.error('Registration error:', error);
       let errorMessage = 'An unknown error occurred. Please try again.';
       switch (error.code) {
