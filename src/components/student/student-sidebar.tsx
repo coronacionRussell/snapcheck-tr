@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FilePenLine, LayoutDashboard, Settings, History } from 'lucide-react';
+import { FilePenLine, LayoutDashboard, Settings, History, BookCopy } from 'lucide-react';
 import {
   SidebarContent,
   SidebarHeader,
@@ -21,6 +21,11 @@ export default function StudentSidebar() {
       href: '/student/dashboard',
       label: 'Dashboard',
       icon: <LayoutDashboard />,
+    },
+     {
+      href: '/student/classes',
+      label: 'My Classes',
+      icon: <BookCopy />,
     },
     {
       href: '/student/submit-essay',

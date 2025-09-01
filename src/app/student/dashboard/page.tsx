@@ -17,31 +17,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { BookOpen, Loader2, LogOut } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import { BookOpen, FilePenLine, History } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, where, limit, deleteDoc, writeBatch, increment } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, limit } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
-
-const JoinClassCard = dynamic(
-  () => import('@/components/student/join-class-card').then((mod) => mod.JoinClassCard),
-  { ssr: false }
-);
+import Link from 'next/link';
 
 interface EnrolledClass {
     id: string;
@@ -64,7 +48,6 @@ export default function StudentDashboard() {
   const [recentGrades, setRecentGrades] = useState<RecentGrade[]>([]);
   const [isClassesLoading, setIsClassesLoading] = useState(true);
   const [isGradesLoading, setIsGradesLoading] = useState(true);
-  const [isLeavingClass, setIsLeavingClass] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchStudentData = useCallback(async () => {
@@ -75,7 +58,6 @@ export default function StudentDashboard() {
     try {
       const studentId = user.uid;
 
-      // Fetch all classes
       const classesCollection = collection(db, 'classes');
       const classesSnapshot = await getDocs(classesCollection);
       const allClasses = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string, name: string, teacherName: string }));
@@ -83,7 +65,6 @@ export default function StudentDashboard() {
       const classesData: EnrolledClass[] = [];
       const gradesData: RecentGrade[] = [];
 
-      // Find which classes the student is in and fetch their submissions
       for (const classInfo of allClasses) {
           const studentDocRef = doc(db, `classes/${classInfo.id}/students`, studentId);
           const studentDoc = await getDoc(studentDocRef);
@@ -95,12 +76,11 @@ export default function StudentDashboard() {
                   teacherName: classInfo.teacherName,
               });
               
-              // Fetch recent graded submissions for this class
               const submissionsQuery = query(
                 collection(db, 'classes', classInfo.id, 'submissions'),
                 where('studentId', '==', studentId),
                 where('status', '==', 'Graded'),
-                limit(5) 
+                limit(3) 
               );
               const submissionsSnapshot = await getDocs(submissionsQuery);
               submissionsSnapshot.forEach(submissionDoc => {
@@ -138,41 +118,6 @@ export default function StudentDashboard() {
     }
   }, [fetchStudentData, user]);
 
-  const handleLeaveClass = async (classId: string, className: string) => {
-    if (!user) {
-        toast({ title: 'Not authenticated', variant: 'destructive'});
-        return;
-    }
-    setIsLeavingClass(classId);
-    try {
-        const batch = writeBatch(db);
-
-        const studentDocRef = doc(db, 'classes', classId, 'students', user.uid);
-        batch.delete(studentDocRef);
-        
-        const classDocRef = doc(db, 'classes', classId);
-        batch.update(classDocRef, { studentCount: increment(-1) });
-
-        await batch.commit();
-
-        toast({
-            title: 'Successfully Unenrolled',
-            description: `You have left the class "${className}".`
-        });
-        
-        fetchStudentData();
-    } catch(error) {
-        console.error("Error leaving class: ", error);
-        toast({
-            title: 'Error',
-            description: 'Could not leave the class. Please try again.',
-            variant: 'destructive'
-        });
-    } finally {
-        setIsLeavingClass(null);
-    }
-  }
-
   const isLoading = isAuthLoading || isClassesLoading || isGradesLoading;
 
   return (
@@ -184,91 +129,50 @@ export default function StudentDashboard() {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">My Classes</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Enrolled Classes</CardTitle>
+              <BookOpen className="size-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                 <div className="space-y-4">
-                    {[...Array(2)].map((_, i) => (
-                        <div key={i} className="flex items-center justify-between rounded-lg border p-4">
-                            <div className="flex items-center gap-4">
-                                 <Skeleton className="size-10 rounded-lg" />
-                                <div className="space-y-1">
-                                    <Skeleton className="h-5 w-32" />
-                                    <Skeleton className="h-4 w-24" />
-                                </div>
-                            </div>
-                           <Skeleton className="h-8 w-20" />
-                        </div>
-                    ))}
-                 </div>
-              ) : enrolledClasses.length > 0 ? (
-                <div className="space-y-4">
-                  {enrolledClasses.map((c) => (
-                    <div
-                      key={c.id}
-                      className="flex items-center justify-between rounded-lg border p-4"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                          <BookOpen className="size-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-semibold">{c.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {c.teacherName}
-                          </p>
-                        </div>
-                      </div>
-                      <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" disabled={isLeavingClass === c.id}>
-                                {isLeavingClass === c.id ? <Loader2 className="mr-2 size-4 animate-spin"/> : <LogOut className="mr-2 size-4"/>}
-                                Leave
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                You will be unenrolled from <strong>{c.name}</strong>. You will need a new class code from your teacher to join again.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleLeaveClass(c.id, c.name)}>
-                                Yes, Leave Class
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-8 text-center text-muted-foreground">
-                  <p>You are not enrolled in any classes yet.</p>
-                  <p className="text-sm">Use the "Join a New Class" card to get started.</p>
-                </div>
-              )}
+              {isLoading ? <Skeleton className="h-8 w-10" /> : <div className="text-2xl font-bold">{enrolledClasses.length}</div> }
+              <Button variant="link" asChild className="p-0 h-auto">
+                <Link href="/student/classes">View all classes</Link>
+              </Button>
             </CardContent>
           </Card>
-        </div>
-
-        <div className="lg:col-span-2">
-          <JoinClassCard onClassJoined={fetchStudentData} />
-        </div>
+           <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Submit a New Essay</CardTitle>
+              <FilePenLine className="size-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">&nbsp;</div>
+              <Button variant="link" asChild className="p-0 h-auto">
+                <Link href="/student/submit-essay">Go to Submission Page</Link>
+              </Button>
+            </CardContent>
+          </Card>
+           <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">View Submission History</CardTitle>
+              <History className="size-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">&nbsp;</div>
+                <Button variant="link" asChild className="p-0 h-auto">
+                    <Link href="/student/grades">See All Grades</Link>
+                </Button>
+            </CardContent>
+          </Card>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="font-headline">Recent Grades</CardTitle>
           <CardDescription>
-            A summary of your recently graded assignments.
+            A summary of your most recently graded assignments.
           </CardDescription>
         </CardHeader>
         <CardContent>
