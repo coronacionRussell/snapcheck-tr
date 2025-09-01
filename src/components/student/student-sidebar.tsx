@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FilePenLine, LayoutDashboard, Settings, Star } from 'lucide-react';
+import { FilePenLine, LayoutDashboard, Settings, History } from 'lucide-react';
 import {
   SidebarContent,
   SidebarHeader,
@@ -28,9 +28,9 @@ export default function StudentSidebar() {
       icon: <FilePenLine />,
     },
     {
-      href: '/student/grades',
-      label: 'My Grades',
-      icon: <Star />,
+      href: '/student/history',
+      label: 'Submission History',
+      icon: <History />,
     },
     {
       href: '/student/settings',
