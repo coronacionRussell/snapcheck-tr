@@ -59,7 +59,7 @@ export default function LoginPage() {
         if (userData.role === 'teacher' && !userData.isVerified) {
              toast({
                 title: 'Verification Pending',
-                description: "Your account is pending verification. You cannot log in until an administrator approves your account.",
+                description: "Your teacher account is pending verification. You cannot log in until an administrator approves your account.",
                 variant: 'destructive',
                 duration: 9000,
             });

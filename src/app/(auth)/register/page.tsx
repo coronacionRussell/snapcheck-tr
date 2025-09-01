@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, db, storage } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -84,14 +84,17 @@ export default function RegisterPage() {
         title: 'Account Created!',
         description: "You've been successfully registered.",
       });
-       if (role === 'teacher') {
-         toast({
+
+      if (role === 'teacher') {
+        await signOut(auth); // Sign out the teacher so they have to log in.
+        toast({
             title: 'Verification Pending',
-            description: "Your account is pending verification from an administrator. You will be notified once it's approved. You can now log in.",
+            description: "Your account requires verification. You will be redirected to the login page.",
             duration: 9000,
         });
         router.push('/login');
       } else {
+        // For students, we can log them in directly
         router.push('/student/dashboard');
       }
 
