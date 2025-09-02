@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +55,18 @@ export default function LoginPage() {
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
+        
+        if (userData.role === 'teacher' && !userData.isVerified) {
+             await signOut(auth); // Ensure they are signed out before showing toast
+             toast({
+                title: 'Verification Pending',
+                description: "Your teacher account has not been approved by an administrator yet. You cannot log in until your account is verified.",
+                variant: 'destructive',
+                duration: 9000,
+            });
+             setIsLoading(false);
+             return;
+        }
         
         toast({
           title: 'Login Successful!',

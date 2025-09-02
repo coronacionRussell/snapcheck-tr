@@ -5,9 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signOut, deleteUser } from 'firebase/auth';
 import { auth, db, storage } from '@/lib/firebase';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -48,19 +48,6 @@ export default function RegisterPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
-  
-  const uploadVerificationIdInBackground = async (userUid: string, file: File) => {
-    try {
-        const storageRef = ref(storage, `teacher_verification/${userUid}/${file.name}`);
-        const uploadResult = await uploadBytes(storageRef, file);
-        const verificationIdUrl = await getDownloadURL(uploadResult.ref);
-        const userDocRef = doc(db, 'users', userUid);
-        await updateDoc(userDocRef, { verificationIdUrl });
-    } catch (uploadError) {
-        console.error("Background verification ID upload failed:", uploadError);
-        // Optionally, you could add logic here to notify an admin about the failed upload.
-    }
-  }
 
   const handleCreateAccount = async () => {
     if (!fullName || !email || !password || (role === 'teacher' && !verificationId)) {
@@ -72,29 +59,35 @@ export default function RegisterPage() {
       return;
     }
     setIsLoading(true);
+
+    let userCredential;
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
+      let verificationIdUrl = '';
+      if (role === 'teacher' && verificationId) {
+        const storageRef = ref(storage, `teacher_verification/${user.uid}/${verificationId.name}`);
+        const uploadResult = await uploadBytes(storageRef, verificationId);
+        verificationIdUrl = await getDownloadURL(uploadResult.ref);
+      }
+
       const userData = {
         uid: user.uid,
         fullName,
         email,
         role,
-        isVerified: role === 'student',
-        verificationIdUrl: '',
+        isVerified: role === 'student', // Students are auto-verified
+        ...(role === 'teacher' && { verificationIdUrl }),
       };
 
       await setDoc(doc(db, 'users', user.uid), userData);
 
       if (role === 'teacher') {
-        if(verificationId){
-            // Don't await this, let it run in the background
-            uploadVerificationIdInBackground(user.uid, verificationId);
-        }
-        await signOut(auth);
+        await signOut(auth); // Sign out teacher to enforce verification
         setRegistrationComplete(true);
       } else {
+        // For students, log them in and redirect
         toast({
           title: 'Account Created!',
           description: "You've been successfully registered.",
@@ -104,6 +97,18 @@ export default function RegisterPage() {
 
     } catch (error: any) {
       console.error('Registration error:', error);
+      
+      // If user was created in Auth but Firestore failed, delete the auth user
+      if (userCredential && error.code !== 'auth/email-already-in-use') {
+        try {
+          await deleteUser(userCredential.user);
+          console.log("Cleaned up orphaned auth user.");
+           await deleteDoc(doc(db, 'users', userCredential.user.uid));
+        } catch (cleanupError) {
+          console.error("Failed to clean up orphaned auth user:", cleanupError);
+        }
+      }
+
       let errorMessage = 'An unknown error occurred. Please try again.';
       switch (error.code) {
         case 'auth/email-already-in-use':
