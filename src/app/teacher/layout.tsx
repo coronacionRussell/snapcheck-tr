@@ -14,11 +14,11 @@ function VerificationGate({ children }: { children: React.ReactNode }) {
   
     if (isLoading) {
       return (
-        <div className="flex-1 overflow-y-auto p-4 pt-0 md:p-6 md:pt-0 space-y-4">
+        <main className="flex-1 overflow-y-auto p-4 pt-0 md:p-6 md:pt-0 space-y-4">
             <Skeleton className="h-10 w-48" />
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-64 w-full" />
-        </div>
+        </main>
       );
     }
   
