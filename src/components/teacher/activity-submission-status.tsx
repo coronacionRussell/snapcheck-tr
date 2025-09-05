@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, doc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, doc, getDocs, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -46,7 +46,10 @@ export function ActivitySubmissionStatus({ classId, activityId }: { classId: str
             const roster = studentsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as Student));
 
             // Fetch all submissions for the specific activity
-            const submissionsQuery = query(collection(db, 'classes', classId, 'submissions'), (where) => where('activityId', '==', activityId));
+            const submissionsQuery = query(
+              collection(db, 'classes', classId, 'submissions'),
+              where('activityId', '==', activityId)
+            );
             const submissionsSnapshot = await getDocs(submissionsQuery);
             const submissions = submissionsSnapshot.docs.map(doc => doc.data() as Submission);
             const submittedStudentIds = new Set(submissions.map(s => s.studentId));
