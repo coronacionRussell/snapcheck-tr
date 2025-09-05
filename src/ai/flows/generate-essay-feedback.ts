@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -5,7 +6,7 @@
  *
  * - generateEssayFeedback - A function that generates essay feedback.
  * - GenerateEssayFeedbackInput - The input type for the generateEssayFeedback function.
- * - GenerateEssayFeedbackOutput - The return type for the generateEssayFeedback function.
+ * - GenerateEssayFeedbackOutput - The return type for the generateEssayfeedback function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -36,7 +37,9 @@ const prompt = ai.definePrompt({
   name: 'generateEssayFeedbackPrompt',
   input: {schema: GenerateEssayFeedbackInputSchema},
   output: {schema: GenerateEssayFeedbackOutputSchema},
-  prompt: `You are an AI essay feedback generator. You will be provided with an essay and a rubric. Your goal is to provide feedback to the student based on the rubric.
+  prompt: `You are an AI writing tutor. You will be provided with an essay and a rubric. Your goal is to provide constructive feedback to the student based on the rubric to help them improve their essay.
+
+NEVER mention a score, grade, or any quantitative assessment. Your feedback should be purely qualitative and encouraging.
 
 Essay:
 {{essayText}}

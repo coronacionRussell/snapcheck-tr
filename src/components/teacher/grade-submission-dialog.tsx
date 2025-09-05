@@ -38,14 +38,17 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
   const [finalFeedback, setFinalFeedback] = useState('');
   const [rubric, setRubric] = useState('');
   const [aiResult, setAiResult] = useState<{
-    preliminaryScore: number;
     feedback: string;
   } | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchRubric = async () => {
-        if (!submission.activityId) return;
+        if (!submission.activityId) {
+            setRubric('This essay was submitted as a general submission and is not tied to a specific activity rubric.');
+            setIsRubricLoading(false);
+            return;
+        }
 
         setIsRubricLoading(true);
         try {
@@ -90,7 +93,6 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
         rubricText: rubric,
       });
       setAiResult(result);
-      setFinalScore(result.preliminaryScore.toString());
       setFinalFeedback(result.feedback);
     } catch (error) {
       console.error(error);
@@ -206,12 +208,12 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
-                  Grading in Progress...
+                  Generating Feedback...
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 size-4" />
-                  Run AI-Assisted Grading
+                  Run AI Feedback Assistant
                 </>
               )}
             </Button>
@@ -222,36 +224,24 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {isLoading && (
-                    <div className='flex items-center justify-center p-8'>
-                      <Loader2 className="size-8 animate-spin text-muted-foreground" />
+                    <div>
+                        <Label htmlFor="final-score">Final Score (/100)</Label>
+                        <Input
+                        id="final-score"
+                        value={finalScore}
+                        onChange={(e) => setFinalScore(e.target.value)}
+                        placeholder='Enter a score (e.g., 85)'
+                        />
                     </div>
-                  )}
-                  {aiResult && !isLoading && (
-                     <>
-                        <div>
-                            <Label htmlFor="final-score">Final Score (/100)</Label>
-                            <Input
-                            id="final-score"
-                            value={finalScore}
-                            onChange={(e) => setFinalScore(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <Label>Final Feedback</Label>
-                            <Textarea 
-                                rows={10} 
-                                value={finalFeedback} 
-                                onChange={(e) => setFinalFeedback(e.target.value)}
-                            />
-                        </div>
-                     </>
-                  )}
-                   {!aiResult && !isLoading && (
-                    <div className='text-center text-sm text-muted-foreground p-8'>
-                        Run the AI assistant to get a preliminary grade and feedback.
+                    <div>
+                        <Label>Final Feedback</Label>
+                        <Textarea 
+                            rows={10} 
+                            value={finalFeedback} 
+                            onChange={(e) => setFinalFeedback(e.target.value)}
+                            placeholder={isLoading ? 'Generating feedback...' : aiResult ? 'Edit the AI-generated feedback or write your own.' : 'Run the AI assistant to generate feedback, or write your own.'}
+                        />
                     </div>
-                  )}
                 </CardContent>
               </Card>
           </div>
@@ -260,7 +250,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
           <Button variant="secondary" onClick={handleClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleFinalizeGrade} disabled={isSubmitting || !aiResult}>
+          <Button onClick={handleFinalizeGrade} disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 animate-spin" />}
             {isSubmitting ? 'Submitting...' : 'Finalize & Submit Grade'}
           </Button>
