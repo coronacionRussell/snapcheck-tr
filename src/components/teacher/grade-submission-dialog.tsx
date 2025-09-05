@@ -39,6 +39,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
   const [rubric, setRubric] = useState('');
   const [aiResult, setAiResult] = useState<{
     feedback: string;
+    preliminaryScore: string;
   } | null>(null);
   const { toast } = useToast();
 
@@ -94,6 +95,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
       });
       setAiResult(result);
       setFinalFeedback(result.feedback);
+      setFinalScore(result.preliminaryScore);
     } catch (error) {
       console.error(error);
       toast({

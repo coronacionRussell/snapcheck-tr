@@ -19,6 +19,7 @@ const AssistTeacherGradingInputSchema = z.object({
 export type AssistTeacherGradingInput = z.infer<typeof AssistTeacherGradingInputSchema>;
 
 const AssistTeacherGradingOutputSchema = z.object({
+  preliminaryScore: z.string().describe('A preliminary score out of 100 based on the rubric.'),
   feedback: z.string().describe('Detailed feedback on how the essay meets the rubric requirements.'),
 });
 export type AssistTeacherGradingOutput = z.infer<typeof AssistTeacherGradingOutputSchema>;
@@ -31,9 +32,9 @@ const prompt = ai.definePrompt({
   name: 'assistTeacherGradingPrompt',
   input: {schema: AssistTeacherGradingInputSchema},
   output: {schema: AssistTeacherGradingOutputSchema},
-  prompt: `You are an AI assistant for teachers. Your task is to provide feedback on an essay based on a provided rubric.
+  prompt: `You are an AI assistant for teachers. Your task is to provide feedback on an essay based on a provided rubric and suggest a preliminary score out of 100.
 
-Carefully analyze the essay and the rubric. Generate constructive feedback that explains how the essay meets each criterion in the rubric. DO NOT provide a score or grade.
+Carefully analyze the essay and the rubric. Generate constructive feedback that explains how the essay meets each criterion in the rubric. Provide a score out of 100.
 
 You MUST output your response in a valid JSON format.
 
