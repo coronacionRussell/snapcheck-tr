@@ -10,7 +10,6 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { ClassSubmissions } from '@/components/teacher/class-submissions';
 import { useEffect, useState, use } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -109,14 +108,10 @@ export default function ClassDetailsPage({
       <Tabs defaultValue="activities">
         <TabsList>
           <TabsTrigger value="activities">Activities</TabsTrigger>
-          <TabsTrigger value="submissions">All Submissions</TabsTrigger>
           <TabsTrigger value="roster">Roster</TabsTrigger>
         </TabsList>
         <TabsContent value="activities" className="mt-4">
           <ClassActivities classId={classId} />
-        </TabsContent>
-         <TabsContent value="submissions" className="mt-4">
-          <ClassSubmissions classId={classId} className={classInfo?.name || ''} />
         </TabsContent>
          <TabsContent value="roster" className="mt-4">
           <ClassRoster classId={classId} />
