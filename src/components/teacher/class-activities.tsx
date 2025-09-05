@@ -21,11 +21,14 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '../ui/skeleton';
 import { CreateActivityDialog } from './create-activity-dialog';
+import { Button } from '../ui/button';
+import { ManageActivityDialog } from './manage-activity-dialog';
 
 export interface Activity {
     id: string;
     name: string;
     description: string;
+    rubric: string;
     createdAt: {
         seconds: number;
         nanoseconds: number;
@@ -59,9 +62,9 @@ export function ClassActivities({ classId }: { classId: string }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-            <CardTitle className="font-headline">Class Activities</CardTitle>
+            <CardTitle className="font-headline">Class Activities & Rubrics</CardTitle>
             <CardDescription>
-            Create and manage assignments and activities for this class.
+            Create and manage assignments. Each activity has its own rubric.
             </CardDescription>
         </div>
         <CreateActivityDialog classId={classId} />
@@ -73,12 +76,13 @@ export function ClassActivities({ classId }: { classId: string }) {
               <TableHead>Activity Name</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Date Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
                 <TableRow>
-                    <TableCell colSpan={3}>
+                    <TableCell colSpan={4}>
                         <div className="space-y-2">
                            <Skeleton className="h-4 w-full" />
                            <Skeleton className="h-4 w-full" />
@@ -93,11 +97,14 @@ export function ClassActivities({ classId }: { classId: string }) {
                   <TableCell>
                     {activity.createdAt ? new Date(activity.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
                   </TableCell>
+                  <TableCell className="text-right">
+                    <ManageActivityDialog classId={classId} activity={activity} />
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="text-center">
+                <TableCell colSpan={4} className="text-center">
                   No activities have been created for this class yet.
                 </TableCell>
               </TableRow>

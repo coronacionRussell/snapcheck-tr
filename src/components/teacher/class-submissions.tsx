@@ -28,6 +28,7 @@ export interface Submission {
     studentName: string;
     studentId: string;
     assignmentName?: string;
+    activityId?: string;
     essayText: string;
     submittedAt: {
         seconds: number;
@@ -48,7 +49,7 @@ const getStatusVariant = (status: string) => {
     }
 }
 
-export function ClassSubmissions({ classId, className, rubric }: { classId: string, className: string, rubric: string }) {
+export function ClassSubmissions({ classId, className }: { classId: string, className: string }) {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -119,7 +120,7 @@ export function ClassSubmissions({ classId, className, rubric }: { classId: stri
                     {submission.grade || '-'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <GradeSubmissionDialog submission={submission} className={className} rubric={rubric} classId={classId} />
+                    <GradeSubmissionDialog submission={submission} className={className} classId={classId} />
                   </TableCell>
                 </TableRow>
               ))

@@ -14,22 +14,26 @@ import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 
-interface EnrolledClass {
+interface Activity {
     id: string;
     name: string;
+    className: string;
+    classId: string;
+    rubric: string;
 }
 
 export function EssaySubmissionForm() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [essayText, setEssayText] = useState('');
-  const [enrolledClasses, setEnrolledClasses] = useState<EnrolledClass[]>([]);
-  const [isClassListLoading, setIsClassListLoading] = useState(true);
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [availableActivities, setAvailableActivities] = useState<Activity[]>([]);
+  const [isActivityListLoading, setIsActivityListLoading] = useState(true);
+  const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
+  
   const [rubric, setRubric] = useState('');
-  const [isRubricLoading, setIsRubricLoading] = useState(false);
+  
   const [feedback, setFeedback] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -39,84 +43,64 @@ export function EssaySubmissionForm() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
-  const fetchEnrolledClasses = useCallback(async () => {
+  const fetchActivities = useCallback(async () => {
     if (!user) return;
-    setIsClassListLoading(true);
+    setIsActivityListLoading(true);
     try {
       const studentId = user.uid;
+      const activitiesData: Activity[] = [];
 
       const classesCollection = collection(db, 'classes');
       const classesSnapshot = await getDocs(classesCollection);
       
-      const classesData: EnrolledClass[] = [];
-
       for (const classDoc of classesSnapshot.docs) {
           const studentDocRef = doc(db, `classes/${classDoc.id}/students`, studentId);
           const studentDoc = await getDoc(studentDocRef);
 
           if (studentDoc.exists()) {
-              classesData.push({
-                  id: classDoc.id,
-                  name: classDoc.data().name,
+              const activitiesQuery = query(collection(db, 'classes', classDoc.id, 'activities'));
+              const activitiesSnapshot = await getDocs(activitiesQuery);
+
+              activitiesSnapshot.forEach(activityDoc => {
+                const data = activityDoc.data();
+                activitiesData.push({
+                    id: activityDoc.id,
+                    name: data.name,
+                    className: classDoc.data().name,
+                    classId: classDoc.id,
+                    rubric: data.rubric,
+                });
               });
           }
       }
-      setEnrolledClasses(classesData);
+      setAvailableActivities(activitiesData);
 
     } catch (error) {
-      console.error("Error fetching enrolled classes: ", error);
+      console.error("Error fetching activities: ", error);
       toast({
           title: 'Error',
-          description: 'Could not fetch your classes.',
+          description: 'Could not fetch your available activities.',
           variant: 'destructive',
       })
     } finally {
-      setIsClassListLoading(false);
+      setIsActivityListLoading(false);
     }
   }, [toast, user]);
 
   useEffect(() => {
     if (user) {
-        fetchEnrolledClasses();
+        fetchActivities();
     }
-  }, [user, fetchEnrolledClasses]);
+  }, [user, fetchActivities]);
 
   useEffect(() => {
-    const fetchRubric = async () => {
-        if (!selectedClass) {
-            setRubric('');
-            return;
-        };
-
-        setIsRubricLoading(true);
-        try {
-            const rubricDocRef = doc(db, 'rubrics', selectedClass);
-            const rubricDoc = await getDoc(rubricDocRef);
-
-            if(rubricDoc.exists()) {
-                setRubric(rubricDoc.data().content);
-            } else {
-                setRubric('No rubric found for this class.');
-                toast({
-                    title: 'Rubric Not Found',
-                    description: 'Your teacher has not set a rubric for this class yet.',
-                    variant: 'destructive'
-                })
-            }
-        } catch (error) {
-            console.error("Error fetching rubric: ", error);
-            setRubric('Error loading rubric.');
-             toast({
-                title: 'Error',
-                description: 'Could not load the rubric for this class.',
-                variant: 'destructive',
-            })
-        } finally {
-            setIsRubricLoading(false);
-        }
+    if (selectedActivity) {
+      const activity = availableActivities.find(a => a.id === selectedActivity);
+      setRubric(activity?.rubric || '');
+    } else {
+      setRubric('');
     }
-    fetchRubric();
-  }, [selectedClass, toast]);
+  }, [selectedActivity, availableActivities]);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -220,10 +204,10 @@ export function EssaySubmissionForm() {
   };
 
   const handleGetFeedback = async () => {
-     if (!selectedClass) {
+     if (!selectedActivity) {
         toast({
-            title: 'Missing Class',
-            description: 'Please select a class before getting feedback.',
+            title: 'Missing Activity',
+            description: 'Please select an activity before getting feedback.',
             variant: 'destructive',
           });
           return;
@@ -261,10 +245,10 @@ export function EssaySubmissionForm() {
         toast({ title: "Not authenticated", variant: 'destructive'});
         return;
     }
-    if (!selectedClass) {
+    if (!selectedActivity) {
         toast({
-            title: 'Missing Class',
-            description: 'Please select a class before submitting.',
+            title: 'Missing Activity',
+            description: 'Please select an activity before submitting.',
             variant: 'destructive',
           });
           return;
@@ -278,19 +262,27 @@ export function EssaySubmissionForm() {
       return;
     }
 
+    const activity = availableActivities.find(a => a.id === selectedActivity);
+    if (!activity) {
+         toast({ title: "Selected activity not found.", variant: 'destructive'});
+         return;
+    }
+
+
     setIsSubmitting(true);
     try {
       const studentId = user.uid; 
       const studentName = user.fullName;
 
-      const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
+      const submissionsCollection = collection(db, 'classes', activity.classId, 'submissions');
       await addDoc(submissionsCollection, {
         studentId,
         studentName,
         essayText,
         submittedAt: serverTimestamp(),
         status: 'Pending Review',
-        assignmentName: 'Student Essay Submission'
+        assignmentName: activity.name,
+        activityId: activity.id,
       });
       
       toast({
@@ -300,7 +292,7 @@ export function EssaySubmissionForm() {
       
       setEssayText('');
       setFeedback('');
-      setSelectedClass(null);
+      setSelectedActivity(null);
 
     } catch (error) {
       console.error(error);
@@ -322,19 +314,19 @@ export function EssaySubmissionForm() {
        <Card>
         <CardHeader>
           <CardTitle className="font-headline text-lg">
-            1. Select Your Class
+            1. Select Your Activity
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Label htmlFor="class-select">Class</Label>
-            <Select onValueChange={setSelectedClass} required disabled={isAuthLoading || isClassListLoading || enrolledClasses.length === 0} value={selectedClass || ''}>
-                <SelectTrigger id="class-select">
-                    <SelectValue placeholder={isAuthLoading || isClassListLoading ? "Loading classes..." : "Enroll in a class to get started..."} />
+            <Label htmlFor="activity-select">Activity</Label>
+            <Select onValueChange={setSelectedActivity} required disabled={isAuthLoading || isActivityListLoading || availableActivities.length === 0} value={selectedActivity || ''}>
+                <SelectTrigger id="activity-select">
+                    <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "No activities available..."} />
                 </SelectTrigger>
                 <SelectContent>
-                    {enrolledClasses.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    {availableActivities.map(a => (
+                        <SelectItem key={a.id} value={a.id}>{a.className}: {a.name}</SelectItem>
                     ))}
                 </SelectContent>
             </Select>
@@ -430,7 +422,7 @@ export function EssaySubmissionForm() {
             <Label htmlFor="rubric-text">Grading Rubric (from your teacher)</Label>
             <Textarea
               id="rubric-text"
-              placeholder={isRubricLoading ? "Loading rubric..." : "Select a class to see the rubric..."}
+              placeholder={isActivityListLoading ? "Loading..." : "Select an activity to see its rubric..."}
               rows={5}
               value={rubric}
               readOnly

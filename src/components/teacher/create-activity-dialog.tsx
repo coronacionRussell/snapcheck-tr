@@ -24,6 +24,15 @@ interface CreateActivityDialogProps {
   classId: string;
 }
 
+const defaultRubric = `Thesis Statement (25pts)
+- Clear, concise, and arguable.
+
+Supporting Evidence (50pts)
+- Relevant, well-explained, and properly cited.
+
+Conclusion (25pts)
+- Summarizes main points and provides a final thought.`;
+
 export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
   const [open, setOpen] = useState(false);
   const [activityName, setActivityName] = useState('');
@@ -48,11 +57,12 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
             name: activityName,
             description: description,
             createdAt: serverTimestamp(),
+            rubric: defaultRubric,
         });
         
         toast({
             title: 'Activity Created!',
-            description: `The activity "${activityName}" has been successfully created.`,
+            description: `The activity "${activityName}" has been successfully created with a default rubric.`,
         });
 
         handleCloseAndReset();
@@ -98,7 +108,7 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
             Create a New Activity
           </DialogTitle>
           <DialogDescription>
-            Enter the details for your new activity or assignment.
+            Enter the details for your new activity or assignment. A default rubric will be created for you.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

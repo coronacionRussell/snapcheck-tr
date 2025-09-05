@@ -14,33 +14,72 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, Loader2, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Submission } from './class-submissions';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 
 
 type GradeSubmissionDialogProps = {
     submission: Submission;
     className: string;
-    rubric: string;
     classId: string;
 }
 
-export function GradeSubmissionDialog({ submission, className, rubric, classId }: GradeSubmissionDialogProps) {
+export function GradeSubmissionDialog({ submission, className, classId }: GradeSubmissionDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRubricLoading, setIsRubricLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [finalScore, setFinalScore] = useState('');
   const [finalFeedback, setFinalFeedback] = useState('');
+  const [rubric, setRubric] = useState('');
   const [aiResult, setAiResult] = useState<{
     preliminaryScore: number;
     feedback: string;
   } | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchRubric = async () => {
+        if (!submission.activityId) return;
+
+        setIsRubricLoading(true);
+        try {
+            const activityDocRef = doc(db, 'classes', classId, 'activities', submission.activityId);
+            const activityDoc = await getDoc(activityDocRef);
+
+            if(activityDoc.exists()) {
+                setRubric(activityDoc.data().rubric);
+            } else {
+                setRubric('No rubric found for this activity.');
+                toast({
+                    title: 'Rubric Not Found',
+                    description: 'Could not find a rubric for the submitted activity.',
+                    variant: 'destructive'
+                })
+            }
+        } catch (error) {
+            console.error("Error fetching rubric: ", error);
+            setRubric('Error loading rubric.');
+             toast({
+                title: 'Error',
+                description: 'Could not load the rubric for this activity.',
+                variant: 'destructive',
+            })
+        } finally {
+            setIsRubricLoading(false);
+        }
+    }
+
+    if (open) {
+        fetchRubric();
+    }
+  }, [submission.activityId, classId, open, toast]);
+
 
   const handleRunAiGrading = async () => {
     setIsLoading(true);
@@ -148,12 +187,13 @@ export function GradeSubmissionDialog({ submission, className, rubric, classId }
                 <CardTitle className="font-headline text-lg">Rubric</CardTitle>
               </CardHeader>
               <CardContent>
+                {isRubricLoading ? <div className="flex justify-center items-center h-24"><Loader2 className="animate-spin" /></div> : 
                 <Textarea
                   readOnly
                   rows={6}
                   value={rubric}
                   className="font-code text-sm"
-                />
+                />}
               </CardContent>
             </Card>
           </div>
@@ -161,7 +201,7 @@ export function GradeSubmissionDialog({ submission, className, rubric, classId }
             <Button
               className="w-full"
               onClick={handleRunAiGrading}
-              disabled={isLoading}
+              disabled={isLoading || isRubricLoading || !rubric}
             >
               {isLoading ? (
                 <>

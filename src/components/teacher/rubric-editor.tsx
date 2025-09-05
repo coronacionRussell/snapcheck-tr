@@ -8,17 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Loader2 } from 'lucide-react';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface RubricEditorProps {
   classId: string;
+  activityId: string;
   initialRubric: string;
   onRubricSaved: (newRubric: string) => void;
 }
 
 
-export function RubricEditor({ classId, initialRubric, onRubricSaved }: RubricEditorProps) {
+export function RubricEditor({ classId, activityId, initialRubric, onRubricSaved }: RubricEditorProps) {
   const [rubricText, setRubricText] = useState(initialRubric);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -26,12 +27,13 @@ export function RubricEditor({ classId, initialRubric, onRubricSaved }: RubricEd
   const handleSaveChanges = async () => {
     setIsSaving(true);
     try {
-      const rubricRef = doc(db, 'rubrics', classId);
-      await setDoc(rubricRef, { content: rubricText });
+      const activityRef = doc(db, 'classes', classId, 'activities', activityId);
+      await updateDoc(activityRef, { rubric: rubricText });
+
       onRubricSaved(rubricText);
       toast({
         title: 'Rubric Saved',
-        description: `The rubric for this class has been updated successfully.`,
+        description: `The rubric for this activity has been updated successfully.`,
       });
     } catch (error) {
       console.error('Error saving rubric: ', error);
@@ -50,7 +52,7 @@ export function RubricEditor({ classId, initialRubric, onRubricSaved }: RubricEd
       <CardHeader>
         <CardTitle className="font-headline">Grading Rubric</CardTitle>
         <CardDescription>
-          Define the criteria for grading essays in this class. Your changes will be reflected in the student's submission portal.
+          Define the criteria for grading this activity.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

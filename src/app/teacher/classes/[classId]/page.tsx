@@ -2,7 +2,6 @@
 'use client';
 
 import Link from 'next/link';
-import { RubricEditor } from '@/components/teacher/rubric-editor';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import {
@@ -30,7 +29,6 @@ export default function ClassDetailsPage({
 }) {
   const { classId } = use(params);
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
-  const [initialRubric, setInitialRubric] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,14 +47,6 @@ export default function ClassDetailsPage({
         }
         setClassInfo(classDoc.data() as ClassInfo);
 
-        const rubricDocRef = doc(db, 'rubrics', classId);
-        const rubricDoc = await getDoc(rubricDocRef);
-        if (rubricDoc.exists()) {
-            setInitialRubric(rubricDoc.data().content);
-        } else {
-            setInitialRubric('No rubric found for this class. Create one below.');
-        }
-
       } catch (err: any) {
         console.error(err);
         setError(err.message);
@@ -67,10 +57,6 @@ export default function ClassDetailsPage({
 
     fetchClassData();
   }, [classId]);
-
-  const handleRubricSaved = (newRubric: string) => {
-    setInitialRubric(newRubric);
-  }
 
   if (isLoading) {
     return (
@@ -123,15 +109,14 @@ export default function ClassDetailsPage({
       <Tabs defaultValue="submissions">
         <TabsList>
           <TabsTrigger value="submissions">Submissions</TabsTrigger>
-          <TabsTrigger value="activities">Activities & Rubric</TabsTrigger>
+          <TabsTrigger value="activities">Activities & Rubrics</TabsTrigger>
           <TabsTrigger value="roster">Roster</TabsTrigger>
         </TabsList>
         <TabsContent value="submissions" className="mt-4">
-          <ClassSubmissions classId={classId} className={classInfo?.name || ''} rubric={initialRubric} />
+          <ClassSubmissions classId={classId} className={classInfo?.name || ''} />
         </TabsContent>
         <TabsContent value="activities" className="mt-4 space-y-6">
           <ClassActivities classId={classId} />
-          <RubricEditor classId={classId} initialRubric={initialRubric} onRubricSaved={handleRubricSaved} />
         </TabsContent>
          <TabsContent value="roster" className="mt-4">
           <ClassRoster classId={classId} />

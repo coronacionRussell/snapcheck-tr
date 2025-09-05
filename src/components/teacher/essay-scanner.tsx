@@ -13,9 +13,10 @@ import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { ClassContext } from '@/contexts/class-context';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
-import { collection, onSnapshot, query, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
+import type { Activity } from './class-activities';
 
 
 interface Student {
@@ -27,11 +28,16 @@ export function EssayScanner() {
   const { user } = useAuth();
   const { classes, isLoading: areClassesLoading } = useContext(ClassContext);
   const [essayText, setEssayText] = useState('');
-  const [assignmentName, setAssignmentName] = useState('');
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  
   const [students, setStudents] = useState<Student[]>([]);
   const [isStudentListLoading, setIsStudentListLoading] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [isActivityListLoading, setIsActivityListLoading] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
+
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -43,14 +49,15 @@ export function EssayScanner() {
     if (!selectedClass) {
         setStudents([]);
         setSelectedStudent(null);
+        setActivities([]);
+        setSelectedActivity(null);
         return;
     };
 
     setIsStudentListLoading(true);
     const studentsCollection = collection(db, 'classes', selectedClass, 'students');
-    const q = query(studentsCollection);
-
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const studentsQuery = query(studentsCollection);
+    const unsubscribeStudents = onSnapshot(studentsQuery, (querySnapshot) => {
         const studentData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Student[];
         setStudents(studentData);
         setIsStudentListLoading(false);
@@ -60,7 +67,24 @@ export function EssayScanner() {
         setIsStudentListLoading(false);
     });
 
-    return () => unsubscribe();
+    setIsActivityListLoading(true);
+    const activitiesCollection = collection(db, 'classes', selectedClass, 'activities');
+    const activitiesQuery = query(activitiesCollection);
+    const unsubscribeActivities = onSnapshot(activitiesQuery, (querySnapshot) => {
+        const activityData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Activity[];
+        setActivities(activityData);
+        setIsActivityListLoading(false);
+    }, (error) => {
+        console.error("Error fetching activities: ", error);
+        toast({ title: 'Error', description: 'Could not fetch activity list for this class.', variant: 'destructive'});
+        setIsActivityListLoading(false);
+    });
+
+
+    return () => {
+      unsubscribeStudents();
+      unsubscribeActivities();
+    }
   }, [selectedClass, toast]);
 
   useEffect(() => {
@@ -164,8 +188,8 @@ export function EssayScanner() {
   }
   
   const handleSaveEssay = async () => {
-    if (!selectedClass || !selectedStudent || !assignmentName.trim() || !essayText.trim()) {
-        toast({ title: 'Missing Information', description: 'Please select a class, a student, and provide an assignment name and essay text.', variant: 'destructive'});
+    if (!selectedClass || !selectedStudent || !selectedActivity || !essayText.trim()) {
+        toast({ title: 'Missing Information', description: 'Please select a class, student, activity and provide essay text.', variant: 'destructive'});
         return;
     }
     if (!user) {
@@ -176,12 +200,14 @@ export function EssayScanner() {
     setIsSaving(true);
     try {
         const studentName = students.find(s => s.id === selectedStudent)?.name || 'Unknown Student';
+        const assignmentName = activities.find(a => a.id === selectedActivity)?.name || 'Unknown Activity';
 
         const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
         await addDoc(submissionsCollection, {
             studentId: selectedStudent,
             studentName,
             assignmentName,
+            activityId: selectedActivity,
             essayText,
             submittedAt: serverTimestamp(),
             status: 'Pending Review',
@@ -189,13 +215,13 @@ export function EssayScanner() {
 
         toast({
             title: 'Essay Saved!',
-            description: `The essay for ${studentName} has been saved to the class.`
+            description: `The essay for ${studentName} has been saved to the class for activity "${assignmentName}".`
         });
         
         // Reset form
         setEssayText('');
-        setAssignmentName('');
         setSelectedStudent(null);
+        setSelectedActivity(null);
 
     } catch (error) {
         console.error("Error saving essay submission: ", error);
@@ -274,7 +300,7 @@ export function EssayScanner() {
                 <CardTitle className="font-headline text-lg">
                     Extracted Text & Submission
                 </CardTitle>
-                 <CardDescription>Next, verify the text, choose a student, and save it to your class.</CardDescription>
+                 <CardDescription>Next, verify the text, choose a student and activity, and save it to your class.</CardDescription>
             </div>
             <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleCopyText} disabled={!essayText || isScanning || isSaving}>
@@ -326,8 +352,17 @@ export function EssayScanner() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="assignment-name">Assignment Name</Label>
-                    <Input id="assignment-name" placeholder="e.g., Mid-term Essay" value={assignmentName} onChange={e => setAssignmentName(e.target.value)} disabled={isSaving} />
+                    <Label htmlFor="activity-select">Activity</Label>
+                      <Select onValueChange={(value) => setSelectedActivity(value)} value={selectedActivity || ''} disabled={!selectedClass || isActivityListLoading || isSaving}>
+                          <SelectTrigger id="activity-select">
+                              <SelectValue placeholder={!selectedClass ? "First select a class" : isActivityListLoading ? "Loading activities..." : "Select an activity"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {activities.map(a => (
+                                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
                   </div>
 
                   <Textarea
