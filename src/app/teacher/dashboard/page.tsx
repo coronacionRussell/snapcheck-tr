@@ -15,16 +15,20 @@ import {
 import { CreateClassDialog } from '@/components/teacher/create-class-dialog';
 import { ClassContext } from '@/contexts/class-context';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
 
 
 export default function TeacherDashboard() {
+  const { user } = useAuth();
   const { classes, isLoading } = useContext(ClassContext);
 
   return (
     <div className="grid flex-1 items-start gap-4 md:gap-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-headline text-3xl font-bold">Dashboard</h1>
+          <h1 className="font-headline text-3xl font-bold">
+            {user ? `Professor ${user.fullName}'s Dashboard` : 'Dashboard'}
+          </h1>
           <p className="text-muted-foreground">
             Welcome back, here's your teaching overview.
           </p>
