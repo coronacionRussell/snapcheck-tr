@@ -17,7 +17,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { BookOpen, FilePenLine, History } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { BookOpen, FilePenLine, History, MessageSquareText } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, query, where, limit } from 'firebase/firestore';
@@ -39,6 +47,7 @@ interface RecentGrade {
     class: string;
     grade: string;
     status: 'Graded' | 'Pending Review';
+    feedback?: string;
 }
 
 
@@ -91,6 +100,7 @@ export default function StudentDashboard() {
                     class: classInfo.name,
                     grade: data.grade,
                     status: data.status,
+                    feedback: data.feedback,
                 });
               });
           }
@@ -189,6 +199,7 @@ export default function StudentDashboard() {
                     <TableHead>Class</TableHead>
                     <TableHead>Grade</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -208,6 +219,29 @@ export default function StudentDashboard() {
                         >
                           {grade.status}
                         </Badge>
+                      </TableCell>
+                       <TableCell className="text-right">
+                         {grade.feedback && (
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                        <MessageSquareText className="mr-2" />
+                                        View Feedback
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Feedback for {grade.assignment}</DialogTitle>
+                                        <DialogDescription>
+                                            Class: {grade.class} | Grade: {grade.grade}
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="prose prose-sm mt-4 max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground whitespace-pre-wrap">
+                                        {grade.feedback}
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                         )}
                       </TableCell>
                     </TableRow>
                   ))}
