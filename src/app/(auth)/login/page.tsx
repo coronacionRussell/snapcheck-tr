@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -69,7 +69,8 @@ export default function LoginPage() {
           router.push('/student/dashboard');
         }
       } else {
-        // This case should ideally not happen if registration is done correctly
+        // This case can happen if Firestore doc creation failed during registration
+        await signOut(auth);
         throw new Error("User document not found in Firestore.");
       }
     } catch (error: any) {
@@ -88,13 +89,18 @@ export default function LoginPage() {
           errorMessage = 'Network error. Please check your internet connection.';
           break;
         default:
-          errorMessage = `An unexpected error occurred: ${error.message}`;
+          if (error.message === "User document not found in Firestore.") {
+             errorMessage = "Your account record is incomplete. Please try registering again.";
+          } else {
+             errorMessage = `An unexpected error occurred: ${error.message}`;
+          }
           break;
       }
       toast({
         title: 'Login Failed',
         description: errorMessage,
         variant: 'destructive',
+        duration: 9000,
       });
     } finally {
       setIsLoading(false);
