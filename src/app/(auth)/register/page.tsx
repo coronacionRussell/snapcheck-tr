@@ -5,11 +5,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { createUserWithEmailAndPassword, signOut, deleteUser } from 'firebase/auth';
-import { auth, db, storage } from '@/lib/firebase';
-import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 import {
   Card,
@@ -30,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, UploadCloud, CheckCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RegisterPage() {
@@ -38,10 +37,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [verificationId, setVerificationId] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [registrationComplete, setRegistrationComplete] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -50,7 +47,7 @@ export default function RegisterPage() {
   }, []);
 
   const handleCreateAccount = async () => {
-    if (!fullName || !email || !password || (role === 'teacher' && !verificationId)) {
+    if (!fullName || !email || !password) {
       toast({
         title: 'Missing Fields',
         description: 'Please fill out all required fields.',
@@ -65,45 +62,34 @@ export default function RegisterPage() {
       userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      let verificationIdUrl = '';
-      if (role === 'teacher' && verificationId) {
-        const storageRef = ref(storage, `teacher_verification/${user.uid}/${verificationId.name}`);
-        const uploadResult = await uploadBytes(storageRef, verificationId);
-        verificationIdUrl = await getDownloadURL(uploadResult.ref);
-      }
-
       const userData = {
         uid: user.uid,
         fullName,
         email,
         role,
-        isVerified: role === 'student', // Students are auto-verified
-        ...(role === 'teacher' && { verificationIdUrl }),
+        isVerified: role === 'student', // Students auto-verified, teachers are not.
       };
 
       await setDoc(doc(db, 'users', user.uid), userData);
 
+      toast({
+        title: 'Account Created!',
+        description: "You've been successfully registered.",
+      });
+
       if (role === 'teacher') {
-        await signOut(auth); // Sign out teacher to enforce verification
-        setRegistrationComplete(true);
+          router.push('/teacher/dashboard');
       } else {
-        // For students, log them in and redirect
-        toast({
-          title: 'Account Created!',
-          description: "You've been successfully registered.",
-        });
-        router.push('/student/dashboard');
+          router.push('/student/dashboard');
       }
 
     } catch (error: any) {
       console.error('Registration error:', error);
       
-      // If user was created in Auth but Firestore failed, delete the auth user
-      if (userCredential && error.code !== 'auth/email-already-in-use') {
+      if (userCredential) {
         try {
           await deleteUser(userCredential.user);
           console.log("Cleaned up orphaned auth user.");
-           await deleteDoc(doc(db, 'users', userCredential.user.uid));
         } catch (cleanupError) {
           console.error("Failed to clean up orphaned auth user:", cleanupError);
         }
@@ -161,18 +147,6 @@ export default function RegisterPage() {
             />
       </div>
        <Card className="border-0 shadow-none">
-        {registrationComplete ? (
-            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                <CheckCircle className="size-16 text-primary mb-4"/>
-                <CardTitle className="font-headline text-2xl">Registration Submitted</CardTitle>
-                <CardDescription className="mt-2 text-base">
-                    Thank you for registering. Your account is now pending verification from an administrator. You will receive an email once it's approved.
-                </CardDescription>
-                <Button className="mt-6 w-full" asChild>
-                    <Link href="/login">Back to Login</Link>
-                </Button>
-            </div>
-        ) : (
           <>
             <CardHeader className="text-center">
               <div className="mb-4 flex justify-center">
@@ -208,16 +182,6 @@ export default function RegisterPage() {
                   </SelectContent>
                 </Select>
               </div>
-              {role === 'teacher' && (
-                  <div className="grid gap-2">
-                      <Label htmlFor="verification-id">Verification ID</Label>
-                      <div className="relative">
-                          <UploadCloud className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                          <Input id="verification-id" type="file" accept="image/*,.pdf" className="pl-10" onChange={(e) => setVerificationId(e.target.files?.[0] || null)} required disabled={isLoading} />
-                      </div>
-                      <p className="text-xs text-muted-foreground">Please upload an image or PDF of your teaching ID for verification.</p>
-                  </div>
-              )}
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
               <Button className="w-full" onClick={handleCreateAccount} disabled={isLoading}>
@@ -232,7 +196,6 @@ export default function RegisterPage() {
               </div>
             </CardFooter>
           </>
-        )}
       </Card>
     </div>
   );
