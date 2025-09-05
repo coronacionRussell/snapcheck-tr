@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, doc, getDocs, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, getDocs, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -22,12 +22,14 @@ interface Student {
 
 interface Submission {
     studentId: string;
+    grade?: string;
 }
 
 interface StudentStatus {
     id: string;
     name: string;
     status: 'Submitted' | 'Pending Submission';
+    grade: string;
 }
 
 export function ActivitySubmissionStatus({ classId, activityId }: { classId: string, activityId: string }) {
@@ -51,15 +53,24 @@ export function ActivitySubmissionStatus({ classId, activityId }: { classId: str
               where('activityId', '==', activityId)
             );
             const submissionsSnapshot = await getDocs(submissionsQuery);
-            const submissions = submissionsSnapshot.docs.map(doc => doc.data() as Submission);
-            const submittedStudentIds = new Set(submissions.map(s => s.studentId));
+            
+            // Create a map of studentId to their submission
+            const submissionsMap = new Map<string, Submission>();
+            submissionsSnapshot.docs.forEach(doc => {
+                const data = doc.data() as Submission;
+                submissionsMap.set(data.studentId, data);
+            });
 
-            // Determine status for each student
-            const statuses = roster.map(student => ({
-                id: student.id,
-                name: student.name,
-                status: submittedStudentIds.has(student.id) ? 'Submitted' : 'Pending Submission',
-            })).sort((a, b) => a.name.localeCompare(b.name));
+            // Determine status and grade for each student
+            const statuses = roster.map(student => {
+                const submission = submissionsMap.get(student.id);
+                return {
+                    id: student.id,
+                    name: student.name,
+                    status: submission ? 'Submitted' : 'Pending Submission',
+                    grade: submission?.grade || '-',
+                };
+            }).sort((a, b) => a.name.localeCompare(b.name));
 
             setStudentStatuses(statuses);
         } catch (error) {
@@ -69,12 +80,11 @@ export function ActivitySubmissionStatus({ classId, activityId }: { classId: str
         }
     };
 
-    fetchStatuses();
-
-    // We can also set up a listener for real-time updates if needed
+    // Set up a listener for real-time updates
     const submissionsCollection = collection(db, 'classes', classId, 'submissions');
-    const unsubscribe = onSnapshot(submissionsCollection, () => {
-        fetchStatuses(); // Refetch when submissions change
+    const q = query(submissionsCollection, where('activityId', '==', activityId));
+    const unsubscribe = onSnapshot(q, () => {
+        fetchStatuses(); // Refetch when submissions for this activity change
     });
     
     return () => unsubscribe();
@@ -87,13 +97,14 @@ export function ActivitySubmissionStatus({ classId, activityId }: { classId: str
           <TableHeader>
             <TableRow>
               <TableHead>Student Name</TableHead>
-              <TableHead className="text-right">Status</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Grade</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
                 <TableRow>
-                    <TableCell colSpan={2}>
+                    <TableCell colSpan={3}>
                         <div className="space-y-2 py-2">
                            <Skeleton className="h-4 w-full" />
                         </div>
@@ -103,16 +114,19 @@ export function ActivitySubmissionStatus({ classId, activityId }: { classId: str
                 studentStatuses.map((s) => (
                 <TableRow key={s.id}>
                   <TableCell className="font-medium">{s.name}</TableCell>
-                  <TableCell className="text-right">
+                   <TableCell>
                     <Badge variant={s.status === 'Submitted' ? 'default' : 'secondary'} className={s.status === 'Submitted' ? 'bg-primary/80' : ''}>
                         {s.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">
+                    {s.grade}
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={2} className="text-center h-24">
+                <TableCell colSpan={3} className="text-center h-24">
                   No students are enrolled in this class yet.
                 </TableCell>
               </TableRow>
