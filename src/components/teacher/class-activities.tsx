@@ -2,13 +2,11 @@
 'use client';
 
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import {
   Card,
   CardContent,
@@ -17,18 +15,25 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '../ui/skeleton';
 import { CreateActivityDialog } from './create-activity-dialog';
-import { Button } from '../ui/button';
 import { ManageActivityDialog } from './manage-activity-dialog';
+import { ActivitySubmissionStatus } from './activity-submission-status';
+
+export interface SubmissionForActivity {
+    studentId: string;
+    studentName: string;
+    status: 'Pending Review' | 'Graded';
+}
 
 export interface Activity {
     id: string;
     name: string;
     description: string;
     rubric: string;
+    submissions: SubmissionForActivity[];
     createdAt: {
         seconds: number;
         nanoseconds: number;
@@ -46,8 +51,23 @@ export function ClassActivities({ classId }: { classId: string }) {
     const activitiesCollection = collection(db, 'classes', classId, 'activities');
     const q = query(activitiesCollection, orderBy('createdAt', 'desc'));
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const activityData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Activity[];
+    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+        
+        const activityPromises = querySnapshot.docs.map(async (doc) => {
+            const activityData = doc.data();
+            
+            const submissionsQuery = query(collection(db, 'classes', classId, 'submissions'), where => where('activityId', '==', doc.id));
+            const submissionsSnapshot = await getDocs(submissionsQuery);
+            const submissions = submissionsSnapshot.docs.map(subDoc => subDoc.data() as SubmissionForActivity);
+
+            return { 
+                id: doc.id, 
+                ...activityData,
+                submissions,
+            } as Activity;
+        });
+
+        const activityData = await Promise.all(activityPromises);
         setActivities(activityData);
         setIsLoading(false);
     }, (error) => {
@@ -64,53 +84,44 @@ export function ClassActivities({ classId }: { classId: string }) {
         <div>
             <CardTitle className="font-headline">Class Activities & Rubrics</CardTitle>
             <CardDescription>
-            Create and manage assignments. Each activity has its own rubric.
+            Create and manage assignments. Click an activity to see submission status.
             </CardDescription>
         </div>
         <CreateActivityDialog classId={classId} />
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Activity Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Date Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-                <TableRow>
-                    <TableCell colSpan={4}>
-                        <div className="space-y-2">
-                           <Skeleton className="h-4 w-full" />
-                           <Skeleton className="h-4 w-full" />
-                        </div>
-                    </TableCell>
-                </TableRow>
-            ) : activities.length > 0 ? (
-              activities.map((activity) => (
-                <TableRow key={activity.id}>
-                  <TableCell className="font-medium">{activity.name}</TableCell>
-                  <TableCell>{activity.description}</TableCell>
-                  <TableCell>
-                    {activity.createdAt ? new Date(activity.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <ManageActivityDialog classId={classId} activity={activity} />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center">
-                  No activities have been created for this class yet.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        {isLoading ? (
+             <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+             </div>
+        ) : activities.length > 0 ? (
+            <Accordion type="single" collapsible className="w-full">
+                {activities.map((activity) => (
+                    <AccordionItem value={activity.id} key={activity.id}>
+                        <AccordionTrigger className="hover:no-underline">
+                           <div className="flex w-full items-center justify-between pr-4">
+                                <div>
+                                    <p className="font-semibold text-left">{activity.name}</p>
+                                    <p className="text-sm text-muted-foreground text-left">{activity.description}</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                     <p className="text-sm font-medium text-muted-foreground shrink-0">{activity.submissions.length} Submissions</p>
+                                     <ManageActivityDialog classId={classId} activity={activity} />
+                                </div>
+                           </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                           <ActivitySubmissionStatus classId={classId} activityId={activity.id} />
+                        </AccordionContent>
+                    </AccordionItem>
+                ))}
+            </Accordion>
+        ) : (
+            <div className="py-8 text-center">
+                <p className="text-muted-foreground">No activities have been created for this class yet.</p>
+            </div>
+        )}
       </CardContent>
     </Card>
   );

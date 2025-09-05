@@ -106,17 +106,17 @@ export default function ClassDetailsPage({
         </div>
       </div>
 
-      <Tabs defaultValue="submissions">
+      <Tabs defaultValue="activities">
         <TabsList>
-          <TabsTrigger value="submissions">Submissions</TabsTrigger>
-          <TabsTrigger value="activities">Activities & Rubrics</TabsTrigger>
+          <TabsTrigger value="activities">Activities</TabsTrigger>
+          <TabsTrigger value="submissions">All Submissions</TabsTrigger>
           <TabsTrigger value="roster">Roster</TabsTrigger>
         </TabsList>
-        <TabsContent value="submissions" className="mt-4">
-          <ClassSubmissions classId={classId} className={classInfo?.name || ''} />
-        </TabsContent>
-        <TabsContent value="activities" className="mt-4 space-y-6">
+        <TabsContent value="activities" className="mt-4">
           <ClassActivities classId={classId} />
+        </TabsContent>
+         <TabsContent value="submissions" className="mt-4">
+          <ClassSubmissions classId={classId} className={classInfo?.name || ''} />
         </TabsContent>
          <TabsContent value="roster" className="mt-4">
           <ClassRoster classId={classId} />

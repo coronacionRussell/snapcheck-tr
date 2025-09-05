@@ -78,7 +78,7 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">Manage</Button>
+        <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>Manage</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
@@ -120,14 +120,14 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
             </div>
         </div>
         <DialogFooter className="sm:justify-between">
-            <AlertDialog>
+            <AlertDialog onOpenChange={(open) => { if (open) { /* Allow interaction */ } else { setOpen(true) } }}>
                 <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={isSaving || isDeleting}>
+                    <Button variant="destructive" disabled={isSaving || isDeleting} onClick={(e) => e.stopPropagation()}>
                         {isDeleting ? <Loader2 className="mr-2 animate-spin" /> : <Trash2 className="mr-2"/>}
                         Delete Activity
                     </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
@@ -135,8 +135,8 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteActivity} className="bg-destructive hover:bg-destructive/90">
+                        <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteActivity()} className="bg-destructive hover:bg-destructive/90">
                             Yes, Delete
                         </AlertDialogAction>
                     </AlertDialogFooter>
