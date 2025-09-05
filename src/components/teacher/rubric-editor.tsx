@@ -11,7 +11,14 @@ import { Save, Loader2 } from 'lucide-react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-export function RubricEditor({ classId, initialRubric }: { classId: string; initialRubric: string }) {
+interface RubricEditorProps {
+  classId: string;
+  initialRubric: string;
+  onRubricSaved: (newRubric: string) => void;
+}
+
+
+export function RubricEditor({ classId, initialRubric, onRubricSaved }: RubricEditorProps) {
   const [rubricText, setRubricText] = useState(initialRubric);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -21,6 +28,7 @@ export function RubricEditor({ classId, initialRubric }: { classId: string; init
     try {
       const rubricRef = doc(db, 'rubrics', classId);
       await setDoc(rubricRef, { content: rubricText });
+      onRubricSaved(rubricText);
       toast({
         title: 'Rubric Saved',
         description: `The rubric for this class has been updated successfully.`,

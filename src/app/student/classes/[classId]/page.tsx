@@ -4,10 +4,11 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StudentClassActivities } from '@/components/student/student-class-activities';
 
 interface ClassInfo {
   name: string;
@@ -18,7 +19,7 @@ export default function StudentClassDetailsPage({
 }: {
   params: { classId: string };
 }) {
-  const { classId } = use(params);
+  const { classId } = params;
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,15 +88,12 @@ export default function StudentClassDetailsPage({
             {classInfo?.name || 'Loading class...'}
           </h1>
           <p className="text-muted-foreground">
-            View submissions and details for this class.
+            View activities and submissions for this class.
           </p>
         </div>
       </div>
 
-       {/* Placeholder for future content like submissions list for this class */}
-        <div className="text-center py-16 border-2 border-dashed rounded-lg text-muted-foreground">
-            <p>Class details and submissions will be shown here.</p>
-        </div>
+       <StudentClassActivities classId={classId} />
     </div>
   );
 }
