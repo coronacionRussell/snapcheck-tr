@@ -99,18 +99,18 @@ export function ClassActivities({ classId }: { classId: string }) {
             <Accordion type="single" collapsible className="w-full">
                 {activities.map((activity) => (
                     <AccordionItem value={activity.id} key={activity.id}>
-                        <AccordionTrigger className="hover:no-underline">
-                           <div className="flex w-full items-center justify-between pr-4">
-                                <div>
-                                    <p className="font-semibold text-left">{activity.name}</p>
-                                    <p className="text-sm text-muted-foreground text-left">{activity.description}</p>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                     <p className="text-sm font-medium text-muted-foreground shrink-0">{activity.submissions.length} Submissions</p>
-                                     <ManageActivityDialog classId={classId} activity={activity} />
-                                </div>
+                        <div className="flex w-full items-center justify-between pr-4 hover:bg-muted/50 rounded-md">
+                           <AccordionTrigger className="flex-1 text-left p-4 hover:no-underline">
+                               <div>
+                                   <p className="font-semibold">{activity.name}</p>
+                                   <p className="text-sm text-muted-foreground">{activity.description}</p>
+                               </div>
+                           </AccordionTrigger>
+                            <div className="flex items-center gap-4 pl-4">
+                                <p className="text-sm font-medium text-muted-foreground shrink-0">{activity.submissions.length} Submissions</p>
+                                <ManageActivityDialog classId={classId} activity={activity} />
                            </div>
-                        </AccordionTrigger>
+                       </div>
                         <AccordionContent>
                            <ActivitySubmissionStatus classId={classId} activityId={activity.id} />
                         </AccordionContent>
