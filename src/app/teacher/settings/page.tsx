@@ -8,11 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, ShieldCheck, ShieldX } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { VerificationUploader } from '@/components/teacher/verification-uploader';
 
 export default function TeacherSettingsPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -112,6 +113,37 @@ export default function TeacherSettingsPage() {
       </div>
 
       <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline">Account Status</CardTitle>
+            <CardDescription>
+                Your current account verification status.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+             {user && !user.isVerified && !user.verificationIdUrl && (
+                <VerificationUploader />
+             )}
+             {user && !user.isVerified && user.verificationIdUrl && (
+                <div className="flex items-center gap-4 rounded-lg border border-amber-500/50 bg-amber-50/50 p-4 text-amber-800">
+                    <ShieldX className="size-8" />
+                    <div>
+                        <p className="font-semibold">Verification Pending</p>
+                        <p className="text-sm">Your submitted ID is currently under review by an administrator.</p>
+                    </div>
+                </div>
+             )}
+             {user && user.isVerified && (
+                 <div className="flex items-center gap-4 rounded-lg border border-primary/50 bg-primary/10 p-4 text-primary">
+                    <ShieldCheck className="size-8" />
+                    <div>
+                        <p className="font-semibold">Account Verified</p>
+                        <p className="text-sm">You have full access to all teacher features.</p>
+                    </div>
+                </div>
+             )}
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle className="font-headline">Profile</CardTitle>
