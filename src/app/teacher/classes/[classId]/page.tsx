@@ -16,6 +16,7 @@ import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ClassRoster } from '@/components/teacher/class-roster';
 import { ClassActivities } from '@/components/teacher/class-activities';
+import { ClassSubmissions } from '@/components/teacher/class-submissions';
 
 interface ClassInfo {
   name: string;
@@ -108,10 +109,14 @@ export default function ClassDetailsPage({
       <Tabs defaultValue="activities">
         <TabsList>
           <TabsTrigger value="activities">Activities</TabsTrigger>
+          <TabsTrigger value="submissions">All Submissions</TabsTrigger>
           <TabsTrigger value="roster">Roster</TabsTrigger>
         </TabsList>
         <TabsContent value="activities" className="mt-4">
           <ClassActivities classId={classId} />
+        </TabsContent>
+         <TabsContent value="submissions" className="mt-4">
+           <ClassSubmissions classId={classId} className={classInfo?.name || ''} />
         </TabsContent>
          <TabsContent value="roster" className="mt-4">
           <ClassRoster classId={classId} />
