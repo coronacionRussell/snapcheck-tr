@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -15,11 +15,6 @@ export function RubricEditor({ classId, initialRubric }: { classId: string; init
   const [rubricText, setRubricText] = useState(initialRubric);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
-
-  // Update state if the initial rubric changes (e.g., after fetching)
-  useEffect(() => {
-    setRubricText(initialRubric);
-  }, [initialRubric]);
 
   const handleSaveChanges = async () => {
     setIsSaving(true);
