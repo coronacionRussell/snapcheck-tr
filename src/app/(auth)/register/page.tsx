@@ -151,7 +151,7 @@ export default function RegisterPage() {
 
   return (
     <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-lg border bg-card shadow-lg md:grid-cols-2">
-      <div className="relative aspect-square items-center justify-center flex">
+      <div className="relative hidden aspect-square items-center justify-center md:flex">
          <Image
             src="https://i.imgur.com/BBYIJ4P.png"
             fill
