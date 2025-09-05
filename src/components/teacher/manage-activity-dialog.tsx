@@ -120,14 +120,14 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
             </div>
         </div>
         <DialogFooter className="sm:justify-between">
-            <AlertDialog onOpenChange={(open) => { if (open) { /* Allow interaction */ } else { setOpen(true) } }}>
+            <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button variant="destructive" disabled={isSaving || isDeleting} onClick={(e) => e.stopPropagation()}>
                         {isDeleting ? <Loader2 className="mr-2 animate-spin" /> : <Trash2 className="mr-2"/>}
                         Delete Activity
                     </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
@@ -135,7 +135,7 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={() => handleDeleteActivity()} className="bg-destructive hover:bg-destructive/90">
                             Yes, Delete
                         </AlertDialogAction>
