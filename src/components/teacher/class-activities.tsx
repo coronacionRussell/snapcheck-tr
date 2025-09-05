@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '../ui/skeleton';
 import { CreateActivityDialog } from './create-activity-dialog';
@@ -56,7 +56,7 @@ export function ClassActivities({ classId }: { classId: string }) {
         const activityPromises = querySnapshot.docs.map(async (doc) => {
             const activityData = doc.data();
             
-            const submissionsQuery = query(collection(db, 'classes', classId, 'submissions'), where => where('activityId', '==', doc.id));
+            const submissionsQuery = query(collection(db, 'classes', classId, 'submissions'), where('activityId', '==', doc.id));
             const submissionsSnapshot = await getDocs(submissionsQuery);
             const submissions = submissionsSnapshot.docs.map(subDoc => subDoc.data() as SubmissionForActivity);
 
