@@ -123,21 +123,18 @@ export default function ClassDetailsPage({
       <Tabs defaultValue="submissions">
         <TabsList>
           <TabsTrigger value="submissions">Submissions</TabsTrigger>
-          <TabsTrigger value="activities">Activities</TabsTrigger>
+          <TabsTrigger value="activities">Activities & Rubric</TabsTrigger>
           <TabsTrigger value="roster">Roster</TabsTrigger>
-          <TabsTrigger value="rubric">Grading Rubric</TabsTrigger>
         </TabsList>
         <TabsContent value="submissions" className="mt-4">
           <ClassSubmissions classId={classId} className={classInfo?.name || ''} rubric={initialRubric} />
         </TabsContent>
-        <TabsContent value="activities" className="mt-4">
+        <TabsContent value="activities" className="mt-4 space-y-6">
           <ClassActivities classId={classId} />
+          <RubricEditor classId={classId} initialRubric={initialRubric} onRubricSaved={handleRubricSaved} />
         </TabsContent>
          <TabsContent value="roster" className="mt-4">
           <ClassRoster classId={classId} />
-        </TabsContent>
-        <TabsContent value="rubric" className="mt-4">
-          <RubricEditor classId={classId} initialRubric={initialRubric} onRubricSaved={handleRubricSaved} />
         </TabsContent>
       </Tabs>
     </div>
