@@ -158,11 +158,11 @@ export default function AdminDashboard() {
                         </Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
-                        {teacher.verificationIdUrl && (
-                             <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="outline" size="sm">View ID</Button>
-                                </DialogTrigger>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" disabled={!teacher.verificationIdUrl}>View ID</Button>
+                            </DialogTrigger>
+                            {teacher.verificationIdUrl && (
                                 <DialogContent className="sm:max-w-[425px] md:max-w-[600px]">
                                     <DialogHeader>
                                         <DialogTitle>Verification ID: {teacher.fullName}</DialogTitle>
@@ -176,8 +176,8 @@ export default function AdminDashboard() {
                                         />
                                     </div>
                                 </DialogContent>
-                            </Dialog>
-                        )}
+                            )}
+                        </Dialog>
                         {!teacher.isVerified ? (
                            <Button 
                              size="sm" 
