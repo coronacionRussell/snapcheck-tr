@@ -17,23 +17,25 @@ import {
     CardTitle,
   } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { AppUser } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Image from 'next/image';
+import { deleteUser } from '@/ai/flows/delete-user';
 
 export default function AdminDashboard() {
     const [teachers, setTeachers] = useState<AppUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isVerifying, setIsVerifying] = useState<string | null>(null);
     const [isUnverifying, setIsUnverifying] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
     useEffect(() => {
         setIsLoading(true);
@@ -86,6 +88,28 @@ export default function AdminDashboard() {
             setIsUnverifying(null);
         }
     }
+
+    const handleDeleteTeacher = async (teacherId: string, teacherName: string) => {
+        setIsDeleting(teacherId);
+        try {
+          await deleteUser({ uid: teacherId });
+          toast({
+            title: 'Account Deleted',
+            description: `The account for ${teacherName} has been deleted.`,
+          });
+          // The onSnapshot listener will update the UI automatically.
+        } catch (error) {
+          console.error('Error deleting teacher:', error);
+          toast({
+            title: 'Deletion Failed',
+            description: 'Could not delete the teacher account. It may require manual deletion from the Firebase console.',
+            variant: 'destructive',
+            duration: 9000,
+          });
+        } finally {
+          setIsDeleting(null);
+        }
+      };
 
 
   return (
@@ -166,7 +190,7 @@ export default function AdminDashboard() {
                         ) : (
                              <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="sm" disabled={isUnverifying === teacher.uid}>
+                                    <Button variant="outline" size="sm" disabled={isUnverifying === teacher.uid}>
                                          {isUnverifying === teacher.uid && <Loader2 className="mr-2 animate-spin"/>}
                                         Unverify
                                     </Button>
@@ -190,6 +214,31 @@ export default function AdminDashboard() {
                                 </AlertDialogContent>
                             </AlertDialog>
                         )}
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon" disabled={isDeleting === teacher.uid}>
+                                    {isDeleting === teacher.uid ? <Loader2 className="size-4 animate-spin"/> : <Trash2 className="size-4"/>}
+                                    <span className="sr-only">Delete account</span>
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Account?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                This will permanently delete the account for <strong>{teacher.fullName}</strong> and all associated data. This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={() => handleDeleteTeacher(teacher.uid, teacher.fullName)}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                >
+                                    Yes, Delete Account
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))
