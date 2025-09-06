@@ -130,7 +130,7 @@ export default function LoginPage() {
         <Card className="border-0 shadow-none">
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-              <Logo />
+              <Logo className="[&>svg]:size-8 [&>span]:text-3xl" />
             </div>
             <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
             <CardDescription>
