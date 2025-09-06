@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -23,29 +23,39 @@ export function useAuth() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      setIsLoading(true);
+    const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as Omit<AppUser, 'uid'>;
-          setUser({
+        // Use onSnapshot to listen for real-time updates
+        const docUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as Omit<AppUser, 'uid'>;
+            setUser({
               uid: firebaseUser.uid,
               ...userData,
-          });
-        } else {
-          // If user exists in auth but not firestore, sign them out.
-          await auth.signOut();
+            });
+          } else {
+            auth.signOut();
+            setUser(null);
+          }
+          setIsLoading(false);
+        }, (error) => {
+          console.error("Error fetching user document:", error);
+          auth.signOut();
           setUser(null);
-        }
+          setIsLoading(false);
+        });
+        
+        // Return a cleanup function for the document snapshot listener
+        return () => docUnsubscribe();
+
       } else {
         setUser(null);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => authUnsubscribe();
   }, []);
 
   useEffect(() => {
