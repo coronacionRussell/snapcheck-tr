@@ -14,7 +14,7 @@ export default function StudentLayout({
         <StudentSidebar />
       </Sidebar>
       <SidebarInset>
-        <div className="flex h-svh flex-col">
+        <div className="flex h-svh flex-col bg-green-50">
           <DashboardHeader />
           <main className="flex-1 overflow-y-auto p-4 pt-0 md:p-6 md:pt-0">
             {children}
