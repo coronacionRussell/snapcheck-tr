@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -23,17 +23,14 @@ export function useAuth() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+    const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        // Use onSnapshot to listen for real-time updates
+        
         const docUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
           if (userDoc.exists()) {
-            const userData = userDoc.data() as Omit<AppUser, 'uid'>;
-            setUser({
-              uid: firebaseUser.uid,
-              ...userData,
-            });
+            const userData = userDoc.data() as AppUser;
+            setUser(userData);
           } else {
             auth.signOut();
             setUser(null);
@@ -46,7 +43,6 @@ export function useAuth() {
           setIsLoading(false);
         });
         
-        // Return a cleanup function for the document snapshot listener
         return () => docUnsubscribe();
 
       } else {
@@ -69,7 +65,6 @@ export function useAuth() {
     const isAppPage = pathname.startsWith('/student') || pathname.startsWith('/teacher') || pathname.startsWith('/admin');
 
     if (user) {
-      // User is logged in
       let targetDashboard = '/';
       if (user.role === 'admin') {
         targetDashboard = '/admin/dashboard';
@@ -90,7 +85,6 @@ export function useAuth() {
       }
 
     } else {
-      // User is not logged in
       if (!isPublicPage) {
         router.replace('/login');
       }

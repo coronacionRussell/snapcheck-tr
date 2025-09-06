@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -25,6 +26,7 @@ export function VerificationUploader() {
   const [verificationId, setVerificationId] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleUpload = async () => {
     if (!user) {
@@ -54,8 +56,8 @@ export function VerificationUploader() {
         description: "Your document has been submitted for verification. An admin will review it shortly.",
       });
       
-      // The page will automatically re-render with the new state via the useAuth hook,
-      // so no need to manage local `uploadComplete` state.
+      // The useAuth hook should pick up the change, but we can refresh to be sure
+      router.refresh();
 
     } catch (error) {
       console.error('Error uploading verification ID:', error);
