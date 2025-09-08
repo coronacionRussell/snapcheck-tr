@@ -80,7 +80,7 @@ export default function ClassesPage() {
             <CardHeader className="flex-grow">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="font-headline pr-2">
+                  <CardTitle className="font-headline text-xl pr-2">
                     {c.name}
                   </CardTitle>
                   <CardDescription>Class Code: {c.id}</CardDescription>

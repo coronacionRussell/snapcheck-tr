@@ -174,7 +174,7 @@ export default function StudentClassesPage() {
                           <BookOpen className="size-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-semibold">{c.name}</p>
+                          <p className="font-semibold text-lg">{c.name}</p>
                           <p className="text-sm text-muted-foreground">
                             {c.teacherName}
                           </p>
