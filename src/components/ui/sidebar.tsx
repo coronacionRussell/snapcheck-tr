@@ -258,13 +258,13 @@ const Sidebar = React.forwardRef<
             className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow relative"
           >
             <Image
-                src="https://i.imgur.com/vDJwui7.png"
-                alt="Sidebar background"
+                src="https://i.imgur.com/BBYIJ4P.png"
+                alt="Abstract background"
                 fill
                 className="object-cover"
-                data-ai-hint="university building"
+                data-ai-hint="abstract background"
             />
-            <div className="absolute inset-0 bg-background/80 z-10" />
+            <div className="absolute inset-0 bg-background/90 z-10" />
             <div className="relative z-20 flex h-full w-full flex-col">
                 {children}
             </div>
