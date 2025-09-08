@@ -44,10 +44,10 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-green-50">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center">
+        <div className="container flex h-16 items-center">
           <div className="mr-4 flex">
             <Link href="/" className="mr-6 flex items-center space-x-2">
-              <Logo className="[&>svg]:size-8 [&>span]:text-2xl" />
+              <Logo className="[&>svg]:size-10 [&>span]:text-3xl" />
             </Link>
           </div>
           <nav className="flex flex-1 items-center justify-end space-x-2">
