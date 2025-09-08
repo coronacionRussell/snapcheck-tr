@@ -12,6 +12,7 @@ import { StudentClassActivities } from '@/components/student/student-class-activ
 
 interface ClassInfo {
   name: string;
+  teacherName: string;
 }
 
 export default function StudentClassDetailsPage({
@@ -55,6 +56,7 @@ export default function StudentClassDetailsPage({
         <div className="grid flex-1 items-start gap-4 md:gap-8">
             <Skeleton className="h-10 w-40" />
             <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-5 w-48" />
             <Skeleton className="h-6 w-96" />
         </div>
     )
@@ -87,7 +89,10 @@ export default function StudentClassDetailsPage({
           <h1 className="font-headline mt-4 text-3xl font-bold">
             {classInfo?.name || 'Loading class...'}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-xl text-muted-foreground">
+            Taught by: {classInfo?.teacherName || '...'}
+          </p>
+          <p className="text-muted-foreground mt-2">
             View activities and submissions for this class.
           </p>
         </div>
