@@ -42,7 +42,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-green-50">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 items-center">
           <div className="mr-4 flex">
@@ -113,7 +113,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="features" className="bg-secondary py-20 md:py-32">
+        <section id="features" className="bg-background py-20 md:py-32">
           <div className="container">
             <div className="mx-auto mb-12 max-w-3xl text-center">
               <h2 className="font-headline text-3xl font-bold sm:text-4xl">
