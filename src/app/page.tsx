@@ -96,6 +96,7 @@ export default function Home() {
                 alt="A smart Jack Russell Terrier wearing glasses and a bow tie"
                 data-ai-hint="dog studying"
                 className="rounded-lg object-cover shadow-2xl"
+                priority
               />
               <div className="absolute -bottom-4 -right-4 w-full max-w-xs rounded-lg border bg-card p-4 shadow-xl">
                 <div className="mb-2 flex items-center gap-2">
