@@ -47,7 +47,7 @@ export default function Home() {
         <div className="container flex h-14 items-center">
           <div className="mr-4 flex">
             <Link href="/" className="mr-6 flex items-center space-x-2">
-              <Logo />
+              <Logo className="[&>svg]:size-8 [&>span]:text-2xl" />
             </Link>
           </div>
           <nav className="flex flex-1 items-center justify-end space-x-2">
