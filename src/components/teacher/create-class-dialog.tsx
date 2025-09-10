@@ -151,7 +151,7 @@ export function CreateClassDialog() {
             <Button onClick={handleCloseAndReset}>Done</Button>
           ) : (
             <Button onClick={handleCreateClass} disabled={isCreating || !user}>
-              {isCreating && <Loader2 className="mr-2 animate-spin" />}
+              {isCreating && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {isCreating ? 'Creating...' : 'Create Class'}
             </Button>
           )}

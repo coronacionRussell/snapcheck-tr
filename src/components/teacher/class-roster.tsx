@@ -129,7 +129,7 @@ export function ClassRoster({ classId }: { classId: string }) {
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                          <Button variant="ghost" size="icon" disabled={isDeleting === student.id}>
-                           {isDeleting === student.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4 text-destructive" />}
+                           {isDeleting === student.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="size-4 text-destructive" />}
                             <span className="sr-only">Remove student</span>
                          </Button>
                       </AlertDialogTrigger>

@@ -184,14 +184,14 @@ export default function AdminDashboard() {
                              onClick={() => handleVerifyTeacher(teacher.uid, teacher.fullName)}
                              disabled={isVerifying === teacher.uid}
                             >
-                               {isVerifying === teacher.uid && <Loader2 className="mr-2 animate-spin"/>}
+                               {isVerifying === teacher.uid && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
                                Verify
                            </Button>
                         ) : (
                              <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="outline" size="sm" disabled={isUnverifying === teacher.uid}>
-                                         {isUnverifying === teacher.uid && <Loader2 className="mr-2 animate-spin"/>}
+                                         {isUnverifying === teacher.uid && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
                                         Unverify
                                     </Button>
                                 </AlertDialogTrigger>
@@ -217,7 +217,7 @@ export default function AdminDashboard() {
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="destructive" size="icon" disabled={isDeleting === teacher.uid}>
-                                    {isDeleting === teacher.uid ? <Loader2 className="size-4 animate-spin"/> : <Trash2 className="size-4"/>}
+                                    {isDeleting === teacher.uid ? <Loader2 className="h-5 w-5 animate-spin"/> : <Trash2 className="size-4"/>}
                                     <span className="sr-only">Delete account</span>
                                 </Button>
                             </AlertDialogTrigger>

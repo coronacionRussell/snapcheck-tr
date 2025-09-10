@@ -174,7 +174,7 @@ export default function StudentClassesPage() {
                           <BookOpen className="size-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-semibold text-lg">{c.name}</p>
+                          <p className="font-semibold text-xl">{c.name}</p>
                           <p className="text-sm text-muted-foreground">
                             {c.teacherName}
                           </p>
@@ -190,7 +190,7 @@ export default function StudentClassesPage() {
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="outline" size="sm" disabled={isLeavingClass === c.id}>
-                                  {isLeavingClass === c.id ? <Loader2 className="mr-2 size-4 animate-spin"/> : <LogOut className="mr-2 size-4"/>}
+                                  {isLeavingClass === c.id ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <LogOut className="mr-2 size-4"/>}
                                   Leave
                               </Button>
                             </AlertDialogTrigger>

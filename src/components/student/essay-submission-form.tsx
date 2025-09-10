@@ -436,7 +436,7 @@ export function EssaySubmissionForm() {
          <Button type="button" size="lg" className="flex-1" disabled={formDisabled} onClick={handleGetFeedback}>
             {isLoading ? (
             <>
-                <Loader2 className="mr-2 size-4 animate-spin" />
+                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                 Generating Feedback...
             </>
             ) : (
@@ -449,7 +449,7 @@ export function EssaySubmissionForm() {
         <Button type="submit" size="lg" className="flex-1" disabled={formDisabled}>
             {isSubmitting ? (
             <>
-                <Loader2 className="mr-2 size-4 animate-spin" />
+                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                 Submitting for Grading...
             </>
             ) : (

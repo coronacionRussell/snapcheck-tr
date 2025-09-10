@@ -70,7 +70,7 @@ export function RubricEditor({ classId, activityId, initialRubric, onRubricSaved
         <div className="flex justify-end">
           <Button onClick={handleSaveChanges} disabled={isSaving}>
             {isSaving ? (
-              <Loader2 className="mr-2 animate-spin" />
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
               <Save className="mr-2" />
             )}

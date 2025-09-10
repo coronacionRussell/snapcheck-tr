@@ -199,7 +199,7 @@ export default function RegisterPage() {
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
               <Button className="w-full" onClick={handleCreateAccount} disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 animate-spin" />}
+                {isLoading && <Loader2 className="mr-2 h-6 w-6 animate-spin" />}
                 {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
               <div className="text-center text-sm text-muted-foreground">

@@ -130,7 +130,7 @@ export default function LoginPage() {
         <Card className="border-0 shadow-none">
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-              <Logo className="[&>svg]:size-8 [&>span]:text-3xl" />
+              <Logo className="[&>svg]:size-12 [&>span]:text-4xl" />
             </div>
             <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
             <CardDescription>
@@ -162,7 +162,7 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button className="w-full" onClick={handleLogin} disabled={isLoading}>
-               {isLoading && <Loader2 className="mr-2 animate-spin" />}
+               {isLoading && <Loader2 className="mr-2 h-6 w-6 animate-spin" />}
                {isLoading ? 'Logging in...' : 'Login'}
             </Button>
             <div className="text-center text-sm text-muted-foreground">

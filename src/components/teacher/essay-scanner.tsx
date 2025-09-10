@@ -316,7 +316,7 @@ export function EssayScanner() {
         <CardContent className="space-y-4">
              {isScanning && (
                 <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed h-60">
-                    <Loader2 className="size-8 animate-spin text-primary" />
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="mt-4 text-muted-foreground">AI is scanning the essay...</p>
                 </div>
             )}
@@ -376,7 +376,7 @@ export function EssayScanner() {
                   />
                    <div className="flex justify-end">
                       <Button onClick={handleSaveEssay} disabled={isSaving || isScanning || !essayText}>
-                        {isSaving && <Loader2 className="mr-2 animate-spin" />}
+                        {isSaving && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                         {isSaving ? 'Saving...' : <><Save className="mr-2"/> Save Essay to Class</>}
                       </Button>
                   </div>

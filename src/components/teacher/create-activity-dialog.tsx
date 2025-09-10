@@ -139,7 +139,7 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
             Cancel
           </Button>
           <Button onClick={handleCreateActivity} disabled={isCreating}>
-            {isCreating && <Loader2 className="mr-2 animate-spin" />}
+            {isCreating && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
             {isCreating ? 'Creating...' : 'Create Activity'}
           </Button>
         </DialogFooter>

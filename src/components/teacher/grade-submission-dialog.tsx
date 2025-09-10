@@ -191,7 +191,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
                 <CardTitle className="font-headline text-lg">Rubric</CardTitle>
               </CardHeader>
               <CardContent>
-                {isRubricLoading ? <div className="flex justify-center items-center h-24"><Loader2 className="animate-spin" /></div> : 
+                {isRubricLoading ? <div className="flex justify-center items-center h-24"><Loader2 className="h-6 w-6 animate-spin" /></div> : 
                 <Textarea
                   readOnly
                   rows={6}
@@ -209,7 +209,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                   Generating Feedback...
                 </>
               ) : (
@@ -253,7 +253,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
             Cancel
           </Button>
           <Button onClick={handleFinalizeGrade} disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 animate-spin" />}
+            {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
             {isSubmitting ? 'Submitting...' : 'Finalize & Submit Grade'}
           </Button>
         </DialogFooter>

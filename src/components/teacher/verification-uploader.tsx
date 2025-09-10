@@ -85,7 +85,7 @@ export function VerificationUploader() {
             <p className="text-xs text-muted-foreground">Accepted formats: JPG, PNG, PDF.</p>
         </div>
         <Button onClick={handleUpload} disabled={isLoading || !verificationId}>
-            {isLoading && <Loader2 className="mr-2 animate-spin" />}
+            {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
             {isLoading ? 'Uploading...' : 'Upload and Submit for Review'}
         </Button>
     </div>
