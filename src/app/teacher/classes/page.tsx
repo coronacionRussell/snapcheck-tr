@@ -132,7 +132,7 @@ export default function ClassesPage() {
                 <span>{c.pendingSubmissions} Submissions Pending</span>
               </div>
             </CardContent>
-             <CardFooter className="flex-col gap-2 sm:flex-row">
+             <CardFooter className="flex flex-col gap-2 sm:flex-row">
                 <Button asChild className="w-full">
                     <Link href={`/teacher/classes/${c.id}`}>
                         <DoorOpen className="mr-2 size-4" />

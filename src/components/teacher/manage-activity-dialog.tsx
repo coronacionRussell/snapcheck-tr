@@ -119,11 +119,11 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
                 />
             </div>
         </div>
-        <DialogFooter className="sm:justify-between">
+        <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button variant="destructive" disabled={isSaving || isDeleting} onClick={(e) => e.stopPropagation()}>
-                        {isDeleting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Trash2 className="mr-2"/>}
+                        {isDeleting ? <Loader2 className="mr-2 h-8 w-8 animate-spin" /> : <Trash2 className="mr-2"/>}
                         Delete Activity
                     </Button>
                 </AlertDialogTrigger>
@@ -143,7 +143,7 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
                 </AlertDialogContent>
             </AlertDialog>
           <Button onClick={handleSaveChanges} disabled={isSaving || isDeleting}>
-            {isSaving && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+            {isSaving && <Loader2 className="mr-2 h-8 w-8 animate-spin" />}
             <Save className="mr-2"/>
             Save Changes
           </Button>
