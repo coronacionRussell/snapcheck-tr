@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, BookUser, CheckSquare, ScanText } from 'lucide-react';
 import { useContext } from 'react';
 
 import {
@@ -85,16 +85,50 @@ export default function TeacherDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Recent Submissions</CardTitle>
+          <CardTitle className="font-headline">Getting Started Guide</CardTitle>
           <CardDescription>
-            Essays from your students that are ready for review.
+            Follow these steps to get the most out of SnapCheck.
           </CardDescription>
         </CardHeader>
         <CardContent>
-           <div className="py-8 text-center text-muted-foreground">
-              <p>No student submissions yet.</p>
-              <p className="text-sm">When students submit essays, they will appear here.</p>
-            </div>
+           <div className="grid gap-6 md:grid-cols-2">
+              <div className="flex items-start gap-4">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <BookOpen className="size-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">1. Create a Class</h3>
+                    <p className="text-sm text-muted-foreground">Use the "Create New Class" button to set up a class. Share the generated code with your students so they can enroll.</p>
+                  </div>
+              </div>
+               <div className="flex items-start gap-4">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <BookUser className="size-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">2. Create Activities</h3>
+                    <p className="text-sm text-muted-foreground">Enter a class and create activities. Each activity has its own grading rubric which you can customize.</p>
+                  </div>
+              </div>
+               <div className="flex items-start gap-4">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <CheckSquare className="size-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">3. Grade Submissions</h3>
+                    <p className="text-sm text-muted-foreground">When students submit essays, they'll appear in your class. Use the AI Assistant to get preliminary feedback and scores based on your rubric.</p>
+                  </div>
+              </div>
+                <div className="flex items-start gap-4">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <ScanText className="size-6" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold">4. Scan Handwritten Essays</h3>
+                        <p className="text-sm text-muted-foreground">Use the "Scan Essay" page to digitize handwritten work. You can then save it as a submission for any student in your class.</p>
+                    </div>
+                </div>
+           </div>
         </CardContent>
       </Card>
     </div>
