@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useContext } from 'react';
-import { Users, FileText, Trash2, DoorOpen } from 'lucide-react';
+import { Users, FileText, Trash2, DoorOpen, Copy } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -26,9 +26,19 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ClassesPage() {
   const { classes, onClassDeleted, isLoading } = useContext(ClassContext);
+  const { toast } = useToast();
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast({
+      title: 'Copied!',
+      description: 'The class code has been copied to your clipboard.',
+    });
+  };
 
   if (isLoading) {
     return (
@@ -122,12 +132,16 @@ export default function ClassesPage() {
                 <span>{c.pendingSubmissions} Submissions Pending</span>
               </div>
             </CardContent>
-             <CardFooter>
+             <CardFooter className="flex-col gap-2 sm:flex-row">
                 <Button asChild className="w-full">
                     <Link href={`/teacher/classes/${c.id}`}>
                         <DoorOpen className="mr-2 size-4" />
                         Enter Class
                     </Link>
+                </Button>
+                <Button variant="outline" className="w-full" onClick={() => handleCopyCode(c.id)}>
+                    <Copy className="mr-2 size-4" />
+                    Copy Code
                 </Button>
             </CardFooter>
           </Card>
