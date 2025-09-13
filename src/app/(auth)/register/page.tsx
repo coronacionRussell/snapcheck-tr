@@ -145,6 +145,7 @@ export default function RegisterPage() {
             alt="Abstract branding image"
             className="object-cover"
             data-ai-hint="abstract logo"
+            priority
             />
       </div>
        <Card className="border-0 shadow-none">

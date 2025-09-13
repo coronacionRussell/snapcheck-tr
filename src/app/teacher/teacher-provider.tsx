@@ -98,17 +98,11 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         };
         const docRef = await addDoc(collection(db, 'classes'), classData);
 
-        // Also create an empty rubric document
-        await setDoc(doc(db, 'rubrics', docRef.id), { 
-          content: `Example Rubric for ${newClass.name}\n\n1. Thesis Statement (25pts)\n   - Clear, concise, and arguable.\n2. Supporting Evidence (50pts)\n   - Relevant, well-explained, and properly cited.\n3. Conclusion (25pts)\n   - Summarizes main points and provides a final thought.`,
-          createdAt: serverTimestamp()
-        });
-
         toast({
             title: "Class Created!",
             description: `The class "${newClass.name}" has been created successfully.`
         });
-        // The onSnapshot listener will automatically update the UI, but we can return the created class
+        
         return {
             id: docRef.id,
             ...classData
@@ -143,9 +137,12 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
             batch.delete(doc.ref);
         });
 
-        // Delete the rubric
-        const rubricRef = doc(db, 'rubrics', classId);
-        batch.delete(rubricRef);
+        // Delete the activities subcollection
+        const activitiesRef = collection(db, 'classes', classId, 'activities');
+        const activitiesSnapshot = await getDocs(activitiesRef);
+        activitiesSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
         
         // Delete the class document itself
         const classRef = doc(db, 'classes', classId);
