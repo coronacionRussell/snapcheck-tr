@@ -1,6 +1,7 @@
 
 'use client';
 import { assistTeacherGrading } from '@/ai/flows/assist-teacher-grading';
+import { analyzeEssayGrammar } from '@/ai/flows/analyze-essay-grammar';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,14 +14,16 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Loader2, Sparkles } from 'lucide-react';
+import { Bot, CheckCircle, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Submission } from './class-submissions';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import parse, { domToReact, Element } from 'html-react-parser';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 
 type GradeSubmissionDialogProps = {
@@ -41,6 +44,9 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
     feedback: string;
     preliminaryScore: string;
   } | null>(null);
+  const [grammarAnalysis, setGrammarAnalysis] = useState('');
+  const [isLoadingGrammar, setIsLoadingGrammar] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -108,6 +114,24 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
       setIsLoading(false);
     }
   };
+
+  const handleGrammarCheck = async () => {
+    setIsLoadingGrammar(true);
+    setGrammarAnalysis('');
+    try {
+      const result = await analyzeEssayGrammar({ essayText: submission.essayText });
+      setGrammarAnalysis(result.correctedHtml);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Grammar Check Failed',
+        description: 'There was an error analyzing the essay. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingGrammar(false);
+    }
+  };
   
   const handleFinalizeGrade = async () => {
     if (!finalScore.trim()) {
@@ -150,7 +174,38 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
     setAiResult(null);
     setFinalScore('');
     setFinalFeedback('');
+    setGrammarAnalysis('');
   }
+
+  const parseOptions = {
+    replace: (domNode: any) => {
+      if (domNode instanceof Element && domNode.attribs && domNode.name === 'span') {
+         if (domNode.attribs.class === 'error') {
+            return (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span className="bg-red-200/50 text-red-800 rounded-md px-1 cursor-pointer">
+                                {domToReact(domNode.children, parseOptions)}
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Correction: <strong className="text-primary">{domNode.attribs['data-suggestion']}</strong></p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            );
+        }
+        if (domNode.attribs.class === 'correct') {
+            return (
+                <span>
+                    {domToReact(domNode.children, parseOptions)}
+                </span>
+            );
+        }
+      }
+    },
+  };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
@@ -186,6 +241,25 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
                 <Textarea readOnly rows={15} value={submission.essayText} className="font-code text-sm" />
               </CardContent>
             </Card>
+
+            {grammarAnalysis && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2 text-lg">
+                            <CheckCircle className="size-5 text-primary" /> AI Grammar Analysis
+                        </CardTitle>
+                        <CardDescription>
+                            Errors are highlighted. Hover over them to see the suggested correction.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="prose prose-sm max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground whitespace-pre-wrap leading-relaxed">
+                            {parse(grammarAnalysis, parseOptions)}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+            
             <Card>
               <CardHeader>
                 <CardTitle className="font-headline text-lg">Rubric</CardTitle>
@@ -202,23 +276,43 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
             </Card>
           </div>
           <div className="space-y-4">
-            <Button
-              className="w-full"
-              onClick={handleRunAiGrading}
-              disabled={isLoading || isRubricLoading || !rubric}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-                  Generating Feedback...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 size-4" />
-                  Run AI Feedback Assistant
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2">
+                <Button
+                className="w-full"
+                onClick={handleRunAiGrading}
+                disabled={isLoading || isRubricLoading || !rubric || isLoadingGrammar}
+                >
+                {isLoading ? (
+                    <>
+                    <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+                    Grading...
+                    </>
+                ) : (
+                    <>
+                    <Sparkles className="mr-2 size-4" />
+                    AI Grade Assist
+                    </>
+                )}
+                </Button>
+                <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={handleGrammarCheck}
+                    disabled={isLoading || isLoadingGrammar}
+                    >
+                    {isLoadingGrammar ? (
+                        <>
+                        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+                        Checking...
+                        </>
+                    ) : (
+                        <>
+                        <CheckCircle className="mr-2 size-4" />
+                        Check Grammar
+                        </>
+                    )}
+                </Button>
+            </div>
             <Card>
                 <CardHeader>
                   <CardTitle className="font-headline flex items-center gap-2 text-lg">
@@ -261,3 +355,5 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
     </Dialog>
   );
 }
+
+    

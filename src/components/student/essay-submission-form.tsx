@@ -3,9 +3,8 @@
 
 import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
 import { scanEssay } from '@/ai/flows/scan-essay';
-import { analyzeEssayGrammar } from '@/ai/flows/analyze-essay-grammar';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Camera, Loader2, Sparkles, UploadCloud, Video, CheckCircle } from 'lucide-react';
+import { Bot, Camera, Loader2, Sparkles, UploadCloud, Video } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
@@ -17,8 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
-import parse, { domToReact, Element } from 'html-react-parser';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface Activity {
     id: string;
@@ -38,9 +35,7 @@ export function EssaySubmissionForm() {
   const [rubric, setRubric] = useState('');
   
   const [feedback, setFeedback] = useState('');
-  const [grammarAnalysis, setGrammarAnalysis] = useState('');
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
-  const [isLoadingGrammar, setIsLoadingGrammar] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -238,33 +233,6 @@ export function EssaySubmissionForm() {
     }
   }
 
-   const handleGrammarCheck = async () => {
-    if (!essayText.trim()) {
-      toast({
-        title: 'Missing Essay Text',
-        description: 'Please provide the essay text to check for errors.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsLoadingGrammar(true);
-    setGrammarAnalysis('');
-    try {
-      const result = await analyzeEssayGrammar({ essayText });
-      setGrammarAnalysis(result.correctedHtml);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Grammar Check Failed',
-        description: 'There was an error analyzing the essay. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoadingGrammar(false);
-    }
-  };
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!user) {
@@ -318,7 +286,6 @@ export function EssaySubmissionForm() {
       
       setEssayText('');
       setFeedback('');
-      setGrammarAnalysis('');
       setSelectedActivity(null);
 
     } catch (error) {
@@ -334,37 +301,7 @@ export function EssaySubmissionForm() {
     }
   };
   
-  const formDisabled = isAuthLoading || isLoadingFeedback || isLoadingGrammar || isScanning || isSubmitting;
-  
-  const parseOptions = {
-    replace: (domNode: any) => {
-      if (domNode instanceof Element && domNode.attribs && domNode.name === 'span') {
-         if (domNode.attribs.class === 'error') {
-            return (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <span className="bg-red-200/50 text-red-800 rounded-md px-1 cursor-pointer">
-                                {domToReact(domNode.children, parseOptions)}
-                            </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Correction: <strong className="text-primary">{domNode.attribs['data-suggestion']}</strong></p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            );
-        }
-        if (domNode.attribs.class === 'correct') {
-            return (
-                <span>
-                    {domToReact(domNode.children, parseOptions)}
-                </span>
-            );
-        }
-      }
-    },
-  };
+  const formDisabled = isAuthLoading || isLoadingFeedback || isScanning || isSubmitting;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -490,19 +427,6 @@ export function EssaySubmissionForm() {
       </Card>
 
       <div className="flex flex-col gap-4 sm:flex-row">
-         <Button type="button" size="lg" className="flex-1" variant="outline" disabled={formDisabled} onClick={handleGrammarCheck}>
-            {isLoadingGrammar ? (
-            <>
-                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                Checking Grammar...
-            </>
-            ) : (
-            <>
-                <CheckCircle className="mr-2 size-4" />
-                Check Grammar
-            </>
-            )}
-        </Button>
          <Button type="button" size="lg" className="flex-1" variant="outline" disabled={formDisabled} onClick={handleGetFeedback}>
             {isLoadingFeedback ? (
             <>
@@ -528,25 +452,6 @@ export function EssaySubmissionForm() {
             )}
         </Button>
 
-
-      {grammarAnalysis && (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2 text-lg">
-                    <CheckCircle className="size-5 text-primary" /> AI Grammar Analysis
-                </CardTitle>
-                <CardDescription>
-                    Errors are highlighted in red. Hover over them to see the suggested correction.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <div className="prose prose-sm max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground whitespace-pre-wrap leading-relaxed">
-                    {parse(grammarAnalysis, parseOptions)}
-                </div>
-            </CardContent>
-        </Card>
-      )}
-
       {feedback && (
         <Card>
           <CardHeader>
@@ -564,3 +469,5 @@ export function EssaySubmissionForm() {
     </form>
   );
 }
+
+    
