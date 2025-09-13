@@ -14,19 +14,25 @@ const firebaseConfig = {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-    throw new Error('Missing Firebase config environment variables. Make sure all NEXT_PUBLIC_FIREBASE_* variables are set in your .env file.');
-}
-
-
 // Initialize Firebase
 let app: FirebaseApp;
-if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-    console.log("Firebase connected successfully!");
+if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+        console.log("Firebase connected successfully!");
+    } else {
+        app = getApp();
+    }
 } else {
-    app = getApp();
+    console.warn("Firebase config missing. Using placeholder app to prevent build errors.");
+    if (!getApps().length) {
+        // Use a placeholder config if the real one is not available
+        app = initializeApp({ apiKey: "placeholder", authDomain: "placeholder.firebaseapp.com", projectId: "placeholder" });
+    } else {
+        app = getApp();
+    }
 }
+
 
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
