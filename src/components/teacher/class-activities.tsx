@@ -103,7 +103,9 @@ export function ClassActivities({ classId }: { classId: string }) {
                            <AccordionTrigger className="flex-1 text-left p-4 hover:no-underline">
                                <div>
                                    <p className="font-semibold">{activity.name}</p>
-                                   <p className="text-sm text-muted-foreground">{activity.description}</p>
+                                   <p className="text-sm text-muted-foreground">
+                                     Created on: {activity.createdAt ? new Date(activity.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                                   </p>
                                </div>
                            </AccordionTrigger>
                             <div className="flex items-center gap-4 pl-4">
@@ -112,7 +114,13 @@ export function ClassActivities({ classId }: { classId: string }) {
                            </div>
                        </div>
                         <AccordionContent>
-                           <ActivitySubmissionStatus classId={classId} activityId={activity.id} />
+                            <div className="border-t p-4 space-y-4">
+                                <div>
+                                    <h4 className="font-semibold text-base mb-1">Description</h4>
+                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{activity.description}</p>
+                                </div>
+                                <ActivitySubmissionStatus classId={classId} activityId={activity.id} />
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 ))}
