@@ -264,7 +264,7 @@ const Sidebar = React.forwardRef<
                 className="object-cover"
                 data-ai-hint="abstract background"
             />
-            <div className="absolute inset-0 z-10 bg-background/95" />
+            <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm" />
             <div className="relative z-20 flex h-full w-full flex-col">
                 {children}
             </div>
