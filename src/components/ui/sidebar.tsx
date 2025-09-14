@@ -184,7 +184,7 @@ const Sidebar = React.forwardRef<
       return (
         <div
           className={cn(
-            "flex h-full w-[--sidebar-width] flex-col bg-sidebar text-sidebar-foreground",
+            "flex h-full w-[--sidebar-width] flex-col text-sidebar-foreground",
             className
           )}
           ref={ref}
@@ -201,7 +201,7 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+            className="w-[--sidebar-width] p-0 text-sidebar-foreground [&>button]:hidden"
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -258,11 +258,11 @@ const Sidebar = React.forwardRef<
             className="relative h-full w-full overflow-hidden group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
           >
              <Image
-                src="https://i.imgur.com/g0t5uC5.png"
-                alt="Abstract blue background"
+                src="https://i.imgur.com/vuYXnAX.png"
+                alt="Abstract gradient background"
                 fill
                 className="object-cover"
-                data-ai-hint="abstract background"
+                data-ai-hint="abstract gradient"
             />
             <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm" />
             <div className="relative z-20 flex h-full w-full flex-col">
