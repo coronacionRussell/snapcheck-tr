@@ -55,3 +55,12 @@ This project requires two development servers to run simultaneously: one for the
     npm run genkit:watch
     ```
     This will start the Genkit development server and automatically restart it when you make changes to your AI flows. The AI features of the app will not work without this server running.
+
+## Cost to Publish
+
+This application is built to be very cost-effective and can likely be run for **free** under the standard free tiers of its core services.
+
+*   **Firebase**: The project uses Firebase for hosting, database (Firestore), user authentication, and file storage. The Firebase "Spark Plan" (free tier) is generous and should cover the needs of a small-to-medium user base without any cost. You would only incur costs if the app's usage significantly exceeds the free limits.
+*   **Google AI (Gemini)**: The AI features are powered by the Google Gemini API. This also has a substantial free tier with a high number of requests per minute. For a typical school or classroom use case, it is unlikely you will exceed these limits.
+
+In summary, you can publish and run this application without expecting to pay anything until it reaches a very large scale.
