@@ -130,4 +130,3 @@ export function StudentClassActivities({ classId }: { classId: string }) {
     </Card>
   );
 }
-
