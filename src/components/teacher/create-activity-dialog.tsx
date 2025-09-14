@@ -24,14 +24,31 @@ interface CreateActivityDialogProps {
   classId: string;
 }
 
-const defaultRubric = `Thesis Statement (25pts)
-- Clear, concise, and arguable.
+const defaultRubric = `## Part 1: Standard Writing Criteria
 
-Supporting Evidence (50pts)
-- Relevant, well-explained, and properly cited.
+### Thesis & Argument (30 points)
+- **Clarity & Focus (15pts):** The thesis is clear, specific, and presents a strong, arguable claim.
+- **Consistency (15pts):** The essay consistently supports the thesis throughout the body paragraphs.
 
-Conclusion (25pts)
-- Summarizes main points and provides a final thought.`;
+### Evidence & Analysis (40 points)
+- **Use of Evidence (20pts):** Evidence is relevant, credible, and effectively integrated.
+- **Depth of Analysis (20pts):** The analysis explains how the evidence supports the thesis and doesn't just summarize.
+
+### Structure & Organization (20 points)
+- **Logical Flow (10pts):** Paragraphs are logically sequenced, and transitions are smooth.
+- **Conclusion (10pts):** The conclusion effectively summarizes the argument and offers a final insight.
+
+### Grammar & Style (10 points)
+- **Clarity & Mechanics (10pts):** The writing is free of major grammatical errors, spelling mistakes, and typos.
+
+---
+
+## Part 2: Essay-Specific Questions
+*(Replace this section with your specific assignment questions or criteria)*
+
+- **Question 1 (e.g., 10 points):** Does the essay adequately address the historical context of the event?
+- **Question 2 (e.g., 10 points):** How well does the author analyze the protagonist's motivations?
+`;
 
 export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
   const [open, setOpen] = useState(false);
@@ -127,7 +144,7 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
                 <Textarea
                     id="activity-description"
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    onChange={(e) => setDescription(e.targe.value)}
                     placeholder="e.g., Write a 5-paragraph essay analyzing the main themes..."
                     disabled={isCreating}
                     rows={4}
