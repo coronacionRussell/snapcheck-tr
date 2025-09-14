@@ -255,7 +255,7 @@ const Sidebar = React.forwardRef<
         >
           <div
             data-sidebar="sidebar"
-            className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow overflow-hidden relative"
+            className="relative h-full w-full overflow-hidden group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
           >
              <Image
                 src="https://i.imgur.com/g0t5uC5.png"
@@ -264,7 +264,7 @@ const Sidebar = React.forwardRef<
                 className="object-cover"
                 data-ai-hint="abstract background"
             />
-            <div className="absolute inset-0 bg-background/95 z-10" />
+            <div className="absolute inset-0 z-10 bg-background/95" />
             <div className="relative z-20 flex h-full w-full flex-col">
                 {children}
             </div>
