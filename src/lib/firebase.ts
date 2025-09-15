@@ -16,15 +16,14 @@ const firebaseConfig = {
 
 // Initialize Firebase
 let app: FirebaseApp;
-if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== 'placeholder') {
     if (!getApps().length) {
         app = initializeApp(firebaseConfig);
-        console.log("Firebase connected successfully!");
     } else {
         app = getApp();
     }
 } else {
-    console.warn("Firebase config missing. Using placeholder app to prevent build errors.");
+    console.warn("Firebase config missing or using placeholder values. Please set up your .env file. Using a mock app to prevent build errors.");
     if (!getApps().length) {
         // Use a placeholder config if the real one is not available
         app = initializeApp({ apiKey: "placeholder", authDomain: "placeholder.firebaseapp.com", projectId: "placeholder" });
