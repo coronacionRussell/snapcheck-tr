@@ -45,7 +45,6 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
     preliminaryScore: string;
   } | null>(null);
   const [grammarAnalysis, setGrammarAnalysis] = useState('');
-  const [isLoadingGrammar, setIsLoadingGrammar] = useState(false);
 
   const { toast } = useToast();
 
@@ -94,42 +93,32 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
   const handleRunAiGrading = async () => {
     setIsLoading(true);
     setAiResult(null);
+    setGrammarAnalysis('');
+    
     try {
-      const result = await assistTeacherGrading({
-        essayText: submission.essayText,
-        rubricText: rubric,
-      });
-      setAiResult(result);
-      setFinalFeedback(result.feedback);
-      setFinalScore(result.preliminaryScore);
+      const [gradingResult, grammarResult] = await Promise.all([
+        assistTeacherGrading({
+          essayText: submission.essayText,
+          rubricText: rubric,
+        }),
+        analyzeEssayGrammar({ essayText: submission.essayText })
+      ]);
+
+      setAiResult(gradingResult);
+      setFinalFeedback(gradingResult.feedback);
+      setFinalScore(gradingResult.preliminaryScore);
+      setGrammarAnalysis(grammarResult.correctedHtml);
+
     } catch (error) {
       console.error(error);
       toast({
-        title: 'AI Grading Failed',
+        title: 'AI Analysis Failed',
         description:
-          'There was an error while running the AI assistant. Please try again.',
+          'There was an error while running the AI assistants. Please try again.',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleGrammarCheck = async () => {
-    setIsLoadingGrammar(true);
-    setGrammarAnalysis('');
-    try {
-      const result = await analyzeEssayGrammar({ essayText: submission.essayText });
-      setGrammarAnalysis(result.correctedHtml);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Grammar Check Failed',
-        description: 'There was an error analyzing the essay. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoadingGrammar(false);
     }
   };
   
@@ -280,37 +269,21 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
                 <CardHeader>
                     <CardTitle className="font-headline text-lg">AI Tools</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <CardContent>
                      <Button
+                        className="w-full"
                         onClick={handleRunAiGrading}
-                        disabled={isLoading || isRubricLoading || !rubric || isLoadingGrammar}
+                        disabled={isLoading || isRubricLoading || !rubric}
                         >
                         {isLoading ? (
                             <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Grading...
+                            Analyzing...
                             </>
                         ) : (
                             <>
                             <Sparkles className="mr-2" />
-                            AI Grade Assist
-                            </>
-                        )}
-                    </Button>
-                    <Button
-                        variant="outline"
-                        onClick={handleGrammarCheck}
-                        disabled={isLoading || isLoadingGrammar}
-                        >
-                        {isLoadingGrammar ? (
-                            <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Checking...
-                            </>
-                        ) : (
-                            <>
-                            <CheckCircle className="mr-2" />
-                            Check Grammar
+                            Run AI Grade & Grammar Assist
                             </>
                         )}
                     </Button>
