@@ -14,22 +14,37 @@ const firebaseConfig = {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+// A function to check if the config is valid
+const isFirebaseConfigValid = (config: any): boolean => {
+    return !!(config.apiKey && config.projectId && config.apiKey !== 'AIza...');
+};
+
 // Initialize Firebase
 let app: FirebaseApp;
-if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== 'placeholder') {
-    if (!getApps().length) {
-        app = initializeApp(firebaseConfig);
+
+if (!isFirebaseConfigValid(firebaseConfig)) {
+    // This block will run if the environment variables are not set correctly.
+    console.error("Firebase configuration is invalid or missing.");
+    console.error("Please ensure you have a .env file in the root of your project with the correct Firebase credentials.");
+    console.error("After creating or updating the .env file, you MUST restart your development server.");
+
+    // Throw a more descriptive error to stop the app from proceeding with a bad config.
+    // Note: In a real production app, you might handle this differently, but for local dev, this is very clear.
+    if (typeof window !== 'undefined') {
+        // Show error on the client-side
+         throw new Error(
+            'Firebase configuration is missing. Please check your .env file and restart the server.'
+         );
     } else {
-        app = getApp();
+        // Log error on server-side
+        console.error('SERVER: Firebase configuration is missing.');
     }
+}
+
+if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
 } else {
-    console.warn("Firebase config missing or using placeholder values. Please set up your .env file. Using a mock app to prevent build errors.");
-    if (!getApps().length) {
-        // Use a placeholder config if the real one is not available
-        app = initializeApp({ apiKey: "placeholder", authDomain: "placeholder.firebaseapp.com", projectId: "placeholder" });
-    } else {
-        app = getApp();
-    }
+    app = getApp();
 }
 
 
