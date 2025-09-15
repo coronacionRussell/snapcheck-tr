@@ -276,43 +276,46 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
             </Card>
           </div>
           <div className="space-y-4">
-            <div className="flex gap-2">
-                <Button
-                className="w-full"
-                onClick={handleRunAiGrading}
-                disabled={isLoading || isRubricLoading || !rubric || isLoadingGrammar}
-                >
-                {isLoading ? (
-                    <>
-                    <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-                    Grading...
-                    </>
-                ) : (
-                    <>
-                    <Sparkles className="mr-2 size-4" />
-                    AI Grade Assist
-                    </>
-                )}
-                </Button>
-                <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={handleGrammarCheck}
-                    disabled={isLoading || isLoadingGrammar}
-                    >
-                    {isLoadingGrammar ? (
-                        <>
-                        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-                        Checking...
-                        </>
-                    ) : (
-                        <>
-                        <CheckCircle className="mr-2 size-4" />
-                        Check Grammar
-                        </>
-                    )}
-                </Button>
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline text-lg">AI Tools</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <Button
+                        onClick={handleRunAiGrading}
+                        disabled={isLoading || isRubricLoading || !rubric || isLoadingGrammar}
+                        >
+                        {isLoading ? (
+                            <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Grading...
+                            </>
+                        ) : (
+                            <>
+                            <Sparkles className="mr-2" />
+                            AI Grade Assist
+                            </>
+                        )}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleGrammarCheck}
+                        disabled={isLoading || isLoadingGrammar}
+                        >
+                        {isLoadingGrammar ? (
+                            <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Checking...
+                            </>
+                        ) : (
+                            <>
+                            <CheckCircle className="mr-2" />
+                            Check Grammar
+                            </>
+                        )}
+                    </Button>
+                </CardContent>
+            </Card>
             <Card>
                 <CardHeader>
                   <CardTitle className="font-headline flex items-center gap-2 text-lg">
@@ -355,5 +358,3 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
     </Dialog>
   );
 }
-
-    
