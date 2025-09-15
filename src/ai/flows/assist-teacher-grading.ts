@@ -32,9 +32,11 @@ const prompt = ai.definePrompt({
   name: 'assistTeacherGradingPrompt',
   input: {schema: AssistTeacherGradingInputSchema},
   output: {schema: AssistTeacherGradingOutputSchema},
-  prompt: `You are an AI assistant for teachers. Your task is to provide feedback on an essay based on a provided rubric and suggest a preliminary score out of 100.
+  prompt: `You are an AI assistant for teachers. Your task is to provide feedback on a student's essay based on a provided rubric and suggest a preliminary score out of 100.
 
-Carefully analyze the essay and the rubric. Generate constructive feedback that explains how the essay meets each criterion in the rubric. Provide a score out of 100.
+Carefully analyze the essay and the rubric. If the rubric specifies a topic, a core question, or a set of instructions, your first priority is to evaluate how well the essay adheres to those instructions and maintains coherence with the given topic.
+
+Generate constructive feedback that explains how the essay meets each criterion in the rubric. Provide a score out of 100.
 
 You MUST output your response in a valid JSON format.
 
