@@ -144,7 +144,7 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
                 <Textarea
                     id="activity-description"
                     value={description}
-                    onChange={(e) => setDescription(e.targe.value)}
+                    onChange={(e) => setDescription(e.target.value)}
                     placeholder="e.g., Write a 5-paragraph essay analyzing the main themes..."
                     disabled={isCreating}
                     rows={4}
