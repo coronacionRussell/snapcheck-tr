@@ -23,11 +23,20 @@ let auth: Auth;
 let db: Firestore;
 let storage;
 
-try {
-    if (!isFirebaseConfigValid(firebaseConfig)) {
-        throw new Error("Firebase configuration is invalid or missing.");
-    }
 
+if (!isFirebaseConfigValid(firebaseConfig)) {
+    const errorMessage = `Firebase configuration is invalid or missing. Please ensure your .env file is in the project root and the server has been restarted. The API Key being read is: '${firebaseConfig.apiKey}'. If this is 'undefined', the .env file is not being loaded.`;
+    
+    // In a local development environment, it's better to fail loudly.
+    if (process.env.NODE_ENV === 'development') {
+        throw new Error(errorMessage);
+    } else {
+    // In production, we log the error but don't crash the app.
+        console.error(errorMessage);
+    }
+}
+
+try {
     if (!getApps().length) {
         app = initializeApp(firebaseConfig);
     } else {
@@ -39,13 +48,10 @@ try {
     storage = getStorage(app);
 
 } catch (error: any) {
-    let errorMessage = "An unexpected error occurred during Firebase initialization.";
-    if (error.message.includes("invalid or missing")) {
-         errorMessage = `Firebase configuration is invalid or missing. Please ensure your .env file is set up correctly and the server has been restarted. The API Key being used is: '${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}'.`;
-    } else if (error.code === 'auth/invalid-api-key') {
-        errorMessage = `Firebase Error: Invalid API Key. The key you provided was rejected by Firebase. Please double-check that the NEXT_PUBLIC_FIREBASE_API_KEY in your .env file is correct and belongs to the project '${firebaseConfig.projectId}'.`;
-    } else {
-        errorMessage = `An unexpected Firebase error occurred: ${error.message}`;
+    let errorMessage = `An unexpected Firebase error occurred: ${error.message}`;
+
+    if (error.code === 'auth/invalid-api-key') {
+        errorMessage = `Firebase Error: Invalid API Key. Please double-check that the NEXT_PUBLIC_FIREBASE_API_KEY in your .env file is correct and that you have restarted the development server.`;
     }
     
     if (process.env.NODE_ENV === 'development') {
