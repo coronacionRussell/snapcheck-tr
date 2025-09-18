@@ -1,8 +1,15 @@
 
+'use client';
+
+import { Suspense } from 'react';
 import { EssaySubmissionForm } from '@/components/student/essay-submission-form';
 import { FileQuestion } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
-export default function SubmitEssayPage() {
+function SubmitEssayContent() {
+  const searchParams = useSearchParams();
+  const activityId = searchParams.get('activityId');
+
   return (
     <div>
       <div className="mb-6">
@@ -14,7 +21,7 @@ export default function SubmitEssayPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <EssaySubmissionForm />
+          <EssaySubmissionForm preselectedActivityId={activityId} />
         </div>
         <div className="lg:col-span-1">
           <div className="rounded-lg border bg-card p-6">
@@ -44,4 +51,10 @@ export default function SubmitEssayPage() {
   );
 }
 
-    
+export default function SubmitEssayPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SubmitEssayContent />
+    </Suspense>
+  );
+}

@@ -29,7 +29,11 @@ interface Activity {
     rubric: string;
 }
 
-export function EssaySubmissionForm() {
+interface EssaySubmissionFormProps {
+  preselectedActivityId?: string | null;
+}
+
+export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFormProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [essayText, setEssayText] = useState('');
   const [availableActivities, setAvailableActivities] = useState<Activity[]>([]);
@@ -81,6 +85,9 @@ export function EssaySubmissionForm() {
           }
       }
       setAvailableActivities(activitiesData);
+      if (preselectedActivityId && activitiesData.some(a => a.id === preselectedActivityId)) {
+        setSelectedActivity(preselectedActivityId);
+      }
 
     } catch (error) {
       console.error("Error fetching activities: ", error);
@@ -92,7 +99,7 @@ export function EssaySubmissionForm() {
     } finally {
       setIsActivityListLoading(false);
     }
-  }, [toast, user]);
+  }, [toast, user, preselectedActivityId]);
 
   useEffect(() => {
     if (user) {
@@ -397,7 +404,7 @@ export function EssaySubmissionForm() {
             <Label htmlFor="activity-select">Activity</Label>
             <Select onValueChange={setSelectedActivity} required disabled={isAuthLoading || isActivityListLoading || availableActivities.length === 0} value={selectedActivity || ''}>
                 <SelectTrigger id="activity-select">
-                    <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "No activities available..."} />
+                    <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
                 </SelectTrigger>
                 <SelectContent>
                     {availableActivities.map(a => (
@@ -405,6 +412,9 @@ export function EssaySubmissionForm() {
                     ))}
                 </SelectContent>
             </Select>
+             {availableActivities.length === 0 && !isActivityListLoading && (
+                <p className="text-xs text-muted-foreground">You are not enrolled in any classes with activities, or no activities have been created yet.</p>
+            )}
           </div>
         </CardContent>
        </Card>

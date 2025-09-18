@@ -20,6 +20,9 @@ import { db } from '@/lib/firebase';
 import { Skeleton } from '../ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import Link from 'next/link';
+import { FilePenLine } from 'lucide-react';
 
 export interface Activity {
     id: string;
@@ -115,6 +118,14 @@ export function StudentClassActivities({ classId }: { classId: string }) {
                                     <div className="prose prose-sm max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground whitespace-pre-wrap">
                                         {activity.rubric}
                                     </div>
+                                </div>
+                                <div className="flex justify-end">
+                                    <Button asChild>
+                                        <Link href={`/student/submit-essay?activityId=${activity.id}`}>
+                                            <FilePenLine className="mr-2" />
+                                            Start Submission
+                                        </Link>
+                                    </Button>
                                 </div>
                            </div>
                         </AccordionContent>
