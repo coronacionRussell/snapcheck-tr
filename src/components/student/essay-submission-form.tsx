@@ -32,23 +32,23 @@ interface Activity {
 export function EssaySubmissionForm() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [essayText, setEssayText] = useState('');
-  const [availableActivities, setAvailableActivities = useState<Activity[]>([]);
-  const [isActivityListLoading, setIsActivityListLoading = useState(true);
-  const [selectedActivity, setSelectedActivity = useState<string | null>(null);
+  const [availableActivities, setAvailableActivities] = useState<Activity[]>([]);
+  const [isActivityListLoading, setIsActivityListLoading] = useState(true);
+  const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
   
-  const [rubric, setRubric = useState('');
+  const [rubric, setRubric] = useState('');
   
-  const [feedback, setFeedback = useState('');
-  const [isLoadingFeedback, setIsLoadingFeedback = useState(false);
-  const [isScanning, setIsScanning = useState(false);
-  const [isSubmitting, setIsSubmitting = useState(false);
-  const [isCameraOpen, setIsCameraOpen = useState(false);
-  const [hasCameraPermission, setHasCameraPermission = useState<boolean | null>(null);
+  const [feedback, setFeedback] = useState('');
+  const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
-  const [grammarAnalysis, setGrammarAnalysis = useState('');
-  const [isAnalyzingGrammar, setIsAnalyzingGrammar = useState(false);
+  const [grammarAnalysis, setGrammarAnalysis] = useState('');
+  const [isAnalyzingGrammar, setIsAnalyzingGrammar] = useState(false);
 
   const fetchActivities = useCallback(async () => {
     if (!user) return;
@@ -339,12 +339,28 @@ export function EssaySubmissionForm() {
   const parseOptions = {
     replace: (domNode: any) => {
       if (domNode instanceof Element && domNode.attribs && domNode.name === 'span') {
-         if (domNode.attribs.class === 'error') {
+         if (domNode.attribs.class === 'spelling-error') {
             return (
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <span className="bg-red-200/50 text-red-800 rounded-md px-1 cursor-pointer">
+                            <span className="bg-blue-200/50 text-blue-800 rounded-md px-1 cursor-pointer">
+                                {domToReact(domNode.children, parseOptions)}
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Correction: <strong className="text-primary">{domNode.attribs['data-suggestion']}</strong></p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            );
+        }
+        if (domNode.attribs.class === 'grammar-error') {
+            return (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span className="bg-yellow-200/50 text-yellow-800 rounded-md px-1 cursor-pointer">
                                 {domToReact(domNode.children, parseOptions)}
                             </span>
                         </TooltipTrigger>
@@ -566,5 +582,3 @@ export function EssaySubmissionForm() {
     </form>
   );
 }
-
-    
