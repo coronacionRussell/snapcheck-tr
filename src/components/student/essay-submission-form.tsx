@@ -3,8 +3,9 @@
 
 import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
 import { scanEssay } from '@/ai/flows/scan-essay';
+import { analyzeEssayGrammar } from '@/ai/flows/analyze-essay-grammar';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Camera, Loader2, Sparkles, UploadCloud, Video } from 'lucide-react';
+import { Bot, Camera, CheckCircle, Loader2, Sparkles, UploadCloud, Video } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
@@ -16,6 +17,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
+import parse, { domToReact, Element } from 'html-react-parser';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+
 
 interface Activity {
     id: string;
@@ -28,20 +32,23 @@ interface Activity {
 export function EssaySubmissionForm() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [essayText, setEssayText] = useState('');
-  const [availableActivities, setAvailableActivities] = useState<Activity[]>([]);
-  const [isActivityListLoading, setIsActivityListLoading] = useState(true);
-  const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
+  const [availableActivities, setAvailableActivities = useState<Activity[]>([]);
+  const [isActivityListLoading, setIsActivityListLoading = useState(true);
+  const [selectedActivity, setSelectedActivity = useState<string | null>(null);
   
-  const [rubric, setRubric] = useState('');
+  const [rubric, setRubric = useState('');
   
-  const [feedback, setFeedback] = useState('');
-  const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [feedback, setFeedback = useState('');
+  const [isLoadingFeedback, setIsLoadingFeedback = useState(false);
+  const [isScanning, setIsScanning = useState(false);
+  const [isSubmitting, setIsSubmitting = useState(false);
+  const [isCameraOpen, setIsCameraOpen = useState(false);
+  const [hasCameraPermission, setHasCameraPermission = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+
+  const [grammarAnalysis, setGrammarAnalysis = useState('');
+  const [isAnalyzingGrammar, setIsAnalyzingGrammar = useState(false);
 
   const fetchActivities = useCallback(async () => {
     if (!user) return;
@@ -233,6 +240,33 @@ export function EssaySubmissionForm() {
     }
   }
 
+  const handleAnalyzeGrammar = async () => {
+    if (!essayText.trim()) {
+      toast({
+        title: 'Missing Essay Text',
+        description: 'Please provide some text to analyze.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsAnalyzingGrammar(true);
+    setGrammarAnalysis('');
+    try {
+      const result = await analyzeEssayGrammar({ essayText });
+      setGrammarAnalysis(result.correctedHtml);
+    } catch (error) {
+      console.error('Error analyzing grammar:', error);
+      toast({
+        title: 'Analysis Failed',
+        description: 'There was an error analyzing the grammar. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAnalyzingGrammar(false);
+    }
+  };
+
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!user) {
@@ -286,6 +320,7 @@ export function EssaySubmissionForm() {
       
       setEssayText('');
       setFeedback('');
+      setGrammarAnalysis('');
       setSelectedActivity(null);
 
     } catch (error) {
@@ -300,8 +335,38 @@ export function EssaySubmissionForm() {
       setIsSubmitting(false);
     }
   };
+
+  const parseOptions = {
+    replace: (domNode: any) => {
+      if (domNode instanceof Element && domNode.attribs && domNode.name === 'span') {
+         if (domNode.attribs.class === 'error') {
+            return (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span className="bg-red-200/50 text-red-800 rounded-md px-1 cursor-pointer">
+                                {domToReact(domNode.children, parseOptions)}
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Correction: <strong className="text-primary">{domNode.attribs['data-suggestion']}</strong></p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            );
+        }
+        if (domNode.attribs.class === 'correct') {
+            return (
+                <span>
+                    {domToReact(domNode.children, parseOptions)}
+                </span>
+            );
+        }
+      }
+    },
+  };
   
-  const formDisabled = isAuthLoading || isLoadingFeedback || isScanning || isSubmitting;
+  const formDisabled = isAuthLoading || isLoadingFeedback || isScanning || isSubmitting || isAnalyzingGrammar;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -426,8 +491,21 @@ export function EssaySubmissionForm() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-4 sm:flex-row">
-         <Button type="button" size="lg" className="flex-1" variant="outline" disabled={formDisabled} onClick={handleGetFeedback}>
+      <div className="grid gap-4 sm:grid-cols-2">
+         <Button type="button" size="lg" className="w-full" variant="outline" disabled={formDisabled} onClick={handleAnalyzeGrammar}>
+            {isAnalyzingGrammar ? (
+            <>
+                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                Analyzing...
+            </>
+            ) : (
+            <>
+                <CheckCircle className="mr-2 size-4" />
+                Analyze Grammar
+            </>
+            )}
+        </Button>
+         <Button type="button" size="lg" className="w-full" variant="outline" disabled={formDisabled || !selectedActivity} onClick={handleGetFeedback}>
             {isLoadingFeedback ? (
             <>
                 <Loader2 className="mr-2 h-6 w-6 animate-spin" />
@@ -436,27 +514,35 @@ export function EssaySubmissionForm() {
             ) : (
             <>
                 <Sparkles className="mr-2 size-4" />
-                Get AI Feedback
+                Get Rubric Feedback
             </>
             )}
         </Button>
       </div>
-      <Button type="submit" size="lg" className="w-full" disabled={formDisabled}>
-            {isSubmitting ? (
-            <>
-                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                Submitting for Grading...
-            </>
-            ) : (
-            'Submit for Grading'
-            )}
-        </Button>
+
+       {grammarAnalysis && (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2 text-lg">
+                        <CheckCircle className="size-5 text-primary" /> AI Grammar Analysis
+                    </CardTitle>
+                    <CardDescription>
+                        Errors are highlighted. Hover over them to see the suggested correction.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="prose prose-sm max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground whitespace-pre-wrap leading-relaxed">
+                        {parse(grammarAnalysis, parseOptions)}
+                    </div>
+                </CardContent>
+            </Card>
+        )}
 
       {feedback && (
         <Card>
           <CardHeader>
             <CardTitle className="font-headline flex items-center gap-2 text-lg">
-              <Bot className="size-5" /> AI Generated Feedback
+              <Bot className="size-5" /> AI Rubric Feedback
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -466,6 +552,17 @@ export function EssaySubmissionForm() {
           </CardContent>
         </Card>
       )}
+
+      <Button type="submit" size="lg" className="w-full" disabled={formDisabled || !selectedActivity}>
+            {isSubmitting ? (
+            <>
+                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                Submitting for Grading...
+            </>
+            ) : (
+            'Submit for Grading'
+            )}
+        </Button>
     </form>
   );
 }
