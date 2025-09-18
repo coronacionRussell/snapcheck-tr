@@ -169,12 +169,28 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
   const parseOptions = {
     replace: (domNode: any) => {
       if (domNode instanceof Element && domNode.attribs && domNode.name === 'span') {
-         if (domNode.attribs.class === 'error') {
+         if (domNode.attribs.class === 'spelling-error') {
             return (
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <span className="bg-red-200/50 text-red-800 rounded-md px-1 cursor-pointer">
+                            <span className="bg-blue-200/50 text-blue-800 rounded-md px-1 cursor-pointer">
+                                {domToReact(domNode.children, parseOptions)}
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Correction: <strong className="text-primary">{domNode.attribs['data-suggestion']}</strong></p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            );
+        }
+        if (domNode.attribs.class === 'grammar-error') {
+            return (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span className="bg-yellow-200/50 text-yellow-800 rounded-md px-1 cursor-pointer">
                                 {domToReact(domNode.children, parseOptions)}
                             </span>
                         </TooltipTrigger>
