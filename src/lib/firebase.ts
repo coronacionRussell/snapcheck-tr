@@ -14,41 +14,46 @@ const firebaseConfig = {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// A function to check if the config is valid
 const isFirebaseConfigValid = (config: any): boolean => {
     return !!(config.apiKey && config.projectId && !config.apiKey.includes('YOUR_'));
 };
 
-// Initialize Firebase
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 let storage;
 
-if (!isFirebaseConfigValid(firebaseConfig)) {
-    const errorMessage = "Firebase configuration is invalid or missing. Please ensure you have a .env file in the root of your project with your actual Firebase credentials. After creating or updating the .env file, you MUST restart your development server.";
-    
-    // In a development environment, throw a more detailed error to stop execution.
-    if (process.env.NODE_ENV === 'development') {
-         throw new Error(
-            `${errorMessage} The current API Key is: '${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}'. If this is 'undefined' or a placeholder, your .env file is not being read correctly.`
-         );
+try {
+    if (!isFirebaseConfigValid(firebaseConfig)) {
+        throw new Error("Firebase configuration is invalid or missing.");
+    }
+
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
     } else {
-        // In production, just log the error to avoid crashing the entire app.
+        app = getApp();
+    }
+
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+
+} catch (error: any) {
+    let errorMessage = "An unexpected error occurred during Firebase initialization.";
+    if (error.message.includes("invalid or missing")) {
+         errorMessage = `Firebase configuration is invalid or missing. Please ensure your .env file is set up correctly and the server has been restarted. The API Key being used is: '${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}'.`;
+    } else if (error.code === 'auth/invalid-api-key') {
+        errorMessage = `Firebase Error: Invalid API Key. The key you provided was rejected by Firebase. Please double-check that the NEXT_PUBLIC_FIREBASE_API_KEY in your .env file is correct and belongs to the project '${firebaseConfig.projectId}'.`;
+    } else {
+        errorMessage = `An unexpected Firebase error occurred: ${error.message}`;
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+        throw new Error(errorMessage);
+    } else {
         console.error(errorMessage);
     }
 }
 
 
-if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-} else {
-    app = getApp();
-}
-
-auth = getAuth(app);
-db = getFirestore(app);
-storage = getStorage(app);
-
 export { app, db, auth, storage };
-
