@@ -16,30 +16,29 @@ const firebaseConfig = {
 
 // A function to check if the config is valid
 const isFirebaseConfigValid = (config: any): boolean => {
-    return !!(config.apiKey && config.projectId && config.apiKey !== 'AIza...');
+    return !!(config.apiKey && config.projectId && !config.apiKey.startsWith('YOUR_'));
 };
 
 // Initialize Firebase
 let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let storage;
 
 if (!isFirebaseConfigValid(firebaseConfig)) {
-    // This block will run if the environment variables are not set correctly.
     console.error("Firebase configuration is invalid or missing.");
-    console.error("Please ensure you have a .env file in the root of your project with the correct Firebase credentials.");
+    console.error("Please ensure you have a .env file in the root of your project with your actual Firebase credentials.");
     console.error("After creating or updating the .env file, you MUST restart your development server.");
-
-    // Throw a more descriptive error to stop the app from proceeding with a bad config.
-    // Note: In a real production app, you might handle this differently, but for local dev, this is very clear.
-    if (typeof window !== 'undefined') {
-        // Show error on the client-side
+    
+    // In a development environment, throw a clear error to stop execution.
+    // This helps developers realize the setup is incomplete immediately.
+    if (process.env.NODE_ENV === 'development') {
          throw new Error(
-            'Firebase configuration is missing. Please check your .env file and restart the server.'
+            'Firebase configuration is invalid or missing. Please check your .env file and restart the server. The current API Key is: ' + process.env.NEXT_PUBLIC_FIREBASE_API_KEY
          );
-    } else {
-        // Log error on server-side
-        console.error('SERVER: Firebase configuration is missing.');
     }
 }
+
 
 if (!getApps().length) {
     app = initializeApp(firebaseConfig);
@@ -47,9 +46,8 @@ if (!getApps().length) {
     app = getApp();
 }
 
-
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
-const storage = getStorage(app);
+auth = getAuth(app);
+db = getFirestore(app);
+storage = getStorage(app);
 
 export { app, db, auth, storage };
