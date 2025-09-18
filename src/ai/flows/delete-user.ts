@@ -29,6 +29,53 @@ export async function deleteUser(input: DeleteUserInput): Promise<DeleteUserOutp
   return deleteUserFlow(input);
 }
 
+
+const deleteUserData = ai.defineTool(
+    {
+        name: 'deleteUserData',
+        description: "Deletes a user's document from the Firestore database. This does not delete the user from Firebase Authentication, only their data record in the 'users' collection.",
+        inputSchema: z.object({
+            uid: z.string().describe("The UID of the user to delete from Firestore.")
+        }),
+        outputSchema: z.object({
+            success: z.boolean(),
+            message: z.string()
+        })
+    },
+    async ({ uid }) => {
+        try {
+            const userDocRef = doc(db, 'users', uid);
+            await deleteDoc(userDocRef);
+            return {
+                success: true,
+                message: `Successfully deleted Firestore data for user ${uid}.`,
+            };
+        } catch (error: any) {
+            console.error("Error deleting user data in tool: ", error);
+            return {
+                success: false,
+                message: `Failed to delete Firestore data for UID ${uid}: ${error.message}`
+            }
+        }
+    }
+);
+
+
+const prompt = ai.definePrompt({
+    name: 'deleteUserPrompt',
+    input: { schema: DeleteUserInputSchema },
+    output: { schema: DeleteUserOutputSchema },
+    tools: [deleteUserData],
+    prompt: `You are an administrative agent. Your task is to delete a user's data from the system.
+
+Use the provided 'deleteUserData' tool to delete the user with the given UID.
+UID to delete: {{uid}}
+
+Report back on the success or failure of the operation.
+`
+});
+
+
 const deleteUserFlow = ai.defineFlow(
   {
     name: 'deleteUserFlow',
@@ -36,24 +83,7 @@ const deleteUserFlow = ai.defineFlow(
     outputSchema: DeleteUserOutputSchema,
   },
   async ({ uid }) => {
-    try {
-        // This flow only deletes the user's Firestore document.
-        // A full implementation requires a backend function with admin privileges 
-        // to delete the user from Firebase Authentication using the Admin SDK.
-        const userDocRef = doc(db, 'users', uid);
-        await deleteDoc(userDocRef);
-
-        // In a full implementation, you would also delete associated data,
-        // like storage files for verification IDs.
-
-        return {
-            success: true,
-            message: `Successfully deleted Firestore data for user ${uid}.`,
-        };
-    } catch (error: any) {
-        console.error("Error deleting user data: ", error);
-        // Throwing an error will cause the flow to fail, which is appropriate here.
-        throw new Error(`Failed to delete user data for UID ${uid}: ${error.message}`);
-    }
+     const llmResponse = await prompt({ uid });
+     return llmResponse.output() || { success: false, message: 'Flow failed to produce an output.' };
   }
 );
