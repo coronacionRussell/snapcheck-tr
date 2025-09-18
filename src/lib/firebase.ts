@@ -16,7 +16,7 @@ const firebaseConfig = {
 
 // A function to check if the config is valid
 const isFirebaseConfigValid = (config: any): boolean => {
-    return !!(config.apiKey && config.projectId && !config.apiKey.startsWith('YOUR_'));
+    return !!(config.apiKey && config.projectId && !config.apiKey.includes('YOUR_'));
 };
 
 // Initialize Firebase
@@ -26,16 +26,16 @@ let db: Firestore;
 let storage;
 
 if (!isFirebaseConfigValid(firebaseConfig)) {
-    console.error("Firebase configuration is invalid or missing.");
-    console.error("Please ensure you have a .env file in the root of your project with your actual Firebase credentials.");
-    console.error("After creating or updating the .env file, you MUST restart your development server.");
+    const errorMessage = "Firebase configuration is invalid or missing. Please ensure you have a .env file in the root of your project with your actual Firebase credentials. After creating or updating the .env file, you MUST restart your development server.";
     
-    // In a development environment, throw a clear error to stop execution.
-    // This helps developers realize the setup is incomplete immediately.
+    // In a development environment, throw a more detailed error to stop execution.
     if (process.env.NODE_ENV === 'development') {
          throw new Error(
-            'Firebase configuration is invalid or missing. Please check your .env file and restart the server. The current API Key is: ' + process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+            `${errorMessage} The current API Key is: '${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}'. If this is 'undefined' or a placeholder, your .env file is not being read correctly.`
          );
+    } else {
+        // In production, just log the error to avoid crashing the entire app.
+        console.error(errorMessage);
     }
 }
 
@@ -51,3 +51,4 @@ db = getFirestore(app);
 storage = getStorage(app);
 
 export { app, db, auth, storage };
+
