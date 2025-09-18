@@ -97,6 +97,7 @@ export default function Home() {
                 data-ai-hint="dog studying"
                 className="rounded-lg object-cover shadow-2xl"
                 priority
+                fetchPriority="high"
               />
               <div className="absolute -bottom-4 -right-4 w-full max-w-xs rounded-lg border bg-card p-4 shadow-xl">
                 <div className="mb-2 flex items-center gap-2">
