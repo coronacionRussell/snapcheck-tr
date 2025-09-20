@@ -1,4 +1,7 @@
 
+'use client';
+
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -7,13 +10,21 @@ import {
   CheckCircle,
   Cpu,
   Feather,
+  Menu,
   UploadCloud,
+  X,
 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 export default function Home() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const features = [
     {
       icon: <UploadCloud className="size-8 text-primary" />,
@@ -44,13 +55,14 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-green-50">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center">
+        <div className="container flex h-16 items-center justify-between">
           <div className="mr-4 flex">
-            <Link href="/" className="mr-6 flex items-center space-x-2">
-              <Logo className="[&>svg]:size-10 [&>span]:text-3xl" />
+            <Link href="/" className="flex items-center space-x-2">
+              <Logo className="[&>svg]:size-8 [&>span]:text-2xl" />
             </Link>
           </div>
-          <nav className="flex flex-1 items-center justify-end space-x-2">
+          {/* Desktop Nav */}
+          <nav className="hidden flex-1 items-center justify-end space-x-2 md:flex">
             <Button variant="ghost" asChild>
               <Link href="/login">Login</Link>
             </Button>
@@ -60,6 +72,45 @@ export default function Home() {
               </Link>
             </Button>
           </nav>
+          {/* Mobile Nav */}
+          <div className="md:hidden">
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Menu className="size-5" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <div className="flex flex-col gap-6 p-4">
+                  <Link
+                    href="/"
+                    className="flex items-center"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Logo />
+                  </Link>
+                  <div className="flex flex-col gap-4">
+                    <Button
+                      variant="ghost"
+                      asChild
+                      className="justify-start text-lg"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Link href="/login">Login</Link>
+                    </Button>
+                    <Button
+                      asChild
+                      className="w-full text-lg"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Link href="/register">Sign Up</Link>
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </header>
 
@@ -150,7 +201,7 @@ export default function Home() {
       </main>
 
       <footer className="border-t py-6">
-        <div className="container flex items-center justify-between">
+        <div className="container flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
           <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} SnapCheck. All rights reserved.
           </p>
