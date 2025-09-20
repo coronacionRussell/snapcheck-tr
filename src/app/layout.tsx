@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="h-full">
       <head>
         <meta name="theme-color" content="#216a4f" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -40,7 +40,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
         <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png" />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased h-full bg-background">
         {children}
         <Toaster />
       </body>
