@@ -13,6 +13,38 @@ import { useAuth } from '@/hooks/use-auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
+function AdminSettingsLoading() {
+    return (
+      <div className="grid flex-1 items-start gap-4 md:gap-8">
+        <div>
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="mt-2 h-5 w-64" />
+        </div>
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="mt-1 h-4 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+           <div className="flex justify-end">
+             <Skeleton className="h-10 w-32" />
+           </div>
+        </div>
+      </div>
+    );
+}
+
 export default function AdminSettingsPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
@@ -57,32 +89,7 @@ export default function AdminSettingsPage() {
   };
 
   if (isAuthLoading) {
-    return (
-      <div className="grid flex-1 items-start gap-4 md:gap-8">
-        <div>
-          <Skeleton className="h-9 w-32" />
-          <Skeleton className="mt-2 h-5 w-64" />
-        </div>
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-24" />
-              <Skeleton className="mt-1 h-4 w-48" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-12" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+    return <AdminSettingsLoading />;
   }
 
   return (

@@ -15,6 +15,22 @@ interface ClassInfo {
   teacherName: string;
 }
 
+function ClassDetailsLoading() {
+    return (
+        <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
+            <Skeleton className="h-10 w-48" />
+            <div className="space-y-2">
+                <Skeleton className="h-9 w-64" />
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-5 w-96" />
+            </div>
+             <div className="mt-4">
+                <Skeleton className="h-72 w-full" />
+            </div>
+        </div>
+    )
+}
+
 export default function StudentClassDetailsPage({
   params,
 }: {
@@ -52,14 +68,7 @@ export default function StudentClassDetailsPage({
   }, [classId]);
 
   if (isLoading) {
-    return (
-        <div className="grid flex-1 items-start gap-4 md:gap-8">
-            <Skeleton className="h-10 w-40" />
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-5 w-48" />
-            <Skeleton className="h-6 w-96" />
-        </div>
-    )
+    return <ClassDetailsLoading />
   }
 
   if (error) {
@@ -77,7 +86,7 @@ export default function StudentClassDetailsPage({
   }
 
   return (
-    <div className="grid flex-1 items-start gap-4 md:gap-8">
+    <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
       <div className="flex items-center justify-between">
         <div>
           <Button variant="outline" asChild>

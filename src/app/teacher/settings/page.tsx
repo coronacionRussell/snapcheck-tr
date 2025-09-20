@@ -8,12 +8,78 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, ShieldCheck, ShieldX } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { VerificationUploader } from '@/components/teacher/verification-uploader';
+import { ShieldCheck, ShieldX } from 'lucide-react';
+
+
+function TeacherSettingsLoading() {
+    return (
+      <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
+        <div>
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="mt-2 h-5 w-64" />
+        </div>
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+                <Skeleton className="h-6 w-36" />
+                <Skeleton className="mt-1 h-4 w-52" />
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-24 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="mt-1 h-4 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="mt-1 h-4 w-56" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="flex-1 space-y-2">
+                        <Skeleton className="h-5 w-36" />
+                        <Skeleton className="h-4 w-56" />
+                    </div>
+                    <Skeleton className="h-6 w-11 rounded-full" />
+                </div>
+                 <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="flex-1 space-y-2">
+                        <Skeleton className="h-5 w-40" />
+                        <Skeleton className="h-4 w-64" />
+                    </div>
+                    <Skeleton className="h-6 w-11 rounded-full" />
+                </div>
+            </CardContent>
+          </Card>
+           <div className="flex justify-end">
+             <Skeleton className="h-10 w-32" />
+           </div>
+        </div>
+      </div>
+    );
+}
+
 
 export default function TeacherSettingsPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -65,46 +131,11 @@ export default function TeacherSettingsPage() {
   };
 
   if (isAuthLoading) {
-    return (
-      <div className="grid flex-1 items-start gap-4 md:gap-8">
-        <div>
-          <Skeleton className="h-9 w-32" />
-          <Skeleton className="mt-2 h-5 w-64" />
-        </div>
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-24" />
-              <Skeleton className="mt-1 h-4 w-48" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-12" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-              <Skeleton className="mt-1 h-4 w-56" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+    return <TeacherSettingsLoading />
   }
 
   return (
-    <div className="grid flex-1 items-start gap-4 md:gap-8">
+    <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
       <div>
         <h1 className="font-headline text-3xl font-bold">Settings</h1>
         <p className="text-muted-foreground">

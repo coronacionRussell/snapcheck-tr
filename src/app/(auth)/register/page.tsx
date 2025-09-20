@@ -32,20 +32,16 @@ import {
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const [role, setRole] = useState('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const handleCreateAccount = async () => {
     if (!fullName || !email || !password) {
@@ -128,14 +124,6 @@ export default function RegisterPage() {
     }
   };
 
-  if (!isMounted) {
-    return (
-       <div className="w-full max-w-4xl">
-        <Skeleton className="h-[620px] w-full" />
-      </div>
-    )
-  }
-
   return (
     <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-lg border bg-card shadow-lg md:grid-cols-2">
       <div className="relative hidden aspect-square items-center justify-center md:flex">
@@ -214,4 +202,51 @@ export default function RegisterPage() {
       </Card>
     </div>
   );
+}
+
+
+export default function RegisterPage() {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2">
+        <Skeleton className="hidden md:block h-[620px] w-full rounded-l-lg" />
+        <div className="space-y-6 rounded-lg md:rounded-l-none border bg-card p-8 shadow-lg">
+            <div className="space-y-2 text-center">
+                <Skeleton className="mx-auto h-12 w-32" />
+                <Skeleton className="mx-auto h-6 w-48" />
+                <Skeleton className="mx-auto h-4 w-64" />
+            </div>
+            <div className="space-y-4">
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+                 <div className="space-y-2">
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+            </div>
+            <div className="space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="mx-auto h-4 w-44" />
+            </div>
+        </div>
+      </div>
+    )
+  }
+
+  return <RegisterPageContent />;
 }

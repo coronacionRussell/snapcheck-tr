@@ -22,6 +22,26 @@ interface ClassInfo {
   name: string;
 }
 
+function ClassDetailsLoading() {
+    return (
+        <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
+            <Skeleton className="h-10 w-40" />
+            <div className="space-y-2">
+                <Skeleton className="h-9 w-64" />
+                <Skeleton className="h-5 w-96" />
+            </div>
+            <div className="mt-4">
+                <div className="flex space-x-1">
+                    <Skeleton className="h-10 w-28" />
+                    <Skeleton className="h-10 w-36" />
+                    <Skeleton className="h-10 w-24" />
+                </div>
+                <Skeleton className="mt-4 h-64 w-full" />
+            </div>
+        </div>
+    )
+}
+
 export default function ClassDetailsPage({
   params,
 }: {
@@ -59,17 +79,7 @@ export default function ClassDetailsPage({
   }, [classId]);
 
   if (isLoading) {
-    return (
-        <div className="grid flex-1 items-start gap-4 md:gap-8">
-            <Skeleton className="h-10 w-40" />
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-6 w-96" />
-            <div className="mt-4">
-                <Skeleton className="h-10 w-48" />
-                <Skeleton className="mt-4 h-64 w-full" />
-            </div>
-        </div>
-    )
+    return <ClassDetailsLoading />
   }
 
   if (error) {
@@ -87,7 +97,7 @@ export default function ClassDetailsPage({
   }
 
   return (
-    <div className="grid flex-1 items-start gap-4 md:gap-8">
+    <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
       <div className="flex items-center justify-between">
         <div>
           <Button variant="outline" asChild>
