@@ -42,7 +42,7 @@ export default function ClassesPage() {
 
   if (isLoading) {
     return (
-        <div className="grid flex-1 items-start gap-4 md:gap-8">
+        <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
              <div>
                 <h1 className="font-headline text-3xl font-bold">My Classes</h1>
                 <p className="text-muted-foreground">
@@ -71,7 +71,7 @@ export default function ClassesPage() {
   }
 
   return (
-    <div className="grid flex-1 items-start gap-4 md:gap-8">
+    <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
       <div>
         <h1 className="font-headline text-3xl font-bold">My Classes</h1>
         <p className="text-muted-foreground">

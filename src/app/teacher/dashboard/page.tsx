@@ -23,7 +23,7 @@ export default function TeacherDashboard() {
   const { classes, isLoading } = useContext(ClassContext);
 
   return (
-    <div className="grid flex-1 items-start gap-4 md:gap-8">
+    <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-headline text-3xl font-bold">

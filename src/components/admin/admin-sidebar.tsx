@@ -20,12 +20,12 @@ export default function AdminSidebar() {
     {
       href: '/admin/dashboard',
       label: 'Dashboard',
-      icon: <LayoutDashboard className="text-primary" />,
+      icon: <LayoutDashboard />,
     },
     {
       href: '/admin/settings',
       label: 'Settings',
-      icon: <Settings className="text-primary" />,
+      icon: <Settings />,
     },
   ];
 

@@ -20,22 +20,22 @@ export default function TeacherSidebar() {
     {
       href: '/teacher/dashboard',
       label: 'Dashboard',
-      icon: <Home className="text-primary" />,
+      icon: <Home />,
     },
     {
       href: '/teacher/classes',
       label: 'Classes',
-      icon: <BookCopy className="text-primary" />,
+      icon: <BookCopy />,
     },
     {
       href: '/teacher/scan-essay',
       label: 'Scan Essay',
-      icon: <ScanLine className="text-primary" />,
+      icon: <ScanLine />,
     },
     {
       href: '/teacher/settings',
       label: 'Settings',
-      icon: <Settings className="text-primary" />,
+      icon: <Settings />,
     },
   ];
 

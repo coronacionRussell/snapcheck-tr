@@ -20,27 +20,27 @@ export default function StudentSidebar() {
     {
       href: '/student/dashboard',
       label: 'Dashboard',
-      icon: <LayoutDashboard className="text-primary" />,
+      icon: <LayoutDashboard />,
     },
      {
       href: '/student/classes',
       label: 'My Classes',
-      icon: <BookCopy className="text-primary" />,
+      icon: <BookCopy />,
     },
     {
       href: '/student/submit-essay',
       label: 'Submit Essay',
-      icon: <FilePenLine className="text-primary" />,
+      icon: <FilePenLine />,
     },
     {
       href: '/student/grades',
       label: 'Submission History',
-      icon: <History className="text-primary" />,
+      icon: <History />,
     },
     {
       href: '/student/settings',
       label: 'Settings',
-      icon: <Settings className="text-primary" />,
+      icon: <Settings />,
     },
   ];
 
