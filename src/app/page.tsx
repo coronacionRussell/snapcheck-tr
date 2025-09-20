@@ -44,10 +44,10 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-green-50">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-20 items-center">
+        <div className="container flex h-16 items-center">
           <div className="mr-4 flex">
             <Link href="/" className="mr-6 flex items-center space-x-2">
-              <Logo className="[&>svg]:size-12 [&>span]:text-4xl" />
+              <Logo className="[&>svg]:size-10 [&>span]:text-3xl" />
             </Link>
           </div>
           <nav className="flex flex-1 items-center justify-end space-x-2">
@@ -64,8 +64,8 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
-        <section className="py-20 md:py-32">
-          <div className="container grid grid-cols-1 items-center gap-12 text-center md:grid-cols-2 md:text-left">
+        <section className="py-16 md:py-24">
+          <div className="container grid grid-cols-1 items-center gap-12 text-center md:grid-cols-2 md:gap-16 md:text-left">
             <div className="space-y-6">
               <h1 className="font-headline text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
                 Instant Essay Feedback,
@@ -88,18 +88,18 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-            <div className="relative">
+            <div className="relative mx-auto w-full max-w-md md:max-w-none">
               <Image
                 src="https://media.istockphoto.com/id/469090060/photo/smart-jack-russell-terrier.jpg?s=612x612&w=0&k=20&c=jr3vERTtcaXUjn5rYtW3KiixND9CWBrNvZr-ogfyowo="
                 width={612}
                 height={612}
                 alt="A smart Jack Russell Terrier wearing glasses and a bow tie"
                 data-ai-hint="dog studying"
-                className="rounded-lg object-cover shadow-2xl"
+                className="aspect-square rounded-lg object-cover shadow-2xl"
                 priority
                 fetchPriority="high"
               />
-              <div className="absolute -bottom-4 -right-4 w-full max-w-xs rounded-lg border bg-card p-4 shadow-xl">
+              <div className="mt-4 w-full rounded-lg border bg-card p-4 shadow-xl md:absolute md:-bottom-4 md:-right-4 md:mt-0 md:max-w-xs">
                 <div className="mb-2 flex items-center gap-2">
                   <Feather className="size-5 text-primary" />
                   <h3 className="font-headline font-semibold">
