@@ -234,7 +234,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
             Assignment: {submission.assignmentName || 'Essay Submission'} | Class: {className} | Submitted: {submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleString() : 'N/A'}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid max-h-[70vh] grid-cols-1 gap-4 overflow-y-auto p-1 md:grid-cols-2">
+        <div className="grid max-h-[70svh] grid-cols-1 gap-4 overflow-y-auto p-1 md:grid-cols-2">
           <div className="space-y-4">
             <Card>
               <CardHeader>

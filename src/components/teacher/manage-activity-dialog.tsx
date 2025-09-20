@@ -87,7 +87,7 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
             Edit the details and rubric for this activity.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid max-h-[70vh] gap-6 overflow-y-auto p-1">
+        <div className="grid max-h-[70svh] gap-6 overflow-y-auto p-1">
             <div className="space-y-2">
                 <Label htmlFor="activity-name">Activity Name</Label>
                 <Input
@@ -123,7 +123,7 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button variant="destructive" disabled={isSaving || isDeleting} onClick={(e) => e.stopPropagation()}>
-                        {isDeleting ? <Loader2 className="mr-2 h-8 w-8 animate-spin" /> : <Trash2 className="mr-2"/>}
+                        {isDeleting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Trash2 className="mr-2"/>}
                         Delete Activity
                     </Button>
                 </AlertDialogTrigger>
@@ -143,7 +143,7 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
                 </AlertDialogContent>
             </AlertDialog>
           <Button onClick={handleSaveChanges} disabled={isSaving || isDeleting}>
-            {isSaving && <Loader2 className="mr-2 h-8 w-8 animate-spin" />}
+            {isSaving && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
             <Save className="mr-2"/>
             Save Changes
           </Button>
