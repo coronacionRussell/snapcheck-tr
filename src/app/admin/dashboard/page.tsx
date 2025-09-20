@@ -92,7 +92,10 @@ export default function AdminDashboard() {
     const handleDeleteTeacher = async (teacherId: string, teacherName: string) => {
         setIsDeleting(teacherId);
         try {
-          await deleteUser({ uid: teacherId });
+          const result = await deleteUser({ uid: teacherId });
+          if (!result.success) {
+            throw new Error(result.message);
+          }
           toast({
             title: 'Account Deleted',
             description: `The account for ${teacherName} has been deleted.`,
