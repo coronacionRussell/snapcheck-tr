@@ -20,6 +20,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
   SheetTrigger,
 } from '@/components/ui/sheet';
 
@@ -55,7 +58,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-green-50">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container flex h-14 items-center justify-between">
           <div className="mr-4 flex">
             <Link href="/" className="flex items-center space-x-2">
               <Logo className="[&>svg]:size-8 [&>span]:text-2xl" />
@@ -82,6 +85,12 @@ export default function Home() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Mobile Menu</SheetTitle>
+                  <SheetDescription>
+                    Navigation links for SnapCheck.
+                  </SheetDescription>
+                </SheetHeader>
                 <div className="flex flex-col gap-6 p-4">
                   <Link
                     href="/"
