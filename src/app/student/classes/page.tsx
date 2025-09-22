@@ -19,11 +19,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { BookOpen, DoorOpen, Loader2, LogOut } from 'lucide-react';
+import { BookOpen, DoorOpen, Loader2, LogOut, Trash2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useEffect, useState, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, writeBatch, increment, query, where, arrayRemove } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, increment, query, where, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
@@ -114,7 +114,7 @@ export default function StudentClassesPage() {
             description: `You have left the class "${className}".`
         });
         
-        // No need to call fetchStudentData manually, auth listener will trigger a re-render with updated user doc
+        // The auth listener will trigger a re-render which calls fetchStudentData
     } catch(error) {
         console.error("Error leaving class: ", error);
         toast({
@@ -201,7 +201,7 @@ export default function StudentClassesPage() {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleLeaveClass(c.id, c.name)}>
+                                <AlertDialogAction onClick={() => handleLeaveClass(c.id, c.name)} className="bg-destructive hover:bg-destructive/90">
                                   Yes, Leave Class
                                 </AlertDialogAction>
                               </AlertDialogFooter>

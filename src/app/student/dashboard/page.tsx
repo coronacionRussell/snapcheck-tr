@@ -25,10 +25,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { BookOpen, FilePenLine, History, MessageSquareText } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { BookOpen, FilePenLine, History, Loader2, MessageSquareText, Trash2 } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, where, limit, collectionGroup } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, limit, collectionGroup, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
@@ -43,6 +54,7 @@ interface RecentGrade {
     grade: string;
     status: 'Graded' | 'Pending Review';
     feedback?: string;
+    classId: string;
 }
 
 
@@ -51,6 +63,7 @@ export default function StudentDashboard() {
   const [enrolledClassCount, setEnrolledClassCount] = useState(0);
   const [recentGrades, setRecentGrades] = useState<RecentGrade[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchStudentData = useCallback(async () => {
@@ -65,41 +78,43 @@ export default function StudentDashboard() {
     try {
         const studentId = user.uid;
         
-        // Optimized query for recent grades using a collectionGroup query
-        const submissionsQuery = query(
-            collectionGroup(db, 'submissions'),
-            where('studentId', '==', studentId),
-            where('status', '==', 'Graded'),
-            limit(3) 
-        );
-        const submissionsSnapshot = await getDocs(submissionsQuery);
+        let allGradedSubmissions: RecentGrade[] = [];
+
+        if (user.enrolledClassIds && user.enrolledClassIds.length > 0) {
+            for (const classId of user.enrolledClassIds) {
+                const submissionsQuery = query(
+                    collection(db, 'classes', classId, 'submissions'),
+                    where('studentId', '==', studentId),
+                    where('status', '==', 'Graded')
+                );
+                const submissionsSnapshot = await getDocs(submissionsQuery);
+                const classDoc = await getDoc(doc(db, 'classes', classId));
+                const className = classDoc.exists() ? classDoc.data().name : 'Unknown Class';
+
+                submissionsSnapshot.forEach(submissionDoc => {
+                    const data = submissionDoc.data();
+                    allGradedSubmissions.push({
+                        id: submissionDoc.id,
+                        assignment: data.assignmentName || 'Essay Submission',
+                        class: className,
+                        grade: data.grade,
+                        status: data.status,
+                        feedback: data.feedback,
+                        classId: classId,
+                    });
+                });
+            }
+        }
         
-        const gradesDataPromises = submissionsSnapshot.docs.map(async (submissionDoc) => {
-            const data = submissionDoc.data();
-            const classDocRef = submissionDoc.ref.parent.parent; // submission -> activities -> class
-            if (!classDocRef) return null;
-
-            const classDoc = await getDoc(classDocRef);
-            const className = classDoc.exists() ? classDoc.data().name : 'Unknown Class';
-            
-            return {
-                id: submissionDoc.id,
-                assignment: data.assignmentName || 'Essay Submission',
-                class: className,
-                grade: data.grade,
-                status: data.status,
-                feedback: data.feedback,
-            };
-        });
-
-        const gradesData = (await Promise.all(gradesDataPromises)).filter(g => g !== null) as RecentGrade[];
-        setRecentGrades(gradesData);
+        // Sort by date (newest first) and take the top 3
+        allGradedSubmissions.sort((a, b) => b.id.localeCompare(a.id)); // Assuming doc IDs are time-ordered
+        setRecentGrades(allGradedSubmissions.slice(0, 3));
 
     } catch (error) {
       console.error("Error fetching student data: ", error);
       toast({
           title: 'Error',
-          description: 'Could not fetch your dashboard data. You may need to create Firestore indexes.',
+          description: 'Could not fetch your dashboard data.',
           variant: 'destructive',
       })
     } finally {
@@ -110,6 +125,25 @@ export default function StudentDashboard() {
   useEffect(() => {
     fetchStudentData();
   }, [fetchStudentData]);
+
+  const handleDeleteSubmission = async (submissionId: string, classId: string, assignmentName: string) => {
+    setIsDeleting(submissionId);
+    try {
+        const submissionRef = doc(db, 'classes', classId, 'submissions', submissionId);
+        await writeBatch(db).delete(submissionRef).commit();
+
+        toast({
+            title: 'Submission Deleted',
+            description: `Your submission for "${assignmentName}" has been deleted.`
+        });
+        fetchStudentData(); // Refresh the list
+    } catch (error) {
+        console.error("Error deleting submission: ", error);
+        toast({ title: 'Error', description: 'Could not delete the submission.', variant: 'destructive'});
+    } finally {
+        setIsDeleting(null);
+    }
+  }
 
   const isLoading = isAuthLoading || isDataLoading;
 
@@ -203,7 +237,7 @@ export default function StudentDashboard() {
                           {grade.status}
                         </Badge>
                       </TableCell>
-                       <TableCell className="text-right">
+                       <TableCell className="text-right space-x-2">
                          {grade.feedback && (
                             <Dialog>
                                 <DialogTrigger asChild>
@@ -225,6 +259,31 @@ export default function StudentDashboard() {
                                 </DialogContent>
                             </Dialog>
                          )}
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon" disabled={isDeleting === grade.id}>
+                                    {isDeleting === grade.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="size-4"/>}
+                                    <span className="sr-only">Delete submission</span>
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                This will permanently delete your submission for <strong>{grade.assignment}</strong>. This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={() => handleDeleteSubmission(grade.id, grade.classId, grade.assignment)}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                >
+                                    Yes, Delete
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                       </TableCell>
                     </TableRow>
                   ))}
