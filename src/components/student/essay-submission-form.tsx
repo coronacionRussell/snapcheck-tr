@@ -417,7 +417,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
                             <p className="font-semibold">{currentActivity.name}</p>
                         </div>
                          <div>
-                            <p className="mt-2 text-sm text-muted-foreground">Description</p>
+                            <p className="mt-2 text-sm text-muted-foreground">Description / Questions</p>
                             <p className="text-sm">{currentActivity.description}</p>
                         </div>
                     </div>
@@ -618,10 +618,5 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     </form>
   );
 }
-
-    
-    
-
-    
 
     

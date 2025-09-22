@@ -110,7 +110,7 @@ export function StudentClassActivities({ classId }: { classId: string }) {
                         <AccordionContent>
                            <div className="space-y-4 border-t p-4">
                                 <div>
-                                    <h4 className="mb-1 text-base font-semibold">Description</h4>
+                                    <h4 className="mb-1 text-base font-semibold">Description / Questions</h4>
                                     <p className="whitespace-pre-wrap text-sm text-muted-foreground">{activity.description}</p>
                                 </div>
                                 <div>
@@ -141,3 +141,5 @@ export function StudentClassActivities({ classId }: { classId: string }) {
     </Card>
   );
 }
+
+    

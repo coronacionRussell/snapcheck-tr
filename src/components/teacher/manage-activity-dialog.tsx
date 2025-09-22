@@ -98,7 +98,7 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
                 />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="activity-description">Description</Label>
+                <Label htmlFor="activity-description">Description / Questions</Label>
                 <Textarea
                     id="activity-description"
                     value={description}
@@ -152,3 +152,5 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
     </Dialog>
   );
 }
+
+    

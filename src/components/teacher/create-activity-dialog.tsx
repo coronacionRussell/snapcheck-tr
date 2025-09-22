@@ -140,7 +140,7 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
                 />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="activity-description">Description</Label>
+                <Label htmlFor="activity-description">Description / Questions</Label>
                 <Textarea
                     id="activity-description"
                     value={description}
@@ -164,3 +164,5 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
     </Dialog>
   );
 }
+
+    
