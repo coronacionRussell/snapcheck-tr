@@ -21,7 +21,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Submission } from './class-submissions';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import parse, { domToReact, Element } from 'html-react-parser';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import Image from 'next/image';
@@ -33,8 +33,9 @@ type GradeSubmissionDialogProps = {
     classId: string;
 }
 
-export function GradeSubmissionDialog({ submission, className, classId }: GradeSubmissionDialogProps) {
+export function GradeSubmissionDialog({ submission: initialSubmission, className, classId }: GradeSubmissionDialogProps) {
   const [open, setOpen] = useState(false);
+  const [submission, setSubmission] = useState<Submission>(initialSubmission);
   const [isLoading, setIsLoading] = useState(false);
   const [isRubricLoading, setIsRubricLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,6 +51,19 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
   const [showImageViewer, setShowImageViewer] = useState(false);
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (open) {
+      setSubmission(initialSubmission);
+      const submissionRef = doc(db, 'classes', classId, 'submissions', initialSubmission.id);
+      const unsubscribe = onSnapshot(submissionRef, (doc) => {
+        if (doc.exists()) {
+          setSubmission({ id: doc.id, ...doc.data() } as Submission);
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [open, classId, initialSubmission]);
 
   useEffect(() => {
     const fetchActivityDetails = async () => {
@@ -381,5 +395,3 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
     </Dialog>
   );
 }
-
-    
