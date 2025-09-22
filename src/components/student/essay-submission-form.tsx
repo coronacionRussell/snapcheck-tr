@@ -16,13 +16,12 @@ import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { db, storage } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query, where, updateDoc, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL, UploadTaskSnapshot, uploadBytes } from 'firebase/storage';
+import { collection, getDocs, doc, getDoc, addDoc, query, where, updateDoc, Timestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import parse, { domToReact, Element } from 'html-react-parser';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import Image from 'next/image';
-import { Progress } from '../ui/progress';
 import imageCompression from 'browser-image-compression';
 
 
@@ -331,18 +330,18 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     }
 
     setIsSubmitting(true);
-    let submissionRef;
+    
     try {
         const studentId = user.uid; 
         const studentName = user.fullName;
 
         // Create submission document first
         const submissionsCollection = collection(db, 'classes', activity.classId, 'submissions');
-        submissionRef = await addDoc(submissionsCollection, {
+        const submissionRef = await addDoc(submissionsCollection, {
             studentId,
             studentName,
             essayText,
-            submittedAt: new Date(),
+            submittedAt: Timestamp.now(), // Use client-side timestamp
             status: 'Pending Review',
             assignmentName: activity.name,
             activityId: activity.id,

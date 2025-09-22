@@ -14,7 +14,7 @@ import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { ClassContext } from '@/contexts/class-context';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
-import { collection, onSnapshot, query, addDoc, serverTimestamp, getDocs, updateDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, getDocs, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
@@ -210,20 +210,20 @@ export function EssayScanner() {
     }
 
     setIsSaving(true);
-    let submissionRef;
+    
     try {
         const studentName = students.find(s => s.id === selectedStudent)?.name || 'Unknown Student';
         const assignmentName = activities.find(a => a.id === selectedActivity)?.name || 'Unknown Activity';
 
         // 1. Create the Firestore document first
         const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
-        submissionRef = await addDoc(submissionsCollection, {
+        const submissionRef = await addDoc(submissionsCollection, {
             studentId: selectedStudent,
             studentName,
             assignmentName,
             activityId: selectedActivity,
             essayText,
-            submittedAt: new Date(),
+            submittedAt: Timestamp.now(), // Use client-side timestamp
             status: 'Pending Review',
             essayImageUrl: '', // Initially empty
         });
@@ -231,7 +231,7 @@ export function EssayScanner() {
         let imageUrl = '';
         // 2. If an image exists, get a token, upload it, then update the doc
         if (imageFile) {
-            // The uploader is the TEACHER, so we use their UID
+            // The uploader is the TEACHER, so we use their UID for the token
             const { token, uploadId } = await generateUploadToken({ userId: user.uid });
             const filePath = `user_uploads/${user.uid}/${uploadId}/${imageFile.name}`;
             const storageRef = ref(storage, filePath);
