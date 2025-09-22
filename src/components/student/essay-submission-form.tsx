@@ -328,7 +328,9 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
       setEssayText('');
       setFeedback('');
       setGrammarAnalysis('');
-      setSelectedActivity(null);
+      if (!preselectedActivityId) {
+        setSelectedActivity(null);
+      }
 
     } catch (error) {
       console.error(error);
@@ -390,40 +392,46 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
   };
   
   const formDisabled = isAuthLoading || isLoadingFeedback || isScanning || isSubmitting || isAnalyzingGrammar;
+  const currentActivity = availableActivities.find(a => a.id === selectedActivity);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
        <Card>
         <CardHeader>
           <CardTitle className="font-headline text-lg">
-            1. Select Your Activity
+            1. Selected Activity
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <Label htmlFor="activity-select">Activity</Label>
-            <div className="flex items-center gap-2">
-              <Select onValueChange={setSelectedActivity} required disabled={formDisabled || availableActivities.length === 0 || !!selectedActivity} value={selectedActivity || ''}>
-                  <SelectTrigger id="activity-select">
-                      <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                      {availableActivities.map(a => (
-                          <SelectItem key={a.id} value={a.id}>{a.className}: {a.name}</SelectItem>
-                      ))}
-                  </SelectContent>
-              </Select>
-              {selectedActivity && !preselectedActivityId && (
-                <Button variant="ghost" size="icon" onClick={() => setSelectedActivity(null)} disabled={formDisabled}>
-                  <Trash2 className="size-4" />
-                  <span className="sr-only">Clear selection</span>
-                </Button>
-              )}
-            </div>
-             {availableActivities.length === 0 && !isActivityListLoading && (
-                <p className="text-xs text-muted-foreground">You are not enrolled in any classes with activities, or no activities have been created yet.</p>
+            {preselectedActivityId ? (
+                currentActivity ? (
+                    <div>
+                        <p className="text-sm text-muted-foreground">Class</p>
+                        <p className="font-semibold">{currentActivity.className}</p>
+                        <p className="mt-2 text-sm text-muted-foreground">Activity</p>
+                        <p className="font-semibold">{currentActivity.name}</p>
+                    </div>
+                ) : (
+                    <p>Loading activity details...</p>
+                )
+            ) : (
+                <div className="space-y-2">
+                    <Label htmlFor="activity-select">Activity</Label>
+                    <Select onValueChange={setSelectedActivity} required disabled={formDisabled || availableActivities.length === 0} value={selectedActivity || ''}>
+                        <SelectTrigger id="activity-select">
+                            <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {availableActivities.map(a => (
+                                <SelectItem key={a.id} value={a.id}>{a.className}: {a.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {availableActivities.length === 0 && !isActivityListLoading && (
+                        <p className="text-xs text-muted-foreground">You are not enrolled in any classes with activities, or no activities have been created yet.</p>
+                    )}
+                </div>
             )}
-          </div>
         </CardContent>
        </Card>
 
@@ -602,4 +610,6 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
 }
 
     
+    
+
     
