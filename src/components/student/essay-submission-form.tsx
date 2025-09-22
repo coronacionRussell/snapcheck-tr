@@ -27,6 +27,7 @@ interface Activity {
     className: string;
     classId: string;
     rubric: string;
+    description: string;
 }
 
 interface EssaySubmissionFormProps {
@@ -80,6 +81,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
                     className: classDoc.data().name,
                     classId: classDoc.id,
                     rubric: data.rubric,
+                    description: data.description,
                 });
               });
           }
@@ -405,11 +407,19 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
         <CardContent>
             {preselectedActivityId ? (
                 currentActivity ? (
-                    <div>
-                        <p className="text-sm text-muted-foreground">Class</p>
-                        <p className="font-semibold">{currentActivity.className}</p>
-                        <p className="mt-2 text-sm text-muted-foreground">Activity</p>
-                        <p className="font-semibold">{currentActivity.name}</p>
+                    <div className="space-y-2">
+                        <div>
+                            <p className="text-sm text-muted-foreground">Class</p>
+                            <p className="font-semibold">{currentActivity.className}</p>
+                        </div>
+                        <div>
+                            <p className="mt-2 text-sm text-muted-foreground">Activity</p>
+                            <p className="font-semibold">{currentActivity.name}</p>
+                        </div>
+                         <div>
+                            <p className="mt-2 text-sm text-muted-foreground">Description</p>
+                            <p className="text-sm">{currentActivity.description}</p>
+                        </div>
                     </div>
                 ) : (
                     <p>Loading activity details...</p>
@@ -610,6 +620,8 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
 }
 
     
+    
+
     
 
     
