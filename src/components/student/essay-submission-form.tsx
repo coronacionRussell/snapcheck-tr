@@ -4,6 +4,7 @@
 import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
 import { scanEssay } from '@/ai/flows/scan-essay';
 import { analyzeEssayGrammar } from '@/ai/flows/analyze-essay-grammar';
+import { generateUploadToken } from '@/ai/flows/generate-upload-token';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, Camera, CheckCircle, Loader2, Sparkles, UploadCloud, X, Trash2, Image as ImageIcon } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -16,7 +17,7 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { db, storage } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query, where, updateDoc, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL, UploadTaskSnapshot } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, UploadTaskSnapshot, uploadBytes } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import parse, { domToReact, Element } from 'html-react-parser';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -300,51 +301,6 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     }
   };
 
-  const uploadImageWithProgress = (submissionId: string, classId: string, file: File) => {
-    const { id: toastId } = toast({
-        title: `Uploading "${file.name}"`,
-        description: <Progress value={0} className="w-full" />,
-        duration: Infinity,
-    });
-    
-    const storageRef = ref(storage, `submissions/${classId}/${submissionId}/${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on('state_changed', 
-      (snapshot: UploadTaskSnapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        toast({
-          id: toastId,
-          title: `Uploading "${file.name}"`,
-          description: <Progress value={progress} className="w-full" />,
-          duration: Infinity,
-        });
-      }, 
-      (error) => {
-        console.error("Background image upload failed: ", error);
-        toast({
-            id: toastId,
-            variant: 'destructive',
-            title: 'Upload Failed',
-            description: `Could not upload "${file.name}".`,
-            duration: 10000,
-        });
-      }, 
-      async () => {
-        const imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
-        const submissionRef = doc(db, 'classes', classId, 'submissions', submissionId);
-        await updateDoc(submissionRef, { essayImageUrl: imageUrl });
-        
-        toast({
-            id: toastId,
-            title: 'Upload Complete!',
-            description: `"${file.name}" has been attached to your submission.`,
-            duration: 5000,
-        });
-      }
-    );
-  };
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!user) {
@@ -375,26 +331,43 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     }
 
     setIsSubmitting(true);
+    let submissionRef;
     try {
         const studentId = user.uid; 
         const studentName = user.fullName;
 
-        // Create submission document with all text data
+        // Create submission document first
         const submissionsCollection = collection(db, 'classes', activity.classId, 'submissions');
-        const submissionRef = await addDoc(submissionsCollection, {
+        submissionRef = await addDoc(submissionsCollection, {
             studentId,
             studentName,
             essayText,
-            submittedAt: Timestamp.now(),
+            submittedAt: new Date(),
             status: 'Pending Review',
             assignmentName: activity.name,
             activityId: activity.id,
             essayImageUrl: '', // Initially empty
         });
 
-        // If there's an image, upload it in the background without waiting
+        let imageUrl = '';
+        // If there's an image, upload it now and get the URL
         if (imageFile) {
-            uploadImageWithProgress(submissionRef.id, activity.classId, imageFile);
+            const { token, uploadId } = await generateUploadToken({ userId: user.uid });
+            const filePath = `user_uploads/${user.uid}/${uploadId}/${imageFile.name}`;
+            const storageRef = ref(storage, filePath);
+            
+            const metadata = { customMetadata: { authToken: token } };
+            
+            toast({
+              title: 'Uploading Image...',
+              description: 'Your essay has been saved. Attaching image now.'
+            });
+
+            const uploadTask = await uploadBytes(storageRef, imageFile, metadata);
+            imageUrl = await getDownloadURL(uploadTask.ref);
+            
+            // Now update the submission document with the image URL
+            await updateDoc(submissionRef, { essayImageUrl: imageUrl });
         }
       
         toast({
@@ -402,7 +375,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
             description: 'Your teacher has received your essay for grading.',
         });
         
-        // Reset form immediately
+        // Reset form
         setEssayText('');
         setFeedback('');
         setGrammarAnalysis('');
@@ -730,9 +703,3 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     </form>
   );
 }
-
-    
-
-    
-
-    
