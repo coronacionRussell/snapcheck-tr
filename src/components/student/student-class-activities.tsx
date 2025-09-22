@@ -92,8 +92,8 @@ export function StudentClassActivities({ classId }: { classId: string }) {
             <Accordion type="single" collapsible className="w-full">
                 {activities.map((activity) => (
                     <AccordionItem value={activity.id} key={activity.id}>
-                        <div className="flex w-full items-center justify-between pr-4 hover:bg-muted/50 rounded-md">
-                           <AccordionTrigger className="flex-1 text-left p-4 hover:no-underline">
+                        <div className="flex w-full items-center justify-between rounded-md pr-4 hover:bg-muted/50">
+                           <AccordionTrigger className="flex-1 p-4 text-left hover:no-underline">
                                <div>
                                    <p className="font-semibold">{activity.name}</p>
                                    <p className="text-sm text-muted-foreground">
@@ -108,14 +108,14 @@ export function StudentClassActivities({ classId }: { classId: string }) {
                            </div>
                        </div>
                         <AccordionContent>
-                           <div className="border-t p-4 space-y-4">
+                           <div className="space-y-4 border-t p-4">
                                 <div>
-                                    <h4 className="font-semibold text-base mb-1">Description</h4>
-                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{activity.description}</p>
+                                    <h4 className="mb-1 text-base font-semibold">Description</h4>
+                                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">{activity.description}</p>
                                 </div>
                                 <div>
-                                    <h4 className="font-semibold text-base mb-1">Grading Rubric</h4>
-                                    <div className="prose prose-sm max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground whitespace-pre-wrap">
+                                    <h4 className="mb-1 text-base font-semibold">Grading Rubric</h4>
+                                    <div className="prose prose-sm max-w-none whitespace-pre-wrap rounded-md border bg-secondary p-4 text-secondary-foreground">
                                         {activity.rubric}
                                     </div>
                                 </div>
