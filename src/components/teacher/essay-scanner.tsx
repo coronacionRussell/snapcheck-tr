@@ -1,4 +1,3 @@
-
 'use client';
 
 import { scanEssay } from '@/ai/flows/scan-essay';
@@ -15,10 +14,11 @@ import { ClassContext } from '@/contexts/class-context';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { collection, onSnapshot, query, addDoc, serverTimestamp, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, UploadTaskSnapshot } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import type { Activity } from './class-activities';
 import imageCompression from 'browser-image-compression';
+import { Progress } from '../ui/progress';
 
 
 interface Student {
@@ -198,21 +198,49 @@ export function EssayScanner() {
     toast({ title: 'Copied!', description: 'The essay text has been copied to your clipboard.' });
   }
 
-  const uploadImageInBackground = async (submissionId: string, classId: string, file: File) => {
-    try {
-      toast({ title: 'Uploading Image...', description: 'The essay image is uploading in the background.' });
-      const storageRef = ref(storage, `submissions/${classId}/${submissionId}/${file.name}`);
-      const uploadResult = await uploadBytes(storageRef, file);
-      const imageUrl = await getDownloadURL(uploadResult.ref);
-      
-      const submissionRef = doc(db, 'classes', classId, 'submissions', submissionId);
-      await updateDoc(submissionRef, { essayImageUrl: imageUrl });
-      
-      console.log('Teacher-scanned image uploaded and submission updated successfully.');
+  const uploadImageWithProgress = (submissionId: string, classId: string, file: File) => {
+    const { id: toastId } = toast({
+        title: `Uploading "${file.name}"`,
+        description: <Progress value={0} className="w-full" />,
+        duration: Infinity,
+    });
+    
+    const storageRef = ref(storage, `submissions/${classId}/${submissionId}/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
 
-    } catch (error) {
-      console.error("Background image upload failed for teacher scan: ", error);
-    }
+    uploadTask.on('state_changed', 
+      (snapshot: UploadTaskSnapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        toast({
+          id: toastId,
+          title: `Uploading "${file.name}"`,
+          description: <Progress value={progress} className="w-full" />,
+          duration: Infinity,
+        });
+      }, 
+      (error) => {
+        console.error("Background image upload failed: ", error);
+        toast({
+            id: toastId,
+            variant: 'destructive',
+            title: 'Upload Failed',
+            description: `Could not upload "${file.name}". The server rejected the upload. Check your storage rules.`,
+            duration: 10000,
+        });
+      }, 
+      async () => {
+        const imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
+        const submissionRef = doc(db, 'classes', classId, 'submissions', submissionId);
+        await updateDoc(submissionRef, { essayImageUrl: imageUrl });
+        
+        toast({
+            id: toastId,
+            title: 'Upload Complete!',
+            description: `"${file.name}" has been attached to the submission.`,
+            duration: 5000,
+        });
+      }
+    );
   };
   
   const handleSaveEssay = async () => {
@@ -244,7 +272,7 @@ export function EssayScanner() {
 
         // Start background upload if an image exists
         if (imageFile) {
-            uploadImageInBackground(submissionRef.id, selectedClass, imageFile);
+            uploadImageWithProgress(submissionRef.id, selectedClass, imageFile);
         }
 
         toast({
