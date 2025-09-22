@@ -5,7 +5,7 @@ import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
 import { scanEssay } from '@/ai/flows/scan-essay';
 import { analyzeEssayGrammar } from '@/ai/flows/analyze-essay-grammar';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Camera, CheckCircle, Loader2, Sparkles, UploadCloud, X, Trash2 } from 'lucide-react';
+import { Bot, Camera, CheckCircle, Loader2, Sparkles, UploadCloud, X, Trash2, Image as ImageIcon } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
@@ -20,6 +20,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import parse, { domToReact, Element } from 'html-react-parser';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import Image from 'next/image';
 
 
 interface Activity {
@@ -39,6 +40,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
   const { user, isLoading: isAuthLoading } = useAuth();
   const [essayText, setEssayText] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [availableActivities, setAvailableActivities] = useState<Activity[]>([]);
   const [isActivityListLoading, setIsActivityListLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
@@ -161,6 +163,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
 
   const processImage = async (dataUri: string, file: File) => {
     setImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
     setIsScanning(true);
     setEssayText('');
     try {
@@ -352,6 +355,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
         setFeedback('');
         setGrammarAnalysis('');
         setImageFile(null);
+        setImagePreviewUrl(null);
         if (!preselectedActivityId) {
             setSelectedActivity(null);
         }
@@ -365,6 +369,16 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
         });
     } finally {
         setIsSubmitting(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreviewUrl(null);
+    setEssayText('');
+    const fileInput = document.getElementById('essay-photo') as HTMLInputElement;
+    if(fileInput) {
+        fileInput.value = '';
     }
   };
 
@@ -419,7 +433,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-       <Card>
+      <Card>
         <CardHeader>
           <CardTitle className="font-headline text-lg">
             1. Selected Activity
@@ -428,7 +442,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
         <CardContent>
             {preselectedActivityId ? (
                 currentActivity ? (
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                         <div>
                             <p className="text-sm text-muted-foreground">Class</p>
                             <p className="font-semibold">{currentActivity.className}</p>
@@ -448,24 +462,16 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
             ) : (
                 <div className="space-y-2">
                     <Label htmlFor="activity-select">Activity</Label>
-                    <div className="flex items-center gap-2">
-                        <Select onValueChange={setSelectedActivity} required disabled={formDisabled || availableActivities.length === 0 || !!selectedActivity} value={selectedActivity || ''}>
-                            <SelectTrigger id="activity-select">
-                                <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableActivities.map(a => (
-                                    <SelectItem key={a.id} value={a.id}>{a.className}: {a.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {selectedActivity && !preselectedActivityId && (
-                            <Button variant="ghost" size="icon" onClick={() => setSelectedActivity(null)} disabled={formDisabled}>
-                                <X className="size-4" />
-                                <span className="sr-only">Clear selection</span>
-                            </Button>
-                        )}
-                    </div>
+                    <Select onValueChange={setSelectedActivity} required disabled={formDisabled || availableActivities.length === 0} value={selectedActivity || ''}>
+                        <SelectTrigger id="activity-select">
+                            <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {availableActivities.map(a => (
+                                <SelectItem key={a.id} value={a.id}>{a.className}: {a.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     {availableActivities.length === 0 && !isActivityListLoading && (
                         <p className="text-xs text-muted-foreground">You are not enrolled in any classes with activities, or no activities have been created yet.</p>
                     )}
@@ -535,6 +541,26 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
                 </Button>
               </div>
             </div>
+          )}
+
+          {imagePreviewUrl && (
+            <Card>
+                <CardHeader className="flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="size-5 text-muted-foreground" />
+                    <CardTitle className="text-lg">Image Preview</CardTitle>
+                  </div>
+                  <Button variant="destructive" size="sm" onClick={handleRemoveImage} disabled={formDisabled}>
+                      <Trash2 className="mr-2" />
+                      Remove Image
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                    <div className="relative aspect-video w-full max-w-md mx-auto">
+                        <Image src={imagePreviewUrl} alt="Essay preview" fill className="object-contain rounded-md border" />
+                    </div>
+                </CardContent>
+            </Card>
           )}
 
           <div className="space-y-2 pt-4">
