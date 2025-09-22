@@ -576,7 +576,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
         <Card>
           <CardHeader>
             <CardTitle className="font-headline flex items-center gap-2 text-lg">
-              <Bot className="size-5" /> AI Rubric Feedback
+              <Bot className="mr-2 size-5" /> AI Rubric Feedback
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -601,4 +601,5 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
   );
 }
 
+    
     
