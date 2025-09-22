@@ -15,13 +15,13 @@ import {z} from 'genkit';
 const AssistTeacherGradingInputSchema = z.object({
   essayText: z.string().describe('The text of the essay to be graded.'),
   rubricText: z.string().describe('The rubric to use for grading the essay.'),
-  activityDescription: z.string().describe('The description of the activity or assignment.'),
+  activityDescription: z.string().describe('The description of the activity or assignment, which also serves as the essay question or prompt.'),
 });
 export type AssistTeacherGradingInput = z.infer<typeof AssistTeacherGradingInputSchema>;
 
 const AssistTeacherGradingOutputSchema = z.object({
-  preliminaryScore: z.string().describe('A preliminary score out of 100 based on the rubric.'),
-  feedback: z.string().describe('Detailed feedback on how the essay meets the rubric requirements.'),
+  preliminaryScore: z.string().describe('A preliminary score out of 100 based on the rubric and how well the essay answers the prompt.'),
+  feedback: z.string().describe('Detailed feedback on how the essay answers the prompt and meets the rubric requirements.'),
 });
 export type AssistTeacherGradingOutput = z.infer<typeof AssistTeacherGradingOutputSchema>;
 
@@ -33,15 +33,17 @@ const prompt = ai.definePrompt({
   name: 'assistTeacherGradingPrompt',
   input: {schema: AssistTeacherGradingInputSchema},
   output: {schema: AssistTeacherGradingOutputSchema},
-  prompt: `You are an AI assistant for teachers. Your task is to provide feedback on a student's essay based on a provided rubric and assignment description, then suggest a preliminary score out of 100.
+  prompt: `You are an AI assistant for teachers. Your task is to provide feedback on a student's essay and suggest a preliminary score out of 100.
 
-Carefully analyze the essay, the rubric, and the assignment description. Your first priority is to evaluate how well the essay adheres to the instructions in the assignment description and maintains coherence with the given topic. Then, use the rubric to provide a detailed breakdown of the score.
+The "Assignment Description" is the primary essay question or prompt. Your first priority is to evaluate how well the essay directly answers this prompt and fulfills its specific instructions.
 
-Generate constructive feedback that explains how the essay meets each criterion in the rubric and the assignment description. Provide a score out of 100.
+Next, use the provided "Rubric" to evaluate the quality of the writing based on its criteria (e.g., thesis, evidence, organization).
+
+Generate constructive feedback that explains how the essay performs against both the Assignment Description and the Rubric. Provide a score out of 100 that reflects this comprehensive evaluation.
 
 You MUST output your response in a valid JSON format.
 
-Assignment Description:
+Assignment Description / Essay Question:
 {{activityDescription}}
 
 Rubric:
