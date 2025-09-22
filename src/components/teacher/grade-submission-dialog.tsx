@@ -40,6 +40,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
   const [finalScore, setFinalScore] = useState('');
   const [finalFeedback, setFinalFeedback] = useState('');
   const [rubric, setRubric] = useState('');
+  const [activityDescription, setActivityDescription] = useState('');
   const [aiResult, setAiResult] = useState<{
     feedback: string;
     preliminaryScore: string;
@@ -49,9 +50,10 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchRubric = async () => {
+    const fetchActivityDetails = async () => {
         if (!submission.activityId) {
             setRubric('This essay was submitted as a general submission and is not tied to a specific activity rubric.');
+            setActivityDescription('No activity description available for this general submission.');
             setIsRubricLoading(false);
             return;
         }
@@ -62,21 +64,25 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
             const activityDoc = await getDoc(activityDocRef);
 
             if(activityDoc.exists()) {
-                setRubric(activityDoc.data().rubric);
+                const activityData = activityDoc.data();
+                setRubric(activityData.rubric);
+                setActivityDescription(activityData.description);
             } else {
                 setRubric('No rubric found for this activity.');
+                setActivityDescription('No description found for this activity.');
                 toast({
-                    title: 'Rubric Not Found',
-                    description: 'Could not find a rubric for the submitted activity.',
+                    title: 'Activity Not Found',
+                    description: 'Could not find the details for the submitted activity.',
                     variant: 'destructive'
                 })
             }
         } catch (error) {
-            console.error("Error fetching rubric: ", error);
+            console.error("Error fetching activity details: ", error);
             setRubric('Error loading rubric.');
+            setActivityDescription('Error loading description.');
              toast({
                 title: 'Error',
-                description: 'Could not load the rubric for this activity.',
+                description: 'Could not load the details for this activity.',
                 variant: 'destructive',
             })
         } finally {
@@ -85,7 +91,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
     }
 
     if (open) {
-        fetchRubric();
+        fetchActivityDetails();
     }
   }, [submission.activityId, classId, open, toast]);
 
@@ -100,6 +106,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
         assistTeacherGrading({
           essayText: submission.essayText,
           rubricText: rubric,
+          activityDescription: activityDescription,
         }),
         analyzeEssayGrammar({ essayText: submission.essayText })
       ]);
