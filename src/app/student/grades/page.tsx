@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, where, collectionGroup, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
@@ -63,41 +63,47 @@ export default function StudentHistoryPage() {
       try {
         const studentId = user.uid;
         
-        // Use a more efficient collectionGroup query. This requires a Firestore index.
-        const submissionsQuery = query(
-            collectionGroup(db, 'submissions'),
-            where('studentId', '==', studentId),
-            orderBy('submittedAt', 'desc')
-        );
-        const submissionsSnapshot = await getDocs(submissionsQuery);
+        let allSubmissions: Submission[] = [];
+
+        if (user.enrolledClassIds && user.enrolledClassIds.length > 0) {
+            // Fetch all classes first to get their names
+            const classesQuery = query(collection(db, 'classes'), where('__name__', 'in', user.enrolledClassIds));
+            const classesSnapshot = await getDocs(classesQuery);
+            const classNames = new Map(classesSnapshot.docs.map(doc => [doc.id, doc.data().name]));
+
+            // Fetch submissions for each class
+            for (const classId of user.enrolledClassIds) {
+                const submissionsQuery = query(
+                    collection(db, 'classes', classId, 'submissions'),
+                    where('studentId', '==', studentId)
+                );
+                const submissionsSnapshot = await getDocs(submissionsQuery);
+                const classSubmissions = submissionsSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        assignment: data.assignmentName || 'Essay Submission',
+                        class: classNames.get(classId) || 'Unknown Class',
+                        grade: data.grade || '-',
+                        status: data.status,
+                        submittedAt: data.submittedAt,
+                        feedback: data.feedback,
+                    } as Submission;
+                });
+                allSubmissions = allSubmissions.concat(classSubmissions);
+            }
+        }
         
-        const submissionsDataPromises = submissionsSnapshot.docs.map(async (submissionDoc) => {
-            const data = submissionDoc.data();
-            const classDocRef = submissionDoc.ref.parent.parent; // submission -> activities -> class
-            if (!classDocRef) return null;
-
-            const classDoc = await getDoc(classDocRef);
-            const className = classDoc.exists() ? classDoc.data().name : 'Unknown Class';
-
-            return {
-                id: submissionDoc.id,
-                assignment: data.assignmentName || 'Essay Submission',
-                class: className,
-                grade: data.grade || '-',
-                status: data.status,
-                submittedAt: data.submittedAt,
-                feedback: data.feedback,
-            };
-        });
-
-        const submissionsData = (await Promise.all(submissionsDataPromises)).filter(s => s !== null) as Submission[];
-        setSubmissions(submissionsData);
+        // Sort all submissions by date client-side
+        allSubmissions.sort((a, b) => b.submittedAt.seconds - a.submittedAt.seconds);
+        
+        setSubmissions(allSubmissions);
 
       } catch (error) {
         console.error("Error fetching submissions: ", error);
         toast({
           title: 'Error Fetching History',
-          description: 'Could not fetch submission history. This may require creating a composite index in Firestore. Check the browser console for a link to create it.',
+          description: 'Could not fetch submission history. Please try again later.',
           variant: 'destructive',
           duration: 9000,
         });
@@ -107,8 +113,10 @@ export default function StudentHistoryPage() {
     }, [user, toast]);
 
   useEffect(() => {
-    fetchSubmissions();
-  }, [fetchSubmissions]);
+    if (!isAuthLoading) {
+      fetchSubmissions();
+    }
+  }, [isAuthLoading, fetchSubmissions]);
 
   const isLoading = isAuthLoading || isDataLoading;
 
