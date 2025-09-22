@@ -16,11 +16,12 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { db, storage } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query, where, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, UploadTaskSnapshot } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import parse, { domToReact, Element } from 'html-react-parser';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import Image from 'next/image';
+import { Progress } from '../ui/progress';
 
 
 interface Activity {
@@ -284,23 +285,49 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     }
   };
 
-  const uploadImageInBackground = async (submissionId: string, classId: string, file: File) => {
-    try {
-      toast({ title: 'Uploading Image...', description: 'Your essay image is uploading in the background.' });
-      const storageRef = ref(storage, `submissions/${classId}/${submissionId}/${file.name}`);
-      const uploadResult = await uploadBytes(storageRef, file);
-      const imageUrl = await getDownloadURL(uploadResult.ref);
-      
-      const submissionRef = doc(db, 'classes', classId, 'submissions', submissionId);
-      await updateDoc(submissionRef, { essayImageUrl: imageUrl });
-      
-      console.log('Image uploaded and submission updated successfully.');
+  const uploadImageWithProgress = (submissionId: string, classId: string, file: File) => {
+    const { id: toastId } = toast({
+        title: `Uploading "${file.name}"`,
+        description: <Progress value={0} className="w-full" />,
+        duration: Infinity,
+    });
+    
+    const storageRef = ref(storage, `submissions/${classId}/${submissionId}/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
 
-    } catch (error) {
-      console.error("Background image upload failed: ", error);
-      // We don't show a failure toast here to avoid confusing the user,
-      // as they've already received a success message. We log it for debugging.
-    }
+    uploadTask.on('state_changed', 
+      (snapshot: UploadTaskSnapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        toast({
+          id: toastId,
+          title: `Uploading "${file.name}"`,
+          description: <Progress value={progress} className="w-full" />,
+          duration: Infinity,
+        });
+      }, 
+      (error) => {
+        console.error("Background image upload failed: ", error);
+        toast({
+            id: toastId,
+            variant: 'destructive',
+            title: 'Upload Failed',
+            description: `Could not upload "${file.name}".`,
+            duration: 10000,
+        });
+      }, 
+      async () => {
+        const imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
+        const submissionRef = doc(db, 'classes', classId, 'submissions', submissionId);
+        await updateDoc(submissionRef, { essayImageUrl: imageUrl });
+        
+        toast({
+            id: toastId,
+            title: 'Upload Complete!',
+            description: `"${file.name}" has been attached to your submission.`,
+            duration: 5000,
+        });
+      }
+    );
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -352,7 +379,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
 
         // If there's an image, upload it in the background without waiting
         if (imageFile) {
-            uploadImageInBackground(submissionRef.id, activity.classId, imageFile);
+            uploadImageWithProgress(submissionRef.id, activity.classId, imageFile);
         }
       
         toast({
@@ -442,48 +469,55 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-lg">
-            1. Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-            {preselectedActivityId && currentActivity ? (
-                <div className="space-y-4 rounded-md border bg-muted p-4">
-                    <div>
-                        <p className="text-sm font-medium text-muted-foreground">Class</p>
-                        <p className="font-semibold">{currentActivity.className}</p>
+       {preselectedActivityId && currentActivity ? (
+           <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline text-lg">1. Activity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4 rounded-md border bg-muted p-4">
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Class</p>
+                            <p className="font-semibold">{currentActivity.className}</p>
+                        </div>
+                        <div>
+                            <p className="mt-2 text-sm font-medium text-muted-foreground">Activity</p>
+                            <p className="font-semibold">{currentActivity.name}</p>
+                        </div>
+                        <div>
+                            <p className="mt-2 text-sm font-medium text-muted-foreground">Description / Questions</p>
+                            <p className="text-sm whitespace-pre-wrap">{currentActivity.description}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="mt-2 text-sm font-medium text-muted-foreground">Activity</p>
-                        <p className="font-semibold">{currentActivity.name}</p>
+                </CardContent>
+           </Card>
+        ) : (
+            <Card>
+                <CardHeader>
+                <CardTitle className="font-headline text-lg">
+                    1. Activity
+                </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-2">
+                        <Label htmlFor="activity-select">Activity</Label>
+                        <Select onValueChange={setSelectedActivity} required disabled={formDisabled || availableActivities.length === 0} value={selectedActivity || ''}>
+                            <SelectTrigger id="activity-select">
+                                <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableActivities.map(a => (
+                                    <SelectItem key={a.id} value={a.id}>{a.className}: {a.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {availableActivities.length === 0 && !isActivityListLoading && (
+                            <p className="text-xs text-muted-foreground">You are not enrolled in any classes with activities, or no activities have been created yet.</p>
+                        )}
                     </div>
-                     <div>
-                        <p className="mt-2 text-sm font-medium text-muted-foreground">Description / Questions</p>
-                        <p className="text-sm whitespace-pre-wrap">{currentActivity.description}</p>
-                    </div>
-                </div>
-            ) : (
-                <div className="space-y-2">
-                    <Label htmlFor="activity-select">Activity</Label>
-                    <Select onValueChange={setSelectedActivity} required disabled={formDisabled || availableActivities.length === 0} value={selectedActivity || ''}>
-                        <SelectTrigger id="activity-select">
-                            <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {availableActivities.map(a => (
-                                <SelectItem key={a.id} value={a.id}>{a.className}: {a.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {availableActivities.length === 0 && !isActivityListLoading && (
-                        <p className="text-xs text-muted-foreground">You are not enrolled in any classes with activities, or no activities have been created yet.</p>
-                    )}
-                </div>
-            )}
-        </CardContent>
-       </Card>
+                </CardContent>
+            </Card>
+        )}
 
       <Card>
         <CardHeader>
@@ -678,5 +712,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     </form>
   );
 }
+
+    
 
     

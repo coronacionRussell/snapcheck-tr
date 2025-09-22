@@ -1,3 +1,4 @@
+
 "use client"
 
 // Inspired by react-hot-toast library
@@ -8,7 +9,7 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
+const TOAST_LIMIT = 5;
 const TOAST_REMOVE_DELAY = 1000000
 
 type ToasterToast = ToastProps & {
@@ -77,10 +78,18 @@ const addToRemoveQueue = (toastId: string) => {
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
-      return {
-        ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
-      }
+        // If a toast with the same id already exists, update it
+        if (state.toasts.some(t => t.id === action.toast.id)) {
+            return {
+                ...state,
+                toasts: state.toasts.map(t => t.id === action.toast.id ? { ...t, ...action.toast } : t)
+            }
+        }
+        // Otherwise, add it
+        return {
+            ...state,
+            toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+        }
 
     case "UPDATE_TOAST":
       return {
@@ -142,8 +151,8 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
-function toast({ ...props }: Toast) {
-  const id = genId()
+function toast({ ...props }: Toast & { id?: string }) {
+  const id = props.id || genId();
 
   const update = (props: ToasterToast) =>
     dispatch({
@@ -192,3 +201,5 @@ function useToast() {
 }
 
 export { useToast, toast }
+
+    
