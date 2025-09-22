@@ -136,7 +136,7 @@ export function EssayScanner() {
         title: 'Scanning Essay...',
         description: 'The AI is extracting text from your image. This may take a moment.'
       });
-      const result = await scanEssay({ imageDataUri });
+      const result = await scanEssay({ imageDataUri: dataUri });
       setEssayText(result.extractedText);
       toast({
         title: 'Scan Complete!',
@@ -194,6 +194,23 @@ export function EssayScanner() {
     navigator.clipboard.writeText(essayText);
     toast({ title: 'Copied!', description: 'The essay text has been copied to your clipboard.' });
   }
+
+  const uploadImageInBackground = async (submissionId: string, classId: string, file: File) => {
+    try {
+      toast({ title: 'Uploading Image...', description: 'The essay image is uploading in the background.' });
+      const storageRef = ref(storage, `submissions/${classId}/${submissionId}/${file.name}`);
+      const uploadResult = await uploadBytes(storageRef, file);
+      const imageUrl = await getDownloadURL(uploadResult.ref);
+      
+      const submissionRef = doc(db, 'classes', classId, 'submissions', submissionId);
+      await updateDoc(submissionRef, { essayImageUrl: imageUrl });
+      
+      console.log('Teacher-scanned image uploaded and submission updated successfully.');
+
+    } catch (error) {
+      console.error("Background image upload failed for teacher scan: ", error);
+    }
+  };
   
   const handleSaveEssay = async () => {
     if (!selectedClass || !selectedStudent || !selectedActivity || !essayText.trim()) {
@@ -219,30 +236,26 @@ export function EssayScanner() {
             essayText,
             submittedAt: serverTimestamp(),
             status: 'Pending Review',
-            essayImageUrl: '', // Placeholder
+            essayImageUrl: '', // Initially empty
         });
 
-        let imageUrl = '';
+        // Start background upload if an image exists
         if (imageFile) {
-            toast({ title: 'Uploading Image...', description: 'Please wait while we upload the essay image.' });
-            const storageRef = ref(storage, `submissions/${selectedClass}/${submissionRef.id}/${imageFile.name}`);
-            const uploadResult = await uploadBytes(storageRef, imageFile);
-            imageUrl = await getDownloadURL(uploadResult.ref);
-            
-            await updateDoc(submissionRef, { essayImageUrl: imageUrl });
+            uploadImageInBackground(submissionRef.id, selectedClass, imageFile);
         }
-
 
         toast({
             title: 'Essay Saved!',
-            description: `The essay for ${studentName} has been saved to the class for activity "${assignmentName}".`
+            description: `The essay for ${studentName} has been saved for activity "${assignmentName}".`
         });
         
-        // Reset form
+        // Reset form immediately
         setEssayText('');
         setImageFile(null);
         setSelectedStudent(null);
         setSelectedActivity(null);
+        const fileInput = document.getElementById('essay-photo') as HTMLInputElement;
+        if(fileInput) fileInput.value = '';
 
     } catch (error) {
         console.error("Error saving essay submission: ", error);
