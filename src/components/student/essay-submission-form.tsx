@@ -5,7 +5,7 @@ import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
 import { scanEssay } from '@/ai/flows/scan-essay';
 import { analyzeEssayGrammar } from '@/ai/flows/analyze-essay-grammar';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Camera, CheckCircle, Loader2, Sparkles, UploadCloud, Video } from 'lucide-react';
+import { Bot, Camera, CheckCircle, Loader2, Sparkles, UploadCloud, Video, X } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
@@ -402,16 +402,24 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
         <CardContent>
           <div className="space-y-2">
             <Label htmlFor="activity-select">Activity</Label>
-            <Select onValueChange={setSelectedActivity} required disabled={isAuthLoading || isActivityListLoading || availableActivities.length === 0} value={selectedActivity || ''}>
-                <SelectTrigger id="activity-select">
-                    <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
-                </SelectTrigger>
-                <SelectContent>
-                    {availableActivities.map(a => (
-                        <SelectItem key={a.id} value={a.id}>{a.className}: {a.name}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select onValueChange={setSelectedActivity} required disabled={formDisabled || availableActivities.length === 0 || !!selectedActivity} value={selectedActivity || ''}>
+                  <SelectTrigger id="activity-select">
+                      <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                      {availableActivities.map(a => (
+                          <SelectItem key={a.id} value={a.id}>{a.className}: {a.name}</SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
+              {selectedActivity && (
+                <Button variant="outline" size="icon" onClick={() => setSelectedActivity(null)} disabled={formDisabled}>
+                  <X className="size-4" />
+                  <span className="sr-only">Clear selection</span>
+                </Button>
+              )}
+            </div>
              {availableActivities.length === 0 && !isActivityListLoading && (
                 <p className="text-xs text-muted-foreground">You are not enrolled in any classes with activities, or no activities have been created yet.</p>
             )}
