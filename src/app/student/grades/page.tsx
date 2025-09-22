@@ -25,9 +25,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, collectionGroup, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
@@ -54,69 +54,61 @@ export default function StudentHistoryPage() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchSubmissions = async () => {
-      if (!user) return;
+  const fetchSubmissions = useCallback(async () => {
+      if (!user) {
+          setIsDataLoading(false);
+          return;
+      };
       setIsDataLoading(true);
       try {
         const studentId = user.uid;
-        const submissionsData: Submission[] = [];
-
-        // This is inefficient. A better approach would be to have a 'submissions' collection per user
-        // but for this project structure, we query through classes.
-        const classesSnapshot = await getDocs(collection(db, 'classes'));
-
-        for (const classDoc of classesSnapshot.docs) {
-          // A student's submissions for a class can exist even if they are not in the 'students' subcollection
-          // (e.g., if the teacher scanned it for them before they joined).
-          // So we directly query the submissions subcollection for the student's ID.
-          const submissionsQuery = query(
-            collection(db, 'classes', classDoc.id, 'submissions'),
-            where('studentId', '==', studentId)
-          );
-
-          const submissionsSnapshot = await getDocs(submissionsQuery);
-          
-          if (!submissionsSnapshot.empty) {
-            submissionsSnapshot.forEach(submissionDoc => {
-                const data = submissionDoc.data();
-                submissionsData.push({
-                    id: submissionDoc.id,
-                    assignment: data.assignmentName || 'Essay Submission',
-                    class: classDoc.data().name,
-                    grade: data.grade || '-',
-                    status: data.status,
-                    submittedAt: data.submittedAt,
-                    feedback: data.feedback,
-                });
-            });
-          }
-        }
         
-        // Sort manually since we can't use orderBy without an index across collections
-        submissionsData.sort((a, b) => {
-            if (a.submittedAt && b.submittedAt) {
-                return b.submittedAt.seconds - a.submittedAt.seconds;
-            }
-            return 0;
+        // Use a more efficient collectionGroup query. This requires a Firestore index.
+        const submissionsQuery = query(
+            collectionGroup(db, 'submissions'),
+            where('studentId', '==', studentId),
+            orderBy('submittedAt', 'desc')
+        );
+        const submissionsSnapshot = await getDocs(submissionsQuery);
+        
+        const submissionsDataPromises = submissionsSnapshot.docs.map(async (submissionDoc) => {
+            const data = submissionDoc.data();
+            const classDocRef = submissionDoc.ref.parent.parent; // submission -> activities -> class
+            if (!classDocRef) return null;
+
+            const classDoc = await getDoc(classDocRef);
+            const className = classDoc.exists() ? classDoc.data().name : 'Unknown Class';
+
+            return {
+                id: submissionDoc.id,
+                assignment: data.assignmentName || 'Essay Submission',
+                class: className,
+                grade: data.grade || '-',
+                status: data.status,
+                submittedAt: data.submittedAt,
+                feedback: data.feedback,
+            };
         });
 
+        const submissionsData = (await Promise.all(submissionsDataPromises)).filter(s => s !== null) as Submission[];
         setSubmissions(submissionsData);
+
       } catch (error) {
         console.error("Error fetching submissions: ", error);
         toast({
-          title: 'Error',
-          description: 'Could not fetch your submission history. You may need to create a Firestore index if this persists.',
-          variant: 'destructive'
+          title: 'Error Fetching History',
+          description: 'Could not fetch submission history. This may require creating a composite index in Firestore. Check the browser console for a link to create it.',
+          variant: 'destructive',
+          duration: 9000,
         });
       } finally {
         setIsDataLoading(false);
       }
-    };
-    if (user) {
-        fetchSubmissions();
-    }
-  }, [user, toast]);
+    }, [user, toast]);
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, [fetchSubmissions]);
 
   const isLoading = isAuthLoading || isDataLoading;
 

@@ -23,7 +23,7 @@ import { BookOpen, DoorOpen, Loader2, LogOut } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useEffect, useState, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, writeBatch, increment } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, writeBatch, increment, query, where, arrayRemove } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
@@ -49,38 +49,30 @@ export default function StudentClassesPage() {
   const { toast } = useToast();
 
   const fetchStudentData = useCallback(async () => {
-    if (!user) return;
+    if (!user || !user.enrolledClassIds || user.enrolledClassIds.length === 0) {
+        setEnrolledClasses([]);
+        setIsClassesLoading(false);
+        return;
+    }
 
     setIsClassesLoading(true);
     try {
-      const studentId = user.uid;
+        const classIds = user.enrolledClassIds;
+        const classesQuery = query(collection(db, 'classes'), where('__name__', 'in', classIds));
+        const classesSnapshot = await getDocs(classesQuery);
+        
+        const classesData = classesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name,
+            teacherName: doc.data().teacherName,
+        })) as EnrolledClass[];
 
-      const classesCollection = collection(db, 'classes');
-      const classesSnapshot = await getDocs(classesCollection);
-      const allClasses = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string, name: string, teacherName: string }));
-      
-      const classesData: EnrolledClass[] = [];
-
-      for (const classInfo of allClasses) {
-          const studentDocRef = doc(db, `classes/${classInfo.id}/students`, studentId);
-          const studentDoc = await getDoc(studentDocRef);
-
-          if (studentDoc.exists()) {
-              classesData.push({
-                  id: classInfo.id,
-                  name: classInfo.name,
-                  teacherName: classInfo.teacherName,
-              });
-          }
-      }
-
-      setEnrolledClasses(classesData);
-
+        setEnrolledClasses(classesData);
     } catch (error) {
-      console.error("Error fetching student data: ", error);
+      console.error("Error fetching student classes: ", error);
       toast({
           title: 'Error',
-          description: 'Could not fetch your classes or grades.',
+          description: 'Could not fetch your classes.',
           variant: 'destructive',
       })
     } finally {
@@ -103,11 +95,17 @@ export default function StudentClassesPage() {
     try {
         const batch = writeBatch(db);
 
+        // Remove student from class subcollection
         const studentDocRef = doc(db, 'classes', classId, 'students', user.uid);
         batch.delete(studentDocRef);
         
+        // Decrement student count on class
         const classDocRef = doc(db, 'classes', classId);
         batch.update(classDocRef, { studentCount: increment(-1) });
+
+        // Remove classId from user's enrolledClassIds
+        const userDocRef = doc(db, 'users', user.uid);
+        batch.update(userDocRef, { enrolledClassIds: arrayRemove(classId) });
 
         await batch.commit();
 
@@ -116,7 +114,7 @@ export default function StudentClassesPage() {
             description: `You have left the class "${className}".`
         });
         
-        fetchStudentData();
+        // No need to call fetchStudentData manually, auth listener will trigger a re-render with updated user doc
     } catch(error) {
         console.error("Error leaving class: ", error);
         toast({

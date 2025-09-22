@@ -17,6 +17,7 @@ This collection stores information about each registered user.
     -   `role` (string): The user's role in the application. Can be `student`, `teacher`, or `admin`.
     -   `isVerified` (boolean): For teachers, this indicates whether their account has been verified by an admin. Defaults to `false` for new teachers.
     -   `verificationIdUrl` (string, optional): A URL pointing to the teacher's uploaded verification document in Firebase Storage.
+    -   `enrolledClassIds` (array of strings, optional): For students, this stores an array of class IDs they are enrolled in. This is used for efficient querying.
 
 ---
 

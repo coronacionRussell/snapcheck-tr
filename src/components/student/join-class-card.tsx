@@ -20,6 +20,7 @@ import {
   writeBatch,
   increment,
   serverTimestamp,
+  arrayUnion,
 } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -39,7 +40,8 @@ export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
         toast({ title: "Not authenticated", variant: 'destructive' });
         return;
     }
-    if (!classCode.trim()) {
+    const trimmedCode = classCode.trim();
+    if (!trimmedCode) {
       toast({
         title: 'Class Code Required',
         description: 'Please enter a class code to join.',
@@ -50,7 +52,7 @@ export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
     setIsLoading(true);
 
     try {
-      const classRef = doc(db, 'classes', classCode.trim());
+      const classRef = doc(db, 'classes', trimmedCode);
       const classDoc = await getDoc(classRef);
 
       if (!classDoc.exists()) {
@@ -60,26 +62,26 @@ export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
             'The class code you entered does not exist. Please check with your teacher.',
           variant: 'destructive',
         });
+        setIsLoading(false);
         return;
       }
 
       const studentId = user.uid; 
       const studentName = user.fullName;
 
-      const studentRef = doc(db, `classes/${classCode.trim()}/students`, studentId);
-      const studentDoc = await getDoc(studentRef);
-
-      if (studentDoc.exists()) {
+      if (user.enrolledClassIds?.includes(trimmedCode)) {
         toast({
             title: 'Already Enrolled',
             description: 'You are already enrolled in this class.',
         });
+        setIsLoading(false);
         return;
       }
 
       const batch = writeBatch(db);
       
       // Add student to the students subcollection
+      const studentRef = doc(db, `classes/${trimmedCode}/students`, studentId);
       batch.set(studentRef, {
         name: studentName,
         joinedAt: serverTimestamp(),
@@ -88,6 +90,12 @@ export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
       // Increment the studentCount on the class document
       batch.update(classRef, {
         studentCount: increment(1),
+      });
+
+      // Add the class ID to the user's enrolledClassIds array
+      const userRef = doc(db, 'users', studentId);
+      batch.update(userRef, {
+        enrolledClassIds: arrayUnion(trimmedCode)
       });
 
       await batch.commit();

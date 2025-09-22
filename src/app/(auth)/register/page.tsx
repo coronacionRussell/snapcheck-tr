@@ -59,13 +59,19 @@ function RegisterPageContent() {
       userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      const userData = {
+      const userData: any = {
         uid: user.uid,
         fullName,
         email,
         role,
-        isVerified: role === 'student', // Students auto-verified, teachers are not.
       };
+
+      if (role === 'student') {
+        userData.isVerified = true;
+        userData.enrolledClassIds = [];
+      } else {
+        userData.isVerified = false;
+      }
 
       await setDoc(doc(db, 'users', user.uid), userData);
 

@@ -15,7 +15,7 @@ import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { db, storage } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query, where, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import parse, { domToReact, Element } from 'html-react-parser';
@@ -60,35 +60,33 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
   const [isAnalyzingGrammar, setIsAnalyzingGrammar] = useState(false);
 
   const fetchActivities = useCallback(async () => {
-    if (!user) return;
+    if (!user || !user.enrolledClassIds || user.enrolledClassIds.length === 0) {
+      setIsActivityListLoading(false);
+      return;
+    }
     setIsActivityListLoading(true);
     try {
-      const studentId = user.uid;
       const activitiesData: Activity[] = [];
-
-      const classesCollection = collection(db, 'classes');
-      const classesSnapshot = await getDocs(classesCollection);
+      
+      const classIds = user.enrolledClassIds;
+      const classesQuery = query(collection(db, 'classes'), where('__name__', 'in', classIds));
+      const classesSnapshot = await getDocs(classesQuery);
       
       for (const classDoc of classesSnapshot.docs) {
-          const studentDocRef = doc(db, `classes/${classDoc.id}/students`, studentId);
-          const studentDoc = await getDoc(studentDocRef);
+          const activitiesQuery = query(collection(db, 'classes', classDoc.id, 'activities'));
+          const activitiesSnapshot = await getDocs(activitiesQuery);
 
-          if (studentDoc.exists()) {
-              const activitiesQuery = query(collection(db, 'classes', classDoc.id, 'activities'));
-              const activitiesSnapshot = await getDocs(activitiesQuery);
-
-              activitiesSnapshot.forEach(activityDoc => {
-                const data = activityDoc.data();
-                activitiesData.push({
-                    id: activityDoc.id,
-                    name: data.name,
-                    className: classDoc.data().name,
-                    classId: classDoc.id,
-                    rubric: data.rubric,
-                    description: data.description,
-                });
-              });
-          }
+          activitiesSnapshot.forEach(activityDoc => {
+            const data = activityDoc.data();
+            activitiesData.push({
+                id: activityDoc.id,
+                name: data.name,
+                className: classDoc.data().name,
+                classId: classDoc.id,
+                rubric: data.rubric,
+                description: data.description,
+            });
+          });
       }
       setAvailableActivities(activitiesData);
       if (preselectedActivityId && activitiesData.some(a => a.id === preselectedActivityId)) {
@@ -451,25 +449,21 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
           </CardTitle>
         </CardHeader>
         <CardContent>
-            {preselectedActivityId ? (
-                currentActivity ? (
-                    <div className="space-y-4 rounded-md border bg-muted p-4">
-                        <div>
-                            <p className="text-sm font-medium text-muted-foreground">Class</p>
-                            <p className="font-semibold">{currentActivity.className}</p>
-                        </div>
-                        <div>
-                            <p className="mt-2 text-sm font-medium text-muted-foreground">Activity</p>
-                            <p className="font-semibold">{currentActivity.name}</p>
-                        </div>
-                         <div>
-                            <p className="mt-2 text-sm font-medium text-muted-foreground">Description / Questions</p>
-                            <p className="text-sm whitespace-pre-wrap">{currentActivity.description}</p>
-                        </div>
+            {preselectedActivityId && currentActivity ? (
+                <div className="space-y-4 rounded-md border bg-muted p-4">
+                    <div>
+                        <p className="text-sm font-medium text-muted-foreground">Class</p>
+                        <p className="font-semibold">{currentActivity.className}</p>
                     </div>
-                ) : (
-                    <p>Loading activity details...</p>
-                )
+                    <div>
+                        <p className="mt-2 text-sm font-medium text-muted-foreground">Activity</p>
+                        <p className="font-semibold">{currentActivity.name}</p>
+                    </div>
+                     <div>
+                        <p className="mt-2 text-sm font-medium text-muted-foreground">Description / Questions</p>
+                        <p className="text-sm whitespace-pre-wrap">{currentActivity.description}</p>
+                    </div>
+                </div>
             ) : (
                 <div className="space-y-2">
                     <Label htmlFor="activity-select">Activity</Label>

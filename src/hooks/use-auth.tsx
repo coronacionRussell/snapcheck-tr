@@ -14,6 +14,7 @@ export interface AppUser {
   role: 'student' | 'teacher' | 'admin';
   isVerified?: boolean;
   verificationIdUrl?: string;
+  enrolledClassIds?: string[];
 }
 
 export function useAuth() {

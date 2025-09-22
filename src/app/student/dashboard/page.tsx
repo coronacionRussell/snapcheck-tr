@@ -28,18 +28,13 @@ import {
 import { BookOpen, FilePenLine, History, MessageSquareText } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, where, limit } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, limit, collectionGroup } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-interface EnrolledClass {
-    id: string;
-    name: string;
-    teacherName: string;
-}
 
 interface RecentGrade {
     id: string;
@@ -53,82 +48,70 @@ interface RecentGrade {
 
 export default function StudentDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [enrolledClasses, setEnrolledClasses] = useState<EnrolledClass[]>([]);
+  const [enrolledClassCount, setEnrolledClassCount] = useState(0);
   const [recentGrades, setRecentGrades] = useState<RecentGrade[]>([]);
-  const [isClassesLoading, setIsClassesLoading] = useState(true);
-  const [isGradesLoading, setIsGradesLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchStudentData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+        setIsDataLoading(false);
+        return;
+    }
+    
+    setIsDataLoading(true);
+    setEnrolledClassCount(user.enrolledClassIds?.length || 0);
 
-    setIsClassesLoading(true);
-    setIsGradesLoading(true);
     try {
-      const studentId = user.uid;
+        const studentId = user.uid;
+        
+        // Optimized query for recent grades using a collectionGroup query
+        const submissionsQuery = query(
+            collectionGroup(db, 'submissions'),
+            where('studentId', '==', studentId),
+            where('status', '==', 'Graded'),
+            limit(3) 
+        );
+        const submissionsSnapshot = await getDocs(submissionsQuery);
+        
+        const gradesDataPromises = submissionsSnapshot.docs.map(async (submissionDoc) => {
+            const data = submissionDoc.data();
+            const classDocRef = submissionDoc.ref.parent.parent; // submission -> activities -> class
+            if (!classDocRef) return null;
 
-      const classesCollection = collection(db, 'classes');
-      const classesSnapshot = await getDocs(classesCollection);
-      const allClasses = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string, name: string, teacherName: string }));
-      
-      const classesData: EnrolledClass[] = [];
-      const gradesData: RecentGrade[] = [];
+            const classDoc = await getDoc(classDocRef);
+            const className = classDoc.exists() ? classDoc.data().name : 'Unknown Class';
+            
+            return {
+                id: submissionDoc.id,
+                assignment: data.assignmentName || 'Essay Submission',
+                class: className,
+                grade: data.grade,
+                status: data.status,
+                feedback: data.feedback,
+            };
+        });
 
-      for (const classInfo of allClasses) {
-          const studentDocRef = doc(db, `classes/${classInfo.id}/students`, studentId);
-          const studentDoc = await getDoc(studentDocRef);
-
-          if (studentDoc.exists()) {
-              classesData.push({
-                  id: classInfo.id,
-                  name: classInfo.name,
-                  teacherName: classInfo.teacherName,
-              });
-              
-              const submissionsQuery = query(
-                collection(db, 'classes', classInfo.id, 'submissions'),
-                where('studentId', '==', studentId),
-                where('status', '==', 'Graded'),
-                limit(3) 
-              );
-              const submissionsSnapshot = await getDocs(submissionsQuery);
-              submissionsSnapshot.forEach(submissionDoc => {
-                const data = submissionDoc.data();
-                gradesData.push({
-                    id: submissionDoc.id,
-                    assignment: data.assignmentName || 'Essay Submission',
-                    class: classInfo.name,
-                    grade: data.grade,
-                    status: data.status,
-                    feedback: data.feedback,
-                });
-              });
-          }
-      }
-
-      setEnrolledClasses(classesData);
-      setRecentGrades(gradesData);
+        const gradesData = (await Promise.all(gradesDataPromises)).filter(g => g !== null) as RecentGrade[];
+        setRecentGrades(gradesData);
 
     } catch (error) {
       console.error("Error fetching student data: ", error);
       toast({
           title: 'Error',
-          description: 'Could not fetch your classes or grades.',
+          description: 'Could not fetch your dashboard data. You may need to create Firestore indexes.',
           variant: 'destructive',
       })
     } finally {
-      setIsClassesLoading(false);
-      setIsGradesLoading(false);
+      setIsDataLoading(false);
     }
   }, [toast, user]);
 
   useEffect(() => {
-    if (user) {
-        fetchStudentData();
-    }
-  }, [fetchStudentData, user]);
+    fetchStudentData();
+  }, [fetchStudentData]);
 
-  const isLoading = isAuthLoading || isClassesLoading || isGradesLoading;
+  const isLoading = isAuthLoading || isDataLoading;
 
   return (
     <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
@@ -146,7 +129,7 @@ export default function StudentDashboard() {
               <BookOpen className="size-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-10" /> : <div className="text-2xl font-bold">{enrolledClasses.length}</div> }
+              {isAuthLoading ? <Skeleton className="h-8 w-10" /> : <div className="text-2xl font-bold">{enrolledClassCount}</div> }
               <Button variant="link" asChild className="p-0 h-auto">
                 <Link href="/student/classes">View all classes</Link>
               </Button>
