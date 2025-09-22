@@ -22,6 +22,7 @@ import parse, { domToReact, Element } from 'html-react-parser';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import Image from 'next/image';
 import { Progress } from '../ui/progress';
+import imageCompression from 'browser-image-compression';
 
 
 interface Activity {
@@ -70,6 +71,11 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
       const activitiesData: Activity[] = [];
       
       const classIds = user.enrolledClassIds;
+      if (classIds.length === 0) {
+        setAvailableActivities([]);
+        setIsActivityListLoading(false);
+        return;
+      }
       const classesQuery = query(collection(db, 'classes'), where('__name__', 'in', classIds));
       const classesSnapshot = await getDocs(classesQuery);
       
@@ -160,12 +166,28 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     }
   }, [isCameraOpen, toast]);
 
-  const processImage = async (dataUri: string, file: File) => {
-    setImageFile(file);
-    setImagePreviewUrl(URL.createObjectURL(file));
-    setIsScanning(true);
-    setEssayText('');
+  const processImage = async (file: File) => {
     try {
+        toast({ title: 'Compressing Image...', description: 'Preparing your image for a faster upload.' });
+        const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(file, options);
+
+        // Store compressed file for upload, and create a preview URL from it
+        setImageFile(compressedFile);
+        if (imagePreviewUrl) {
+            URL.revokeObjectURL(imagePreviewUrl); // Clean up previous preview
+        }
+        setImagePreviewUrl(URL.createObjectURL(compressedFile));
+
+        setIsScanning(true);
+        setEssayText('');
+        
+        const dataUri = await imageCompression.getDataUrlFromFile(compressedFile);
+
         toast({
             title: 'Scanning Essay...',
             description: 'The AI is extracting text from your image. This may take a moment.'
@@ -176,52 +198,45 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
             title: 'Scan Complete!',
             description: 'The extracted text has been added to the text area.'
         });
+
     } catch (error) {
-        console.error("Error scanning essay: ", error);
+        console.error("Error processing image: ", error);
         toast({
-            title: 'Scan Failed',
-            description: 'Could not extract text from the image. Please try again with a clearer photo.',
+            title: 'Image Processing Failed',
+            description: 'There was an issue preparing or scanning your image. Please try again.',
             variant: 'destructive'
         });
     } finally {
         setIsScanning(false);
     }
-  }
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        const dataUri = loadEvent.target?.result as string;
-        if (dataUri) {
-            processImage(dataUri, file);
-        }
-      };
-      reader.readAsDataURL(file);
+      processImage(file);
     }
   };
 
-  const handleCapture = () => {
+  const handleCapture = async () => {
     const video = videoRef.current;
     if (video) {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const context = canvas.getContext('2d');
-      if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUri = canvas.toDataURL('image/jpeg');
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
-            processImage(dataUri, file);
-          }
-        }, 'image/jpeg');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        if (context) {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+            if (blob) {
+                const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+                processImage(file);
+            }
+        }
         setIsCameraOpen(false);
-      }
     }
   };
+
 
   const handleGetFeedback = async () => {
      if (!selectedActivity) {
@@ -411,7 +426,10 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
 
   const handleRemoveImage = () => {
     setImageFile(null);
-    setImagePreviewUrl(null);
+    if(imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl(null);
+    }
     const fileInput = document.getElementById('essay-photo') as HTMLInputElement;
     if(fileInput) {
         fileInput.value = '';

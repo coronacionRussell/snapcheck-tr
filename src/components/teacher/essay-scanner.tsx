@@ -18,6 +18,7 @@ import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import type { Activity } from './class-activities';
+import imageCompression from 'browser-image-compression';
 
 
 interface Student {
@@ -127,67 +128,69 @@ export function EssayScanner() {
     }
   }, [isCameraOpen, toast]);
 
-  const processImage = async (dataUri: string, file: File) => {
-    setImageFile(file);
-    setIsScanning(true);
-    setEssayText('');
+  const processImage = async (file: File) => {
     try {
-      toast({
-        title: 'Scanning Essay...',
-        description: 'The AI is extracting text from your image. This may take a moment.'
-      });
-      const result = await scanEssay({ imageDataUri: dataUri });
-      setEssayText(result.extractedText);
-      toast({
-        title: 'Scan Complete!',
-        description: 'The extracted text has been added below.'
-      });
+        toast({ title: 'Compressing Image...', description: 'Preparing your image for a faster upload.' });
+        const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(file, options);
+        setImageFile(compressedFile);
+
+        setIsScanning(true);
+        setEssayText('');
+        
+        const dataUri = await imageCompression.getDataUrlFromFile(compressedFile);
+        toast({
+            title: 'Scanning Essay...',
+            description: 'The AI is extracting text from your image. This may take a moment.'
+        });
+        const result = await scanEssay({ imageDataUri: dataUri });
+        setEssayText(result.extractedText);
+        toast({
+            title: 'Scan Complete!',
+            description: 'The extracted text has been added below.'
+        });
     } catch (error) {
-      console.error("Error scanning essay: ", error);
-      toast({
-        title: 'Scan Failed',
-        description: 'Could not extract text from the image. Please try again with a clearer photo.',
-        variant: 'destructive'
-      });
+        console.error("Error processing image: ", error);
+        toast({
+            title: 'Image Processing Failed',
+            description: 'There was an issue preparing or scanning your image. Please try again.',
+            variant: 'destructive'
+        });
     } finally {
-      setIsScanning(false);
+        setIsScanning(false);
     }
-  }
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        const dataUri = loadEvent.target?.result as string;
-        if (dataUri) {
-          processImage(dataUri, file);
-        }
-      };
-      reader.readAsDataURL(file);
+      processImage(file);
     }
   };
 
-  const handleCapture = () => {
+  const handleCapture = async () => {
     const video = videoRef.current;
     if (video) {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const context = canvas.getContext('2d');
-      if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUri = canvas.toDataURL('image/jpeg');
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
-            processImage(dataUri, file);
-          }
-        }, 'image/jpeg');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        if (context) {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+            if (blob) {
+                const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+                processImage(file);
+            }
+        }
         setIsCameraOpen(false);
-      }
     }
   };
+
 
   const handleCopyText = () => {
     if (!essayText) return;
