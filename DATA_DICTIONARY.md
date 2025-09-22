@@ -1,3 +1,4 @@
+
 # SnapCheck Data Dictionary
 
 This document outlines the data structure used in Firestore for the SnapCheck application.
@@ -65,7 +66,11 @@ This sub-collection within each `class` document stores all essay submissions fr
     -   `activityId` (string): The ID of the `activity` this submission is for.
     -   `assignmentName` (string): The name of the activity at the time of submission.
     -   `essayText` (string): The full text of the student's essay.
+    -   `essayImageUrl` (string, optional): A URL pointing to the original uploaded essay image in Firebase Storage.
     -   `submittedAt` (Timestamp): The date and time of the submission.
     -   `status` (string): The current status of the submission. Can be `Pending Review` or `Graded`.
     -   `grade` (string, optional): The final score or grade assigned by the teacher.
     -   `feedback` (string, optional): The final feedback provided by the teacher.
+
+
+    

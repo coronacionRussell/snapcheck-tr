@@ -3,7 +3,7 @@
 
 import { scanEssay } from '@/ai/flows/scan-essay';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, ClipboardCopy, Loader2, ScanLine, Trash2, UploadCloud, Video, Save } from 'lucide-react';
+import { Camera, ClipboardCopy, Loader2, ScanLine, Trash2, UploadCloud, Save } from 'lucide-react';
 import { useState, useRef, useEffect, useContext } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
@@ -13,8 +13,9 @@ import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { ClassContext } from '@/contexts/class-context';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
-import { collection, onSnapshot, query, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, addDoc, serverTimestamp, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import type { Activity } from './class-activities';
 
@@ -28,6 +29,7 @@ export function EssayScanner() {
   const { user } = useAuth();
   const { classes, isLoading: areClassesLoading } = useContext(ClassContext);
   const [essayText, setEssayText] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   
   const [students, setStudents] = useState<Student[]>([]);
@@ -125,7 +127,8 @@ export function EssayScanner() {
     }
   }, [isCameraOpen, toast]);
 
-  const processImage = async (imageDataUri: string) => {
+  const processImage = async (dataUri: string, file: File) => {
+    setImageFile(file);
     setIsScanning(true);
     setEssayText('');
     try {
@@ -158,7 +161,7 @@ export function EssayScanner() {
       reader.onload = (loadEvent) => {
         const dataUri = loadEvent.target?.result as string;
         if (dataUri) {
-          processImage(dataUri);
+          processImage(dataUri, file);
         }
       };
       reader.readAsDataURL(file);
@@ -175,7 +178,12 @@ export function EssayScanner() {
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUri = canvas.toDataURL('image/jpeg');
-        processImage(dataUri);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+            processImage(dataUri, file);
+          }
+        }, 'image/jpeg');
         setIsCameraOpen(false);
       }
     }
@@ -203,7 +211,7 @@ export function EssayScanner() {
         const assignmentName = activities.find(a => a.id === selectedActivity)?.name || 'Unknown Activity';
 
         const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
-        await addDoc(submissionsCollection, {
+        const submissionRef = await addDoc(submissionsCollection, {
             studentId: selectedStudent,
             studentName,
             assignmentName,
@@ -211,7 +219,19 @@ export function EssayScanner() {
             essayText,
             submittedAt: serverTimestamp(),
             status: 'Pending Review',
+            essayImageUrl: '', // Placeholder
         });
+
+        let imageUrl = '';
+        if (imageFile) {
+            toast({ title: 'Uploading Image...', description: 'Please wait while we upload the essay image.' });
+            const storageRef = ref(storage, `submissions/${selectedClass}/${submissionRef.id}/${imageFile.name}`);
+            const uploadResult = await uploadBytes(storageRef, imageFile);
+            imageUrl = await getDownloadURL(uploadResult.ref);
+            
+            await updateDoc(submissionRef, { essayImageUrl: imageUrl });
+        }
+
 
         toast({
             title: 'Essay Saved!',
@@ -220,6 +240,7 @@ export function EssayScanner() {
         
         // Reset form
         setEssayText('');
+        setImageFile(null);
         setSelectedStudent(null);
         setSelectedActivity(null);
 
@@ -266,7 +287,7 @@ export function EssayScanner() {
                 onClick={() => setIsCameraOpen(true)}
                 disabled={isScanning || isSaving}
               >
-                <Video className="mr-2 size-4" /> Open Camera
+                <Camera className="mr-2 size-4" /> Open Camera
               </Button>
             </div>
           </div>
@@ -307,7 +328,7 @@ export function EssayScanner() {
                     <ClipboardCopy className="mr-2" />
                     Copy
                 </Button>
-                 <Button variant="outline" size="sm" onClick={() => setEssayText('')} disabled={!essayText || isScanning || isSaving}>
+                 <Button variant="outline" size="sm" onClick={() => {setEssayText(''); setImageFile(null);}} disabled={!essayText || isScanning || isSaving}>
                     <Trash2 className="mr-2" />
                     Clear
                 </Button>
@@ -387,3 +408,5 @@ export function EssayScanner() {
     </div>
   );
 }
+
+    

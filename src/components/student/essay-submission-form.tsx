@@ -5,7 +5,7 @@ import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
 import { scanEssay } from '@/ai/flows/scan-essay';
 import { analyzeEssayGrammar } from '@/ai/flows/analyze-essay-grammar';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Camera, CheckCircle, Loader2, Sparkles, UploadCloud, Video, X, Trash2 } from 'lucide-react';
+import { Bot, Camera, CheckCircle, Loader2, Sparkles, UploadCloud, X, Trash2 } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
@@ -14,8 +14,9 @@ import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query } from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase';
+import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import parse, { domToReact, Element } from 'html-react-parser';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -37,6 +38,7 @@ interface EssaySubmissionFormProps {
 export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFormProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [essayText, setEssayText] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [availableActivities, setAvailableActivities] = useState<Activity[]>([]);
   const [isActivityListLoading, setIsActivityListLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
@@ -157,7 +159,8 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     }
   }, [isCameraOpen, toast]);
 
-  const processImage = async (imageDataUri: string) => {
+  const processImage = async (dataUri: string, file: File) => {
+    setImageFile(file);
     setIsScanning(true);
     setEssayText('');
     try {
@@ -165,7 +168,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
             title: 'Scanning Essay...',
             description: 'The AI is extracting text from your image. This may take a moment.'
         });
-        const result = await scanEssay({ imageDataUri });
+        const result = await scanEssay({ imageDataUri: dataUri });
         setEssayText(result.extractedText);
         toast({
             title: 'Scan Complete!',
@@ -190,7 +193,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
       reader.onload = (loadEvent) => {
         const dataUri = loadEvent.target?.result as string;
         if (dataUri) {
-            processImage(dataUri);
+            processImage(dataUri, file);
         }
       };
       reader.readAsDataURL(file);
@@ -207,7 +210,12 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUri = canvas.toDataURL('image/jpeg');
-        processImage(dataUri);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+            processImage(dataUri, file);
+          }
+        }, 'image/jpeg');
         setIsCameraOpen(false);
       }
     }
@@ -305,45 +313,58 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
          return;
     }
 
-
     setIsSubmitting(true);
     try {
-      const studentId = user.uid; 
-      const studentName = user.fullName;
+        const studentId = user.uid; 
+        const studentName = user.fullName;
 
-      const submissionsCollection = collection(db, 'classes', activity.classId, 'submissions');
-      await addDoc(submissionsCollection, {
-        studentId,
-        studentName,
-        essayText,
-        submittedAt: serverTimestamp(),
-        status: 'Pending Review',
-        assignmentName: activity.name,
-        activityId: activity.id,
-      });
+        // Create submission document first to get an ID
+        const submissionsCollection = collection(db, 'classes', activity.classId, 'submissions');
+        const submissionRef = await addDoc(submissionsCollection, {
+            studentId,
+            studentName,
+            essayText,
+            submittedAt: serverTimestamp(),
+            status: 'Pending Review',
+            assignmentName: activity.name,
+            activityId: activity.id,
+            essayImageUrl: '', // Placeholder
+        });
+
+        let imageUrl = '';
+        if (imageFile) {
+            toast({ title: 'Uploading Image...', description: 'Please wait while we upload your essay image.' });
+            const storageRef = ref(storage, `submissions/${activity.classId}/${submissionRef.id}/${imageFile.name}`);
+            const uploadResult = await uploadBytes(storageRef, imageFile);
+            imageUrl = await getDownloadURL(uploadResult.ref);
+            
+            // Update submission with image URL
+            await updateDoc(submissionRef, { essayImageUrl: imageUrl });
+        }
       
-      toast({
-        title: 'Essay Submitted!',
-        description: 'Your teacher has received your essay for grading.',
-      });
-      
-      setEssayText('');
-      setFeedback('');
-      setGrammarAnalysis('');
-      if (!preselectedActivityId) {
-        setSelectedActivity(null);
-      }
+        toast({
+            title: 'Essay Submitted!',
+            description: 'Your teacher has received your essay for grading.',
+        });
+        
+        // Reset form
+        setEssayText('');
+        setFeedback('');
+        setGrammarAnalysis('');
+        setImageFile(null);
+        if (!preselectedActivityId) {
+            setSelectedActivity(null);
+        }
 
     } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Submission Failed',
-        description:
-          'There was an error submitting your essay. Please try again.',
-        variant: 'destructive',
-      });
+        console.error(error);
+        toast({
+            title: 'Submission Failed',
+            description: 'There was an error submitting your essay. Please try again.',
+            variant: 'destructive',
+        });
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
   };
 
@@ -418,7 +439,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
                         </div>
                          <div>
                             <p className="mt-2 text-sm text-muted-foreground">Description / Questions</p>
-                            <p className="text-sm">{currentActivity.description}</p>
+                            <p className="text-sm whitespace-pre-wrap">{currentActivity.description}</p>
                         </div>
                     </div>
                 ) : (
@@ -427,16 +448,24 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
             ) : (
                 <div className="space-y-2">
                     <Label htmlFor="activity-select">Activity</Label>
-                    <Select onValueChange={setSelectedActivity} required disabled={formDisabled || availableActivities.length === 0} value={selectedActivity || ''}>
-                        <SelectTrigger id="activity-select">
-                            <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {availableActivities.map(a => (
-                                <SelectItem key={a.id} value={a.id}>{a.className}: {a.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                        <Select onValueChange={setSelectedActivity} required disabled={formDisabled || availableActivities.length === 0 || !!selectedActivity} value={selectedActivity || ''}>
+                            <SelectTrigger id="activity-select">
+                                <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableActivities.map(a => (
+                                    <SelectItem key={a.id} value={a.id}>{a.className}: {a.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {selectedActivity && !preselectedActivityId && (
+                            <Button variant="ghost" size="icon" onClick={() => setSelectedActivity(null)} disabled={formDisabled}>
+                                <X className="size-4" />
+                                <span className="sr-only">Clear selection</span>
+                            </Button>
+                        )}
+                    </div>
                     {availableActivities.length === 0 && !isActivityListLoading && (
                         <p className="text-xs text-muted-foreground">You are not enrolled in any classes with activities, or no activities have been created yet.</p>
                     )}
@@ -479,7 +508,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
                 onClick={() => setIsCameraOpen(true)}
                  disabled={formDisabled}
               >
-                <Video className="mr-2 size-4" /> Open Camera
+                <Camera className="mr-2 size-4" /> Open Camera
               </Button>
                <p className="text-xs text-muted-foreground invisible">
                 Placeholder

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, CheckCircle, Loader2, Sparkles } from 'lucide-react';
+import { Bot, CheckCircle, Eye, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Input } from '../ui/input';
@@ -24,6 +24,7 @@ import { db } from '@/lib/firebase';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import parse, { domToReact, Element } from 'html-react-parser';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import Image from 'next/image';
 
 
 type GradeSubmissionDialogProps = {
@@ -46,6 +47,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
     preliminaryScore: string;
   } | null>(null);
   const [grammarAnalysis, setGrammarAnalysis] = useState('');
+  const [showImageViewer, setShowImageViewer] = useState(false);
 
   const { toast } = useToast();
 
@@ -171,6 +173,7 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
     setFinalScore('');
     setFinalFeedback('');
     setGrammarAnalysis('');
+    setShowImageViewer(false);
   }
 
   const parseOptions = {
@@ -244,10 +247,34 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
         <div className="grid max-h-[70svh] grid-cols-1 gap-4 overflow-y-auto p-1 md:grid-cols-2">
           <div className="space-y-4">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex-row items-center justify-between">
                 <CardTitle className="font-headline text-lg">
                   Submitted Essay
                 </CardTitle>
+                {submission.essayImageUrl && (
+                   <Dialog open={showImageViewer} onOpenChange={setShowImageViewer}>
+                        <DialogTrigger asChild>
+                             <Button variant="outline" size="sm">
+                                <Eye className="mr-2"/>
+                                View Original
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-3xl">
+                            <DialogHeader>
+                                <DialogTitle>Original Submission Image</DialogTitle>
+                                <DialogDescription>Student: {submission.studentName}</DialogDescription>
+                            </DialogHeader>
+                            <div className="relative mt-2 aspect-[8.5/11] w-full">
+                                <Image
+                                    src={submission.essayImageUrl}
+                                    alt={`Original essay submission from ${submission.studentName}`}
+                                    fill
+                                    className="object-contain"
+                                />
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                )}
               </CardHeader>
               <CardContent>
                 <Textarea readOnly rows={15} value={submission.essayText} className="font-code text-sm" />
@@ -354,3 +381,5 @@ export function GradeSubmissionDialog({ submission, className, classId }: GradeS
     </Dialog>
   );
 }
+
+    

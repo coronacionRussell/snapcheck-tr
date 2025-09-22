@@ -30,6 +30,7 @@ export interface Submission {
     assignmentName?: string;
     activityId?: string;
     essayText: string;
+    essayImageUrl?: string;
     submittedAt: {
         seconds: number;
         nanoseconds: number;
@@ -137,3 +138,5 @@ export function ClassSubmissions({ classId, className }: { classId: string, clas
     </Card>
   );
 }
+
+    
