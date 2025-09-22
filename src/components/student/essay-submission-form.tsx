@@ -15,7 +15,7 @@ import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { db, storage } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query, where, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, serverTimestamp, query, where, updateDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, UploadTaskSnapshot } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import parse, { domToReact, Element } from 'html-react-parser';
@@ -385,7 +385,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
             studentId,
             studentName,
             essayText,
-            submittedAt: serverTimestamp(),
+            submittedAt: Timestamp.now(),
             status: 'Pending Review',
             assignmentName: activity.name,
             activityId: activity.id,
@@ -730,6 +730,8 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     </form>
   );
 }
+
+    
 
     
 

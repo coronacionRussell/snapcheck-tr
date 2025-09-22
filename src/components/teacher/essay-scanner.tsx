@@ -1,3 +1,4 @@
+
 'use client';
 
 import { scanEssay } from '@/ai/flows/scan-essay';
@@ -12,7 +13,7 @@ import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { ClassContext } from '@/contexts/class-context';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
-import { collection, onSnapshot, query, addDoc, serverTimestamp, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, serverTimestamp, getDocs, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytesResumable, getDownloadURL, UploadTaskSnapshot } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
@@ -265,7 +266,7 @@ export function EssayScanner() {
             assignmentName,
             activityId: selectedActivity,
             essayText,
-            submittedAt: serverTimestamp(),
+            submittedAt: Timestamp.now(),
             status: 'Pending Review',
             essayImageUrl: '', // Initially empty
         });
@@ -311,7 +312,7 @@ export function EssayScanner() {
             <div className="space-y-1.5">
               <Label htmlFor="essay-photo">Upload Photo</Label>
               <div className="relative">
-                <UploadCloud className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <UploadCloud className="pointer-events-none absolute left-3 top-1.2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
                   id="essay-photo"
                   type="file"
@@ -452,5 +453,7 @@ export function EssayScanner() {
     </div>
   );
 }
+
+    
 
     
