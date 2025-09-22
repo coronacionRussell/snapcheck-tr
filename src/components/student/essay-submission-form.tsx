@@ -4,7 +4,6 @@
 import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
 import { scanEssay } from '@/ai/flows/scan-essay';
 import { analyzeEssayGrammar } from '@/ai/flows/analyze-essay-grammar';
-import { generateUploadToken } from '@/ai/flows/generate-upload-token';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, Camera, CheckCircle, Loader2, Sparkles, UploadCloud, X, Trash2, Image as ImageIcon } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -23,6 +22,7 @@ import parse, { domToReact, Element } from 'html-react-parser';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
+import { v4 as uuidv4 } from 'uuid';
 
 
 interface Activity {
@@ -332,43 +332,38 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     setIsSubmitting(true);
     
     try {
-        const studentId = user.uid; 
-        const studentName = user.fullName;
-
-        // Create submission document first
-        const submissionsCollection = collection(db, 'classes', activity.classId, 'submissions');
-        const submissionRef = await addDoc(submissionsCollection, {
-            studentId,
-            studentName,
-            essayText,
-            submittedAt: Timestamp.now(), // Use client-side timestamp
-            status: 'Pending Review',
-            assignmentName: activity.name,
-            activityId: activity.id,
-            essayImageUrl: '', // Initially empty
-        });
-
         let imageUrl = '';
         // If there's an image, upload it now and get the URL
         if (imageFile) {
-            const { token, uploadId } = await generateUploadToken({ userId: user.uid });
-            const filePath = `user_uploads/${user.uid}/${uploadId}/${imageFile.name}`;
+            const uploadId = uuidv4();
+            const filePath = `pending_uploads/${uploadId}/${imageFile.name}`;
             const storageRef = ref(storage, filePath);
-            
-            const metadata = { customMetadata: { authToken: token } };
             
             toast({
               title: 'Uploading Image...',
-              description: 'Your essay has been saved. Attaching image now.'
+              description: 'Please wait while your essay image is uploaded.'
             });
 
-            const uploadTask = await uploadBytes(storageRef, imageFile, metadata);
+            const uploadTask = await uploadBytes(storageRef, imageFile);
             imageUrl = await getDownloadURL(uploadTask.ref);
-            
-            // Now update the submission document with the image URL
-            await updateDoc(submissionRef, { essayImageUrl: imageUrl });
         }
       
+        const studentId = user.uid; 
+        const studentName = user.fullName;
+
+        // Create submission document with the final image URL
+        const submissionsCollection = collection(db, 'classes', activity.classId, 'submissions');
+        await addDoc(submissionsCollection, {
+            studentId,
+            studentName,
+            essayText,
+            submittedAt: Timestamp.now(),
+            status: 'Pending Review',
+            assignmentName: activity.name,
+            activityId: activity.id,
+            essayImageUrl: imageUrl,
+        });
+
         toast({
             title: 'Essay Submitted!',
             description: 'Your teacher has received your essay for grading.',
@@ -702,3 +697,5 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     </form>
   );
 }
+
+    

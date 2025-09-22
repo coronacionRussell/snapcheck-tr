@@ -2,7 +2,6 @@
 'use client';
 
 import { scanEssay } from '@/ai/flows/scan-essay';
-import { generateUploadToken } from '@/ai/flows/generate-upload-token';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, ClipboardCopy, Loader2, ScanLine, Trash2, UploadCloud, Save } from 'lucide-react';
 import { useState, useRef, useEffect, useContext } from 'react';
@@ -20,6 +19,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
 import type { Activity } from './class-activities';
 import imageCompression from 'browser-image-compression';
+import { v4 as uuidv4 } from 'uuid';
 
 
 interface Student {
@@ -212,43 +212,35 @@ export function EssayScanner() {
     setIsSaving(true);
     
     try {
+        let imageUrl = '';
+        if (imageFile) {
+            const uploadId = uuidv4();
+            const filePath = `pending_uploads/${uploadId}/${imageFile.name}`;
+            const storageRef = ref(storage, filePath);
+            
+            toast({
+                title: 'Uploading Image...',
+                description: 'The essay has been saved. Attaching the scanned image now.'
+            });
+
+            const uploadTask = await uploadBytes(storageRef, imageFile);
+            imageUrl = await getDownloadURL(uploadTask.ref);
+        }
+
         const studentName = students.find(s => s.id === selectedStudent)?.name || 'Unknown Student';
         const assignmentName = activities.find(a => a.id === selectedActivity)?.name || 'Unknown Activity';
 
-        // 1. Create the Firestore document first
         const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
-        const submissionRef = await addDoc(submissionsCollection, {
+        await addDoc(submissionsCollection, {
             studentId: selectedStudent,
             studentName,
             assignmentName,
             activityId: selectedActivity,
             essayText,
-            submittedAt: Timestamp.now(), // Use client-side timestamp
+            submittedAt: Timestamp.now(),
             status: 'Pending Review',
-            essayImageUrl: '', // Initially empty
+            essayImageUrl: imageUrl,
         });
-
-        let imageUrl = '';
-        // 2. If an image exists, get a token, upload it, then update the doc
-        if (imageFile) {
-            // The uploader is the TEACHER, so we use their UID for the token
-            const { token, uploadId } = await generateUploadToken({ userId: user.uid });
-            const filePath = `user_uploads/${user.uid}/${uploadId}/${imageFile.name}`;
-            const storageRef = ref(storage, filePath);
-            const metadata = { customMetadata: { authToken: token } };
-
-            toast({
-              title: 'Uploading Image...',
-              description: 'The essay has been saved. Attaching the scanned image now.'
-            });
-            
-            const uploadTask = await uploadBytes(storageRef, imageFile, metadata);
-            imageUrl = await getDownloadURL(uploadTask.ref);
-
-            // 3. Update the document with the final image URL
-            await updateDoc(submissionRef, { essayImageUrl: imageUrl });
-        }
-
 
         toast({
             title: 'Essay Saved!',
@@ -427,3 +419,5 @@ export function EssayScanner() {
     </div>
   );
 }
+
+    
