@@ -286,6 +286,24 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     }
   };
 
+  const uploadImageInBackground = async (submissionId: string, classId: string, file: File) => {
+    try {
+      toast({ title: 'Uploading Image...', description: 'Your essay image is uploading in the background.' });
+      const storageRef = ref(storage, `submissions/${classId}/${submissionId}/${file.name}`);
+      const uploadResult = await uploadBytes(storageRef, file);
+      const imageUrl = await getDownloadURL(uploadResult.ref);
+      
+      const submissionRef = doc(db, 'classes', classId, 'submissions', submissionId);
+      await updateDoc(submissionRef, { essayImageUrl: imageUrl });
+      
+      console.log('Image uploaded and submission updated successfully.');
+
+    } catch (error) {
+      console.error("Background image upload failed: ", error);
+      // We don't show a failure toast here to avoid confusing the user,
+      // as they've already received a success message. We log it for debugging.
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -321,7 +339,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
         const studentId = user.uid; 
         const studentName = user.fullName;
 
-        // Create submission document first to get an ID
+        // Create submission document with all text data
         const submissionsCollection = collection(db, 'classes', activity.classId, 'submissions');
         const submissionRef = await addDoc(submissionsCollection, {
             studentId,
@@ -331,18 +349,12 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
             status: 'Pending Review',
             assignmentName: activity.name,
             activityId: activity.id,
-            essayImageUrl: '', // Placeholder
+            essayImageUrl: '', // Initially empty
         });
 
-        let imageUrl = '';
+        // If there's an image, upload it in the background without waiting
         if (imageFile) {
-            toast({ title: 'Uploading Image...', description: 'Please wait while we upload your essay image.' });
-            const storageRef = ref(storage, `submissions/${activity.classId}/${submissionRef.id}/${imageFile.name}`);
-            const uploadResult = await uploadBytes(storageRef, imageFile);
-            imageUrl = await getDownloadURL(uploadResult.ref);
-            
-            // Update submission with image URL
-            await updateDoc(submissionRef, { essayImageUrl: imageUrl });
+            uploadImageInBackground(submissionRef.id, activity.classId, imageFile);
         }
       
         toast({
@@ -350,7 +362,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
             description: 'Your teacher has received your essay for grading.',
         });
         
-        // Reset form
+        // Reset form immediately
         setEssayText('');
         setFeedback('');
         setGrammarAnalysis('');
@@ -375,7 +387,6 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreviewUrl(null);
-    setEssayText('');
     const fileInput = document.getElementById('essay-photo') as HTMLInputElement;
     if(fileInput) {
         fileInput.value = '';
@@ -436,23 +447,23 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-lg">
-            1. Selected Activity
+            1. Activity
           </CardTitle>
         </CardHeader>
         <CardContent>
             {preselectedActivityId ? (
                 currentActivity ? (
-                    <div className="space-y-4">
+                    <div className="space-y-4 rounded-md border bg-muted p-4">
                         <div>
-                            <p className="text-sm text-muted-foreground">Class</p>
+                            <p className="text-sm font-medium text-muted-foreground">Class</p>
                             <p className="font-semibold">{currentActivity.className}</p>
                         </div>
                         <div>
-                            <p className="mt-2 text-sm text-muted-foreground">Activity</p>
+                            <p className="mt-2 text-sm font-medium text-muted-foreground">Activity</p>
                             <p className="font-semibold">{currentActivity.name}</p>
                         </div>
                          <div>
-                            <p className="mt-2 text-sm text-muted-foreground">Description / Questions</p>
+                            <p className="mt-2 text-sm font-medium text-muted-foreground">Description / Questions</p>
                             <p className="text-sm whitespace-pre-wrap">{currentActivity.description}</p>
                         </div>
                     </div>
@@ -545,7 +556,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
 
           {imagePreviewUrl && (
             <Card>
-                <CardHeader className="flex-row items-center justify-between">
+                <CardHeader className="flex-row items-center justify-between py-4">
                   <div className="flex items-center gap-2">
                     <ImageIcon className="size-5 text-muted-foreground" />
                     <CardTitle className="text-lg">Image Preview</CardTitle>
@@ -673,5 +684,3 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     </form>
   );
 }
-
-    
