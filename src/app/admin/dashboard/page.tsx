@@ -17,7 +17,7 @@ import {
     CardTitle,
   } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { AppUser } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,7 +38,7 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
-    const [teachers, setTeachers] = useState<AppUser[]>([]);
+    const [allUsers, setAllUsers] = useState<AppUser[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isVerifying, setIsVerifying] = useState<string | null>(null);
@@ -46,57 +46,52 @@ export default function AdminDashboard() {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const usersCollection = collection(db, 'users');
-                const classesCollection = collection(db, 'classes');
+        const fetchStatsAndUsers = () => {
+            const usersCollection = collection(db, 'users');
+            const classesCollection = collection(db, 'classes');
+            
+            // Listener for all users
+            const usersQuery = query(usersCollection, orderBy('fullName'));
+            const unsubscribeUsers = onSnapshot(usersQuery, async (usersSnapshot) => {
+                const usersData = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
+                setAllUsers(usersData);
 
-                const [usersSnapshot, classesSnapshot] = await Promise.all([
-                    getDocs(usersCollection),
-                    getDocs(classesCollection)
-                ]);
-
+                // Recalculate stats whenever users change
+                const classesSnapshot = await getDocs(classesCollection);
                 let totalTeachers = 0;
                 let totalStudents = 0;
-
-                usersSnapshot.forEach(doc => {
-                    if (doc.data().role === 'teacher') totalTeachers++;
-                    if (doc.data().role === 'student') totalStudents++;
+                usersData.forEach(user => {
+                    if (user.role === 'teacher') totalTeachers++;
+                    if (user.role === 'student') totalStudents++;
                 });
 
                 setStats({
-                    totalUsers: usersSnapshot.size,
+                    totalUsers: usersData.length,
                     totalTeachers,
                     totalStudents,
                     totalClasses: classesSnapshot.size,
                 });
-
-            } catch (error) {
-                console.error("Error fetching stats:", error);
-                toast({ title: 'Error', description: 'Could not fetch platform statistics.', variant: 'destructive' });
-            }
-        };
-
-        const subscribeToTeachers = () => {
-            const usersCollection = collection(db, 'users');
-            const q = query(usersCollection, where('role', '==', 'teacher'));
-        
-            const unsubscribe = onSnapshot(q, (querySnapshot) => {
-                const teachersData = querySnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
-                setTeachers(teachersData);
                 setIsLoading(false);
+
             }, (error) => {
-                console.error("Error fetching teachers: ", error);
-                toast({ title: 'Error', description: 'Could not fetch teachers list.', variant: 'destructive'});
+                console.error("Error fetching users and stats:", error);
+                toast({ title: 'Error', description: 'Could not fetch platform data.', variant: 'destructive' });
                 setIsLoading(false);
             });
-            return unsubscribe;
+
+            // Listener for classes to update stats if a class is added/deleted
+            const unsubscribeClasses = onSnapshot(classesCollection, (classesSnapshot) => {
+                setStats(prevStats => prevStats ? { ...prevStats, totalClasses: classesSnapshot.size } : null);
+            });
+
+            return () => {
+                unsubscribeUsers();
+                unsubscribeClasses();
+            };
         };
 
-        fetchStats();
-        const teacherUnsubscribe = subscribeToTeachers();
-    
-        return () => teacherUnsubscribe();
+        const unsubscribe = fetchStatsAndUsers();
+        return () => unsubscribe();
       }, []);
 
     const handleVerifyTeacher = async (teacherId: string, teacherName: string) => {
@@ -133,23 +128,23 @@ export default function AdminDashboard() {
         }
     }
 
-    const handleDeleteTeacher = async (teacherId: string, teacherName: string) => {
-        setIsDeleting(teacherId);
+    const handleDeleteAccount = async (userId: string, userName: string) => {
+        setIsDeleting(userId);
         try {
-          const result = await deleteUser({ uid: teacherId });
+          const result = await deleteUser({ uid: userId });
           if (!result.success) {
             throw new Error(result.message);
           }
           toast({
             title: 'Account Deleted',
-            description: `The account for ${teacherName} has been deleted.`,
+            description: `The account for ${userName} has been deleted.`,
           });
           // The onSnapshot listener will update the UI automatically.
         } catch (error) {
-          console.error('Error deleting teacher:', error);
+          console.error('Error deleting user:', error);
           toast({
             title: 'Deletion Failed',
-            description: 'Could not delete the teacher account. It may require manual deletion from the Firebase console.',
+            description: 'Could not delete the user account. It may require manual deletion from the Firebase console.',
             variant: 'destructive',
             duration: 9000,
           });
@@ -164,7 +159,7 @@ export default function AdminDashboard() {
       <div>
         <h1 className="font-headline text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground">
-          Manage teacher accounts and view platform statistics.
+          Manage users and view platform statistics.
         </p>
       </div>
 
@@ -214,9 +209,9 @@ export default function AdminDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Teacher Accounts</CardTitle>
+          <CardTitle className="font-headline">All Users</CardTitle>
           <CardDescription>
-            A list of all registered teachers. Please verify new accounts.
+            A list of all registered students and teachers.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -225,91 +220,104 @@ export default function AdminDashboard() {
               <TableRow>
                 <TableHead>Full Name</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                [...Array(3)].map((_, i) => (
+                [...Array(5)].map((_, i) => (
                     <TableRow key={i}>
                         <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
                         <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                         <TableCell className="text-right"><Skeleton className="h-8 w-24" /></TableCell>
                     </TableRow>
                 ))
-              ) : teachers.length > 0 ? (
-                teachers.map((teacher) => (
-                  <TableRow key={teacher.uid}>
-                    <TableCell className="font-medium">{teacher.fullName}</TableCell>
-                    <TableCell>{teacher.email}</TableCell>
+              ) : allUsers.length > 0 ? (
+                allUsers.map((user) => (
+                  <TableRow key={user.uid}>
+                    <TableCell className="font-medium">{user.fullName}</TableCell>
+                    <TableCell>{user.email}</TableCell>
                     <TableCell>
-                        <Badge variant={teacher.isVerified ? 'default' : 'secondary'} className={teacher.isVerified ? 'bg-primary/80' : ''}>
-                            {teacher.isVerified ? 'Verified' : 'Pending'}
-                        </Badge>
+                        <Badge variant="outline" className="capitalize">{user.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                        {user.role === 'teacher' ? (
+                            <Badge variant={user.isVerified ? 'default' : 'secondary'} className={user.isVerified ? 'bg-primary/80' : ''}>
+                                {user.isVerified ? 'Verified' : 'Pending'}
+                            </Badge>
+                        ) : (
+                            <Badge variant="default" className="bg-green-600/80">Active</Badge>
+                        )}
                     </TableCell>
                     <TableCell className="text-right space-x-2">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" size="sm" disabled={!teacher.verificationIdUrl}>View ID</Button>
-                            </DialogTrigger>
-                            {teacher.verificationIdUrl && (
-                                <DialogContent className="sm:max-w-[425px] md:max-w-[600px]">
-                                    <DialogHeader>
-                                        <DialogTitle>Verification ID: {teacher.fullName}</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="relative mt-2 aspect-video w-full">
-                                        <Image
-                                            src={teacher.verificationIdUrl}
-                                            alt={`Verification ID for ${teacher.fullName}`}
-                                            fill
-                                            className="object-contain"
-                                        />
-                                    </div>
-                                </DialogContent>
-                            )}
-                        </Dialog>
-                        {!teacher.isVerified ? (
-                           <Button 
-                             size="sm" 
-                             onClick={() => handleVerifyTeacher(teacher.uid, teacher.fullName)}
-                             disabled={isVerifying === teacher.uid}
-                            >
-                               {isVerifying === teacher.uid && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
-                               Verify
-                           </Button>
-                        ) : (
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="outline" size="sm" disabled={isUnverifying === teacher.uid}>
-                                         {isUnverifying === teacher.uid && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
-                                        Unverify
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                    This will revoke verification for <strong>{teacher.fullName}</strong>. They will lose access to teacher functionalities until they are verified again.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                        onClick={() => handleUnverifyTeacher(teacher.uid, teacher.fullName)}
-                                        className="bg-destructive hover:bg-destructive/90"
+                        {user.role === 'teacher' && (
+                             <>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" size="sm" disabled={!user.verificationIdUrl}>View ID</Button>
+                                    </DialogTrigger>
+                                    {user.verificationIdUrl && (
+                                        <DialogContent className="sm:max-w-[425px] md:max-w-[600px]">
+                                            <DialogHeader>
+                                                <DialogTitle>Verification ID: {user.fullName}</DialogTitle>
+                                            </DialogHeader>
+                                            <div className="relative mt-2 aspect-video w-full">
+                                                <Image
+                                                    src={user.verificationIdUrl}
+                                                    alt={`Verification ID for ${user.fullName}`}
+                                                    fill
+                                                    className="object-contain"
+                                                />
+                                            </div>
+                                        </DialogContent>
+                                    )}
+                                </Dialog>
+                                {!user.isVerified ? (
+                                <Button 
+                                    size="sm" 
+                                    onClick={() => handleVerifyTeacher(user.uid, user.fullName)}
+                                    disabled={isVerifying === user.uid}
                                     >
-                                        Yes, Unverify
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                                    {isVerifying === user.uid && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
+                                    Verify
+                                </Button>
+                                ) : (
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="outline" size="sm" disabled={isUnverifying === user.uid}>
+                                                {isUnverifying === user.uid && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
+                                                Unverify
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                            This will revoke verification for <strong>{user.fullName}</strong>. They will lose access to teacher functionalities until they are verified again.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                onClick={() => handleUnverifyTeacher(user.uid, user.fullName)}
+                                                className="bg-destructive hover:bg-destructive/90"
+                                            >
+                                                Yes, Unverify
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                )}
+                             </>
                         )}
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="destructive" size="icon" disabled={isDeleting === teacher.uid}>
-                                    {isDeleting === teacher.uid ? <Loader2 className="h-5 w-5 animate-spin"/> : <Trash2 className="size-4"/>}
+                                <Button variant="destructive" size="icon" disabled={isDeleting === user.uid}>
+                                    {isDeleting === user.uid ? <Loader2 className="h-5 w-5 animate-spin"/> : <Trash2 className="size-4"/>}
                                     <span className="sr-only">Delete account</span>
                                 </Button>
                             </AlertDialogTrigger>
@@ -317,13 +325,13 @@ export default function AdminDashboard() {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Account?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                This will permanently delete the account for <strong>{teacher.fullName}</strong> and all associated data. This action cannot be undone.
+                                This will permanently delete the account for <strong>{user.fullName}</strong> and all associated data. This action cannot be undone.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                    onClick={() => handleDeleteTeacher(teacher.uid, teacher.fullName)}
+                                    onClick={() => handleDeleteAccount(user.uid, user.fullName)}
                                     className="bg-destructive hover:bg-destructive/90"
                                 >
                                     Yes, Delete Account
@@ -336,8 +344,8 @@ export default function AdminDashboard() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center">
-                    No teachers have registered yet.
+                  <TableCell colSpan={5} className="text-center h-24">
+                    No users have registered yet.
                   </TableCell>
                 </TableRow>
               )}
