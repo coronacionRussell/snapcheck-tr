@@ -48,17 +48,24 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
     preliminaryScore: string;
   } | null>(null);
   const [grammarAnalysis, setGrammarAnalysis] = useState('');
-  const [showImageViewer, setShowImageViewer] = useState(false);
 
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
-      setSubmission(initialSubmission);
+      // Set initial state from props and listen for real-time updates
+      const currentSubmission = {...initialSubmission};
+      setSubmission(currentSubmission);
+      setFinalScore(currentSubmission.grade || '');
+      setFinalFeedback(currentSubmission.feedback || '');
+
       const submissionRef = doc(db, 'classes', classId, 'submissions', initialSubmission.id);
       const unsubscribe = onSnapshot(submissionRef, (doc) => {
         if (doc.exists()) {
-          setSubmission({ id: doc.id, ...doc.data() } as Submission);
+          const updatedData = { id: doc.id, ...doc.data() } as Submission;
+          setSubmission(updatedData);
+          setFinalScore(updatedData.grade || '');
+          setFinalFeedback(updatedData.feedback || '');
         }
       });
       return () => unsubscribe();
@@ -184,10 +191,8 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
     setOpen(false);
     // Reset state on close
     setAiResult(null);
-    setFinalScore('');
-    setFinalFeedback('');
     setGrammarAnalysis('');
-    setShowImageViewer(false);
+    // We keep finalScore and finalFeedback as they are tied to the submission's state
   }
 
   const parseOptions = {
@@ -236,6 +241,8 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
     },
   };
 
+  const isGraded = submission.status === 'Graded';
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
         if (!isOpen) {
@@ -245,53 +252,54 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
         }
     }}>
       <DialogTrigger asChild>
-        <Button disabled={submission.status === 'Graded'}>
-            {submission.status === 'Graded' ? 'Graded' : 'Grade'}
+        <Button>
+            {isGraded ? 'View Grade' : 'Grade'}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-7xl">
         <DialogHeader>
           <DialogTitle className="font-headline">
-            Grade Submission: {submission.studentName}
+            {isGraded ? 'View Grade:' : 'Grade Submission:'} {submission.studentName}
           </DialogTitle>
           <DialogDescription>
             Assignment: {submission.assignmentName || 'Essay Submission'} | Class: {className} | Submitted: {submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleString() : 'N/A'}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid max-h-[70svh] grid-cols-1 gap-4 overflow-y-auto p-1 md:grid-cols-2">
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="flex-row items-center justify-between">
+        <div className="grid max-h-[75svh] grid-cols-1 gap-4 overflow-y-auto p-1 lg:grid-cols-3">
+          
+          {/* Left Column: Image */}
+          {submission.essayImageUrl && (
+             <div className="space-y-4 lg:col-span-1">
+                <Card className="h-full">
+                <CardHeader>
+                    <CardTitle className="font-headline text-lg">
+                    Original Image
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="relative aspect-[8.5/11] w-full rounded-md border">
+                        <Image
+                            src={submission.essayImageUrl}
+                            alt={`Original essay submission from ${submission.studentName}`}
+                            fill
+                            className="object-contain"
+                        />
+                    </div>
+                </CardContent>
+                </Card>
+            </div>
+          )}
+         
+          {/* Middle Column: Text & Rubric */}
+          <div className={`space-y-4 ${submission.essayImageUrl ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
+             <Card className="flex h-full flex-col">
+              <CardHeader>
                 <CardTitle className="font-headline text-lg">
-                  Submitted Essay
+                  Extracted Essay Text
                 </CardTitle>
-                {submission.essayImageUrl && (
-                   <Dialog open={showImageViewer} onOpenChange={setShowImageViewer}>
-                        <DialogTrigger asChild>
-                             <Button variant="outline" size="sm">
-                                <Eye className="mr-2"/>
-                                View Original
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-3xl">
-                            <DialogHeader>
-                                <DialogTitle>Original Submission Image</DialogTitle>
-                                <DialogDescription>Student: {submission.studentName}</DialogDescription>
-                            </DialogHeader>
-                            <div className="relative mt-2 aspect-[8.5/11] w-full">
-                                <Image
-                                    src={submission.essayImageUrl}
-                                    alt={`Original essay submission from ${submission.studentName}`}
-                                    fill
-                                    className="object-contain"
-                                />
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                )}
               </CardHeader>
-              <CardContent>
-                <Textarea readOnly rows={15} value={submission.essayText} className="font-code text-sm" />
+              <CardContent className="flex-grow">
+                <Textarea readOnly rows={20} value={submission.essayText} className="font-code text-sm h-full" />
               </CardContent>
             </Card>
 
@@ -313,7 +321,11 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
                 </Card>
             )}
             
-            <Card>
+          </div>
+
+          {/* Right Column: AI & Grading */}
+          <div className="space-y-4 lg:col-span-1">
+             <Card>
               <CardHeader>
                 <CardTitle className="font-headline text-lg">Rubric</CardTitle>
               </CardHeader>
@@ -323,40 +335,42 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
                   readOnly
                   rows={6}
                   value={rubric}
-                  className="font-code text-sm"
+                  className="font-code text-sm bg-muted"
                 />}
               </CardContent>
             </Card>
-          </div>
-          <div className="space-y-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline text-lg">AI Tools</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <Button
-                        className="w-full"
-                        onClick={handleRunAiGrading}
-                        disabled={isLoading || isRubricLoading || !rubric}
-                        >
-                        {isLoading ? (
-                            <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Analyzing...
-                            </>
-                        ) : (
-                            <>
-                            <Sparkles className="mr-2" />
-                            Run AI Grade & Grammar Assist
-                            </>
-                        )}
-                    </Button>
-                </CardContent>
-            </Card>
+            
+            {!isGraded && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline text-lg">AI Tools</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Button
+                            className="w-full"
+                            onClick={handleRunAiGrading}
+                            disabled={isLoading || isRubricLoading || !rubric}
+                            >
+                            {isLoading ? (
+                                <>
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                Analyzing...
+                                </>
+                            ) : (
+                                <>
+                                <Sparkles className="mr-2" />
+                                Run AI Grade & Grammar Assist
+                                </>
+                            )}
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
+
             <Card>
                 <CardHeader>
                   <CardTitle className="font-headline flex items-center gap-2 text-lg">
-                    <Bot className="mr-2 size-5" /> Final Grade
+                    <Bot className="mr-2 size-5" /> {isGraded ? 'Final Grade' : 'Enter Final Grade'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -366,7 +380,8 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
                         id="final-score"
                         value={finalScore}
                         onChange={(e) => setFinalScore(e.target.value)}
-                        placeholder='Enter a score (e.g., 85)'
+                        placeholder={isGraded ? '-' : 'Enter a score (e.g., 85)'}
+                        readOnly={isGraded}
                         />
                     </div>
                     <div>
@@ -375,22 +390,25 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
                             rows={10} 
                             value={finalFeedback} 
                             onChange={(e) => setFinalFeedback(e.target.value)}
-                            placeholder={isLoading ? 'Generating feedback...' : aiResult ? 'Edit the AI-generated feedback or write your own.' : 'Run the AI assistant to generate feedback, or write your own.'}
+                            placeholder={isLoading ? 'Generating feedback...' : aiResult ? 'Edit the AI-generated feedback or write your own.' : isGraded ? 'No feedback was provided.' : 'Run the AI assistant to generate feedback, or write your own.'}
+                            readOnly={isGraded}
                         />
                     </div>
                 </CardContent>
               </Card>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="secondary" onClick={handleClose} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button onClick={handleFinalizeGrade} disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-8 w-8 animate-spin" />}
-            {isSubmitting ? 'Submitting...' : 'Finalize & Submit Grade'}
-          </Button>
-        </DialogFooter>
+        {!isGraded && (
+            <DialogFooter>
+            <Button variant="secondary" onClick={handleClose} disabled={isSubmitting}>
+                Cancel
+            </Button>
+            <Button onClick={handleFinalizeGrade} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-8 w-8 animate-spin" />}
+                {isSubmitting ? 'Submitting...' : 'Finalize & Submit Grade'}
+            </Button>
+            </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
