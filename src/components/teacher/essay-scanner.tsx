@@ -4,7 +4,7 @@
 import { scanEssay } from '@/ai/flows/scan-essay';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, ClipboardCopy, Loader2, ScanLine, Trash2, UploadCloud, Save } from 'lucide-react';
-import { useState, useRef, useEffect, useContext } from 'react';
+import { useState, useRef, useEffect, useContext, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Label } from '../ui/label';
@@ -13,7 +13,7 @@ import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { ClassContext } from '@/contexts/class-context';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
-import { collection, onSnapshot, query, addDoc, getDocs, updateDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc, getDocs, updateDoc, doc, Timestamp, getDoc } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
@@ -27,20 +27,29 @@ interface Student {
     name: string;
 }
 
-export function EssayScanner() {
+interface EssayScannerProps {
+  preselectedClassId?: string | null;
+  preselectedActivityId?: string | null;
+  preselectedStudentId?: string | null;
+}
+
+export function EssayScanner({ preselectedClassId, preselectedActivityId, preselectedStudentId }: EssayScannerProps) {
   const { user } = useAuth();
   const { classes, isLoading: areClassesLoading } = useContext(ClassContext);
   const [essayText, setEssayText] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
   
+  // State for pre-filled data
+  const [prefilledData, setPrefilledData] = useState<{className: string, studentName: string, activityName: string} | null>(null);
+
+  // Dropdown state
+  const [selectedClass, setSelectedClass] = useState<string | null>(preselectedClassId || null);
   const [students, setStudents] = useState<Student[]>([]);
   const [isStudentListLoading, setIsStudentListLoading] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
-
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(preselectedStudentId || null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isActivityListLoading, setIsActivityListLoading] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<string | null>(preselectedActivityId || null);
 
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -49,7 +58,37 @@ export function EssayScanner() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
+  const isPrefilled = !!(preselectedClassId && preselectedActivityId && preselectedStudentId);
+
+  const fetchPrefilledData = useCallback(async () => {
+    if (!isPrefilled) return;
+
+    try {
+        const [classDoc, studentDoc, activityDoc] = await Promise.all([
+            getDoc(doc(db, 'classes', preselectedClassId!)),
+            getDoc(doc(db, 'classes', preselectedClassId!, 'students', preselectedStudentId!)),
+            getDoc(doc(db, 'classes', preselectedClassId!, 'activities', preselectedActivityId!)),
+        ]);
+        
+        setPrefilledData({
+            className: classDoc.exists() ? classDoc.data().name : 'Unknown Class',
+            studentName: studentDoc.exists() ? studentDoc.data().name : 'Unknown Student',
+            activityName: activityDoc.exists() ? activityDoc.data().name : 'Unknown Activity'
+        });
+    } catch(error) {
+        console.error("Error fetching prefilled data: ", error);
+        toast({ title: 'Error', description: 'Could not load the details for this pre-selected submission.', variant: 'destructive'});
+    }
+  }, [isPrefilled, preselectedClassId, preselectedStudentId, preselectedActivityId, toast]);
+
+  useEffect(() => {
+    fetchPrefilledData();
+  }, [fetchPrefilledData]);
+
+
    useEffect(() => {
+    if (isPrefilled) return;
+
     if (!selectedClass) {
         setStudents([]);
         setSelectedStudent(null);
@@ -89,7 +128,7 @@ export function EssayScanner() {
       unsubscribeStudents();
       unsubscribeActivities();
     }
-  }, [selectedClass, toast]);
+  }, [selectedClass, toast, isPrefilled]);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -227,8 +266,13 @@ export function EssayScanner() {
             imageUrl = await getDownloadURL(uploadTask.ref);
         }
 
-        const studentName = students.find(s => s.id === selectedStudent)?.name || 'Unknown Student';
-        const assignmentName = activities.find(a => a.id === selectedActivity)?.name || 'Unknown Activity';
+        const studentName = isPrefilled ? prefilledData?.studentName : students.find(s => s.id === selectedStudent)?.name;
+        const assignmentName = isPrefilled ? prefilledData?.activityName : activities.find(a => a.id === selectedActivity)?.name;
+        
+        if (!studentName || !assignmentName) {
+            throw new Error("Could not determine student or assignment name.");
+        }
+
 
         const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
         await addDoc(submissionsCollection, {
@@ -250,8 +294,10 @@ export function EssayScanner() {
         // Reset form immediately
         setEssayText('');
         setImageFile(null);
-        setSelectedStudent(null);
-        setSelectedActivity(null);
+        if(!isPrefilled) {
+            setSelectedStudent(null);
+            setSelectedActivity(null);
+        }
         const fileInput = document.getElementById('essay-photo') as HTMLInputElement;
         if(fileInput) fileInput.value = '';
 
@@ -278,7 +324,7 @@ export function EssayScanner() {
             <div className="space-y-1.5">
               <Label htmlFor="essay-photo">Upload Photo</Label>
               <div className="relative">
-                <UploadCloud className="pointer-events-none absolute left-3 top-1.2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <UploadCloud className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
                   id="essay-photo"
                   type="file"
@@ -354,48 +400,68 @@ export function EssayScanner() {
             )}
             {!isScanning && (
               <>
-                 <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="class-select">Class</Label>
-                      <Select onValueChange={(value) => setSelectedClass(value)} value={selectedClass || ''} disabled={areClassesLoading || isSaving}>
-                          <SelectTrigger id="class-select">
-                              <SelectValue placeholder={areClassesLoading ? "Loading classes..." : "Select a class"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                              {classes.map(c => (
-                                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                              ))}
-                          </SelectContent>
-                      </Select>
+                 { isPrefilled && prefilledData ? (
+                    <div className="space-y-4 rounded-md border bg-muted p-4">
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Class</p>
+                            <p className="font-semibold">{prefilledData.className}</p>
+                        </div>
+                        <div>
+                            <p className="mt-2 text-sm font-medium text-muted-foreground">Student</p>
+                            <p className="font-semibold">{prefilledData.studentName}</p>
+                        </div>
+                        <div>
+                            <p className="mt-2 text-sm font-medium text-muted-foreground">Activity</p>
+                            <p className="font-semibold">{prefilledData.activityName}</p>
+                        </div>
                     </div>
-                     <div className="space-y-2">
-                      <Label htmlFor="student-select">Student</Label>
-                      <Select onValueChange={(value) => setSelectedStudent(value)} value={selectedStudent || ''} disabled={!selectedClass || isStudentListLoading || isSaving}>
-                          <SelectTrigger id="student-select">
-                              <SelectValue placeholder={!selectedClass ? "First select a class" : isStudentListLoading ? "Loading students..." : "Select a student"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                              {students.map(s => (
-                                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                              ))}
-                          </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                 ) : (
+                    <>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                            <Label htmlFor="class-select">Class</Label>
+                            <Select onValueChange={(value) => setSelectedClass(value)} value={selectedClass || ''} disabled={areClassesLoading || isSaving}>
+                                <SelectTrigger id="class-select">
+                                    <SelectValue placeholder={areClassesLoading ? "Loading classes..." : "Select a class"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {classes.map(c => (
+                                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            </div>
+                            <div className="space-y-2">
+                            <Label htmlFor="student-select">Student</Label>
+                            <Select onValueChange={(value) => setSelectedStudent(value)} value={selectedStudent || ''} disabled={!selectedClass || isStudentListLoading || isSaving}>
+                                <SelectTrigger id="student-select">
+                                    <SelectValue placeholder={!selectedClass ? "First select a class" : isStudentListLoading ? "Loading students..." : "Select a student"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {students.map(s => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            </div>
+                        </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="activity-select">Activity</Label>
-                      <Select onValueChange={(value) => setSelectedActivity(value)} value={selectedActivity || ''} disabled={!selectedClass || isActivityListLoading || isSaving}>
-                          <SelectTrigger id="activity-select">
-                              <SelectValue placeholder={!selectedClass ? "First select a class" : isActivityListLoading ? "Loading activities..." : "Select an activity"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                              {activities.map(a => (
-                                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                              ))}
-                          </SelectContent>
-                      </Select>
-                  </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="activity-select">Activity</Label>
+                            <Select onValueChange={(value) => setSelectedActivity(value)} value={selectedActivity || ''} disabled={!selectedClass || isActivityListLoading || isSaving}>
+                                <SelectTrigger id="activity-select">
+                                    <SelectValue placeholder={!selectedClass ? "First select a class" : isActivityListLoading ? "Loading activities..." : "Select an activity"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {activities.map(a => (
+                                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </>
+                 )}
+
 
                   <Textarea
                       id="essay-text"
@@ -419,5 +485,3 @@ export function EssayScanner() {
     </div>
   );
 }
-
-    

@@ -1,7 +1,16 @@
 
-import { EssayScanner } from '@/components/teacher/essay-scanner';
+'use client';
 
-export default function ScanEssayPage() {
+import { Suspense } from 'react';
+import { EssayScanner } from '@/components/teacher/essay-scanner';
+import { useSearchParams } from 'next/navigation';
+
+function ScanEssayContent() {
+  const searchParams = useSearchParams();
+  const classId = searchParams.get('classId');
+  const activityId = searchParams.get('activityId');
+  const studentId = searchParams.get('studentId');
+
   return (
     <div>
       <div className="mb-6">
@@ -11,7 +20,20 @@ export default function ScanEssayPage() {
         </p>
       </div>
 
-      <EssayScanner />
+      <EssayScanner
+        preselectedClassId={classId}
+        preselectedActivityId={activityId}
+        preselectedStudentId={studentId}
+      />
     </div>
   );
+}
+
+
+export default function ScanEssayPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ScanEssayContent />
+        </Suspense>
+    )
 }

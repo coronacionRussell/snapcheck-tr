@@ -14,6 +14,9 @@ import { collection, onSnapshot, query, getDocs, where } from 'firebase/firestor
 import { db } from '@/lib/firebase';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { ScanLine } from 'lucide-react';
+import Link from 'next/link';
 
 interface Student {
     id: string;
@@ -98,7 +101,7 @@ export function ActivitySubmissionStatus({ classId, activityId }: { classId: str
             <TableRow>
               <TableHead>Student Name</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Grade</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -119,8 +122,15 @@ export function ActivitySubmissionStatus({ classId, activityId }: { classId: str
                         {s.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {s.grade}
+                  <TableCell className="text-right">
+                    {s.status === 'Pending Submission' && (
+                       <Button asChild variant="outline" size="sm">
+                            <Link href={`/teacher/scan-essay?classId=${classId}&activityId=${activityId}&studentId=${s.id}`}>
+                                <ScanLine className="mr-2" />
+                                Scan Submission
+                            </Link>
+                       </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
