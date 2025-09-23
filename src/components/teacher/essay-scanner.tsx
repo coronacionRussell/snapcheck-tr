@@ -94,6 +94,18 @@ export function EssayScanner() {
 
 
    useEffect(() => {
+    if (preselectedClassId) {
+        setSelectedClass(preselectedClassId);
+    }
+    if (preselectedStudentId) {
+        setSelectedStudent(preselectedStudentId);
+    }
+    if (preselectedActivityId) {
+        setSelectedActivity(preselectedActivityId);
+    }
+  }, [preselectedClassId, preselectedStudentId, preselectedActivityId]);
+
+   useEffect(() => {
     if (isPrefilled) return;
 
     if (!selectedClass) {
@@ -212,15 +224,20 @@ export function EssayScanner() {
             description: 'The AI is extracting text from your image. This may take a moment.'
         });
         const result = await scanEssay({ imageDataUri: dataUri });
-        const newEssayText = result.extractedText;
-        setEssayText(newEssayText);
+        
+        setEssayText(result.extractedText);
+        toast({
+            title: 'Scan Complete!',
+            description: 'The extracted text has been added below.'
+        });
 
-        if (students.length > 0 && !isPrefilled) {
-            const lines = newEssayText.split('\n');
-            const nameLine = lines.find(line => line.toLowerCase().trim().startsWith('name:'));
-            if (nameLine) {
-                const detectedName = nameLine.split(':')[1].trim();
-                const matchedStudent = students.find(student => student.name.toLowerCase() === detectedName.toLowerCase());
+        // NEW: Check for credentials from the AI response
+        if (result.credentials && !isPrefilled) {
+            const { name, activity } = result.credentials;
+
+            if (name && students.length > 0) {
+                // Find student by fuzzy matching
+                const matchedStudent = students.find(s => s.name.toLowerCase().includes(name.toLowerCase()));
                 if (matchedStudent) {
                     setSelectedStudent(matchedStudent.id);
                     toast({
@@ -229,15 +246,22 @@ export function EssayScanner() {
                     });
                 }
             }
+
+            if (activity && activities.length > 0) {
+                // Find activity by fuzzy matching
+                const matchedActivity = activities.find(a => a.name.toLowerCase().includes(activity.toLowerCase()));
+                if (matchedActivity) {
+                    setSelectedActivity(matchedActivity.id);
+                    toast({
+                        title: 'Activity Detected!',
+                        description: `Automatically selected "${matchedActivity.name}" from the scanned text.`,
+                    });
+                }
+            }
         }
 
-
-        toast({
-            title: 'Scan Complete!',
-            description: 'The extracted text has been added below.'
-        });
         setIsScanning(false);
-        return newEssayText;
+        return result.extractedText;
     } catch (error) {
         console.error("Error processing image: ", error);
         toast({
