@@ -46,50 +46,47 @@ export default function AdminDashboard() {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchStatsAndUsers = () => {
-            const usersCollection = collection(db, 'users');
-            const classesCollection = collection(db, 'classes');
-            
-            const usersQuery = query(usersCollection, orderBy('fullName'));
-            const unsubscribeUsers = onSnapshot(usersQuery, async (usersSnapshot) => {
-                const usersData = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
-                setAllUsers(usersData);
+        const usersQuery = query(collection(db, 'users'), orderBy('fullName'));
+        const unsubscribeUsers = onSnapshot(usersQuery, (usersSnapshot) => {
+            const usersData = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
+            setAllUsers(usersData);
 
-                const classesSnapshot = await getDocs(classesCollection);
-                let totalTeachers = 0;
-                let totalStudents = 0;
-                usersData.forEach(user => {
-                    if (user.role === 'teacher') totalTeachers++;
-                    if (user.role === 'student') totalStudents++;
-                });
-
-                setStats({
-                    totalUsers: usersData.length,
-                    totalTeachers,
-                    totalStudents,
-                    totalClasses: classesSnapshot.size,
-                });
-                setIsLoading(false);
-
-            }, (error) => {
-                console.error("Error fetching users and stats:", error);
-                toast({ title: 'Error', description: 'Could not fetch platform data.', variant: 'destructive' });
-                setIsLoading(false);
+            let totalTeachers = 0;
+            let totalStudents = 0;
+            usersData.forEach(user => {
+                if (user.role === 'teacher') totalTeachers++;
+                if (user.role === 'student') totalStudents++;
             });
 
-            const unsubscribeClasses = onSnapshot(classesCollection, (classesSnapshot) => {
-                setStats(prevStats => prevStats ? { ...prevStats, totalClasses: classesSnapshot.size } : null);
-            });
+            setStats(prevStats => ({
+                ...(prevStats || { totalClasses: 0 }),
+                totalUsers: usersData.length,
+                totalTeachers,
+                totalStudents,
+            }));
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Error fetching users:", error);
+            toast({ title: 'Error', description: 'Could not fetch user data.', variant: 'destructive' });
+            setIsLoading(false);
+        });
 
-            return () => {
-                unsubscribeUsers();
-                unsubscribeClasses();
-            };
+        const classesQuery = query(collection(db, 'classes'));
+        const unsubscribeClasses = onSnapshot(classesQuery, (classesSnapshot) => {
+            setStats(prevStats => ({
+                ...(prevStats || { totalUsers: 0, totalTeachers: 0, totalStudents: 0 }),
+                totalClasses: classesSnapshot.size,
+            }));
+        }, (error) => {
+            console.error("Error fetching classes:", error);
+            toast({ title: 'Error', description: 'Could not fetch class data.', variant: 'destructive' });
+        });
+
+        return () => {
+            unsubscribeUsers();
+            unsubscribeClasses();
         };
-
-        const unsubscribe = fetchStatsAndUsers();
-        return () => unsubscribe();
-      }, []);
+    }, []);
 
     const { teachers, students } = useMemo(() => {
         const teacherList: AppUser[] = [];
