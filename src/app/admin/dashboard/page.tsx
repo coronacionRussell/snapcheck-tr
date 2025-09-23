@@ -283,7 +283,7 @@ export default function AdminDashboard() {
                                 <Button 
                                     size="sm" 
                                     onClick={() => handleVerifyTeacher(user.uid, user.fullName)}
-                                    disabled={isVerifying === user.uid || !user.verificationIdUrl}
+                                    disabled={isVerifying === user.uid}
                                     >
                                     {isVerifying === user.uid && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
                                     Verify
@@ -433,5 +433,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-    
