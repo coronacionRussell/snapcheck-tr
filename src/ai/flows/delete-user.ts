@@ -73,7 +73,7 @@ const prompt = ai.definePrompt({
         history: [],
     });
 
-    return llmResponse.output();
+    return llmResponse.output;
 });
 
 
@@ -92,6 +92,6 @@ const deleteUserFlow = ai.defineFlow(
         return toolResult;
      }
 
-     return llmResponse.output() || { success: false, message: 'Flow failed to produce a valid output.' };
+     return llmResponse.output || { success: false, message: 'Flow failed to produce a valid output.' };
   }
 );
