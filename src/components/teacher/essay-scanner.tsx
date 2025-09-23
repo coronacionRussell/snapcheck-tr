@@ -188,7 +188,27 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
             description: 'The AI is extracting text from your image. This may take a moment.'
         });
         const result = await scanEssay({ imageDataUri: dataUri });
-        setEssayText(result.extractedText);
+        const newEssayText = result.extractedText;
+        setEssayText(newEssayText);
+
+        // Auto-detect student name from text
+        if (students.length > 0 && !isPrefilled) {
+            const lines = newEssayText.split('\n');
+            const nameLine = lines.find(line => line.toLowerCase().trim().startsWith('name:'));
+            if (nameLine) {
+                const detectedName = nameLine.split(':')[1].trim();
+                const matchedStudent = students.find(student => student.name.toLowerCase() === detectedName.toLowerCase());
+                if (matchedStudent) {
+                    setSelectedStudent(matchedStudent.id);
+                    toast({
+                        title: 'Student Detected!',
+                        description: `Automatically selected "${matchedStudent.name}" from the scanned text.`,
+                    });
+                }
+            }
+        }
+
+
         toast({
             title: 'Scan Complete!',
             description: 'The extracted text has been added below.'
