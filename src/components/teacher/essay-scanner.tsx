@@ -3,7 +3,7 @@
 
 import { scanEssay } from '@/ai/flows/scan-essay';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, ClipboardCopy, Loader2, ScanLine, Trash2, UploadCloud, Save } from 'lucide-react';
+import { Camera, ClipboardCopy, Loader2, ScanLine, Trash2, UploadCloud, Save, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { useState, useRef, useEffect, useContext, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
@@ -20,7 +20,10 @@ import { useAuth } from '@/hooks/use-auth';
 import type { Activity } from './class-activities';
 import imageCompression from 'browser-image-compression';
 import { v4 as uuidv4 } from 'uuid';
-
+import { assistTeacherGrading } from '@/ai/flows/assist-teacher-grading';
+import { GradeSubmissionDialog } from './grade-submission-dialog';
+import { Submission } from './class-submissions';
+import Image from 'next/image';
 
 interface Student {
     id: string;
@@ -38,11 +41,10 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
   const { classes, isLoading: areClassesLoading } = useContext(ClassContext);
   const [essayText, setEssayText] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   
-  // State for pre-filled data
   const [prefilledData, setPrefilledData] = useState<{className: string, studentName: string, activityName: string} | null>(null);
 
-  // Dropdown state
   const [selectedClass, setSelectedClass] = useState<string | null>(preselectedClassId || null);
   const [students, setStudents] = useState<Student[]>([]);
   const [isStudentListLoading, setIsStudentListLoading] = useState(false);
@@ -58,7 +60,12 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
+  const [isGrading, setIsGrading] = useState(false);
+  const [newlyCreatedSubmission, setNewlyCreatedSubmission] = useState<Submission | null>(null);
+  const [isGradeDialogOpen, setIsGradeDialogOpen] = useState(false);
+
   const isPrefilled = !!(preselectedClassId && preselectedActivityId && preselectedStudentId);
+  const formDisabled = isScanning || isSaving || isGrading;
 
   const fetchPrefilledData = useCallback(async () => {
     if (!isPrefilled) return;
@@ -168,7 +175,19 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
     }
   }, [isCameraOpen, toast]);
 
-  const processImage = async (file: File) => {
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    if(imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl(null);
+    }
+    const fileInput = document.getElementById('essay-photo') as HTMLInputElement;
+    if(fileInput) {
+        fileInput.value = '';
+    }
+  };
+
+  const processImage = async (file: File): Promise<string | null> => {
     try {
         toast({ title: 'Compressing Image...', description: 'Preparing your image for a faster upload.' });
         const options = {
@@ -178,6 +197,11 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
         };
         const compressedFile = await imageCompression(file, options);
         setImageFile(compressedFile);
+
+        if (imagePreviewUrl) {
+            URL.revokeObjectURL(imagePreviewUrl);
+        }
+        setImagePreviewUrl(URL.createObjectURL(compressedFile));
 
         setIsScanning(true);
         setEssayText('');
@@ -191,7 +215,6 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
         const newEssayText = result.extractedText;
         setEssayText(newEssayText);
 
-        // Auto-detect student name from text
         if (students.length > 0 && !isPrefilled) {
             const lines = newEssayText.split('\n');
             const nameLine = lines.find(line => line.toLowerCase().trim().startsWith('name:'));
@@ -213,6 +236,8 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
             title: 'Scan Complete!',
             description: 'The extracted text has been added below.'
         });
+        setIsScanning(false);
+        return newEssayText;
     } catch (error) {
         console.error("Error processing image: ", error);
         toast({
@@ -220,15 +245,15 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
             description: 'There was an issue preparing or scanning your image. Please try again.',
             variant: 'destructive'
         });
-    } finally {
         setIsScanning(false);
+        return null;
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      processImage(file);
+      await processImage(file);
     }
   };
 
@@ -244,31 +269,66 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
             const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg'));
             if (blob) {
                 const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
-                processImage(file);
+                await processImage(file);
             }
         }
         setIsCameraOpen(false);
     }
   };
 
-
   const handleCopyText = () => {
     if (!essayText) return;
     navigator.clipboard.writeText(essayText);
     toast({ title: 'Copied!', description: 'The essay text has been copied to your clipboard.' });
   }
+
+  const resetForm = () => {
+    setEssayText('');
+    setImageFile(null);
+    handleRemoveImage();
+    if(!isPrefilled) {
+        setSelectedStudent(null);
+        setSelectedActivity(null);
+    }
+    const fileInput = document.getElementById('essay-photo') as HTMLInputElement;
+    if(fileInput) fileInput.value = '';
+  }
   
-  const handleSaveEssay = async () => {
-    if (!selectedClass || !selectedStudent || !selectedActivity || !essayText.trim()) {
-        toast({ title: 'Missing Information', description: 'Please select a class, student, activity and provide essay text.', variant: 'destructive'});
+  const handleSaveOrGrade = async (gradeAfterSave: boolean) => {
+    if (!selectedClass || !selectedStudent || !selectedActivity) {
+        toast({ title: 'Missing Information', description: 'Please select a class, student, and activity.', variant: 'destructive'});
+        return;
+    }
+    if (!essayText.trim() && !imageFile) {
+        toast({ title: 'Missing Input', description: 'Please provide essay text or upload an image to scan.', variant: 'destructive' });
         return;
     }
     if (!user) {
         toast({ title: 'Not Authenticated', description: 'You must be logged in to save an essay.', variant: 'destructive' });
         return;
     }
+    
+    let currentEssayText = essayText;
+    if (!currentEssayText && imageFile) {
+        const processedText = await processImage(imageFile);
+        if (!processedText) {
+            toast({ title: 'Scan Failed', description: 'Could not extract text from image to proceed.', variant: 'destructive' });
+            return;
+        }
+        currentEssayText = processedText;
+    }
 
-    setIsSaving(true);
+    if (!currentEssayText) {
+        toast({ title: 'No Text', description: 'There is no essay text to save or grade.', variant: 'destructive' });
+        return;
+    }
+
+
+    if (gradeAfterSave) {
+        setIsGrading(true);
+    } else {
+        setIsSaving(true);
+    }
     
     try {
         let imageUrl = '';
@@ -279,7 +339,7 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
             
             toast({
                 title: 'Uploading Image...',
-                description: 'The essay has been saved. Attaching the scanned image now.'
+                description: 'Please wait while the image is being uploaded.'
             });
 
             const uploadTask = await uploadBytes(storageRef, imageFile);
@@ -287,45 +347,51 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
         }
 
         const studentName = isPrefilled ? prefilledData?.studentName : students.find(s => s.id === selectedStudent)?.name;
-        const assignmentName = isPrefilled ? prefilledData?.activityName : activities.find(a => a.id === selectedActivity)?.name;
+        const currentActivity = activities.find(a => a.id === selectedActivity);
+        const assignmentName = isPrefilled ? prefilledData?.activityName : currentActivity?.name;
         
-        if (!studentName || !assignmentName) {
+        if (!studentName || !assignmentName || !currentActivity) {
             throw new Error("Could not determine student or assignment name.");
         }
 
-
-        const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
-        await addDoc(submissionsCollection, {
+        const submissionData = {
             studentId: selectedStudent,
             studentName,
             assignmentName,
             activityId: selectedActivity,
-            essayText,
+            essayText: currentEssayText,
             submittedAt: Timestamp.now(),
-            status: 'Pending Review',
+            status: 'Pending Review' as 'Pending Review' | 'Graded',
             essayImageUrl: imageUrl,
-        });
+        };
+
+        const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
+        const docRef = await addDoc(submissionsCollection, submissionData);
+        
+        const finalSubmissionObject: Submission = {
+            id: docRef.id,
+            ...submissionData,
+        };
 
         toast({
             title: 'Essay Saved!',
             description: `The essay for ${studentName} has been saved for activity "${assignmentName}".`
         });
-        
-        // Reset form immediately
-        setEssayText('');
-        setImageFile(null);
-        if(!isPrefilled) {
-            setSelectedStudent(null);
-            setSelectedActivity(null);
+
+        if (gradeAfterSave) {
+             toast({ title: 'Running AI Assistant...', description: 'Preparing the grading dialog.' });
+             setNewlyCreatedSubmission(finalSubmissionObject);
+             setIsGradeDialogOpen(true);
         }
-        const fileInput = document.getElementById('essay-photo') as HTMLInputElement;
-        if(fileInput) fileInput.value = '';
+        
+        resetForm();
 
     } catch (error) {
         console.error("Error saving essay submission: ", error);
         toast({ title: 'Error', description: 'Could not save the essay submission.', variant: 'destructive' });
     } finally {
         setIsSaving(false);
+        setIsGrading(false);
     }
   }
 
@@ -351,7 +417,7 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
                   accept="image/*"
                   onChange={handleFileUpload}
                   className="pl-10"
-                  disabled={isScanning || isSaving}
+                  disabled={formDisabled}
                 />
               </div>
             </div>
@@ -362,7 +428,7 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
                 variant="outline"
                 className="w-full"
                 onClick={() => setIsCameraOpen(true)}
-                disabled={isScanning || isSaving}
+                disabled={formDisabled}
               >
                 <Camera className="mr-2 size-4" /> Open Camera
               </Button>
@@ -389,6 +455,26 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
               </div>
             </div>
           )}
+
+          {imagePreviewUrl && (
+            <Card>
+                <CardHeader className="flex-row items-center justify-between py-4">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="size-5 text-muted-foreground" />
+                    <CardTitle className="text-lg">Image Preview</CardTitle>
+                  </div>
+                  <Button variant="destructive" size="sm" onClick={handleRemoveImage} disabled={formDisabled}>
+                      <Trash2 className="mr-2" />
+                      Remove Image
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                    <div className="relative aspect-[8.5/11] w-full max-w-sm mx-auto">
+                        <Image src={imagePreviewUrl} alt="Essay preview" fill className="object-contain rounded-md border" />
+                    </div>
+                </CardContent>
+            </Card>
+          )}
         </CardContent>
       </Card>
 
@@ -401,11 +487,11 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
                  <CardDescription>Next, verify the text, choose a student and activity, and save it to your class.</CardDescription>
             </div>
             <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleCopyText} disabled={!essayText || isScanning || isSaving}>
+                <Button variant="outline" size="sm" onClick={handleCopyText} disabled={!essayText || formDisabled}>
                     <ClipboardCopy className="mr-2" />
                     Copy
                 </Button>
-                 <Button variant="outline" size="sm" onClick={() => {setEssayText(''); setImageFile(null);}} disabled={!essayText || isScanning || isSaving}>
+                 <Button variant="outline" size="sm" onClick={resetForm} disabled={(!essayText && !imageFile) || formDisabled}>
                     <Trash2 className="mr-2" />
                     Clear
                 </Button>
@@ -440,7 +526,7 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                             <Label htmlFor="class-select">Class</Label>
-                            <Select onValueChange={(value) => setSelectedClass(value)} value={selectedClass || ''} disabled={areClassesLoading || isSaving}>
+                            <Select onValueChange={(value) => setSelectedClass(value)} value={selectedClass || ''} disabled={areClassesLoading || formDisabled}>
                                 <SelectTrigger id="class-select">
                                     <SelectValue placeholder={areClassesLoading ? "Loading classes..." : "Select a class"} />
                                 </SelectTrigger>
@@ -453,7 +539,7 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
                             </div>
                             <div className="space-y-2">
                             <Label htmlFor="student-select">Student</Label>
-                            <Select onValueChange={(value) => setSelectedStudent(value)} value={selectedStudent || ''} disabled={!selectedClass || isStudentListLoading || isSaving}>
+                            <Select onValueChange={(value) => setSelectedStudent(value)} value={selectedStudent || ''} disabled={!selectedClass || isStudentListLoading || formDisabled}>
                                 <SelectTrigger id="student-select">
                                     <SelectValue placeholder={!selectedClass ? "First select a class" : isStudentListLoading ? "Loading students..." : "Select a student"} />
                                 </SelectTrigger>
@@ -468,7 +554,7 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
 
                         <div className="space-y-2">
                             <Label htmlFor="activity-select">Activity</Label>
-                            <Select onValueChange={(value) => setSelectedActivity(value)} value={selectedActivity || ''} disabled={!selectedClass || isActivityListLoading || isSaving}>
+                            <Select onValueChange={(value) => setSelectedActivity(value)} value={selectedActivity || ''} disabled={!selectedClass || isActivityListLoading || formDisabled}>
                                 <SelectTrigger id="activity-select">
                                     <SelectValue placeholder={!selectedClass ? "First select a class" : isActivityListLoading ? "Loading activities..." : "Select an activity"} />
                                 </SelectTrigger>
@@ -490,18 +576,32 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
                       value={essayText}
                       onChange={(e) => setEssayText(e.target.value)}
                       className="font-code"
-                      disabled={isSaving}
+                      disabled={formDisabled}
                   />
-                   <div className="flex justify-end">
-                      <Button onClick={handleSaveEssay} disabled={isSaving || isScanning || !essayText}>
-                        {isSaving && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                        {isSaving ? 'Saving...' : <><Save className="mr-2"/> Save Essay to Class</>}
+                   <div className="flex justify-end gap-2">
+                      <Button onClick={() => handleSaveOrGrade(false)} disabled={formDisabled || (!essayText && !imageFile)}>
+                        {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2"/>}
+                        {isSaving ? 'Saving...' : 'Save to Class'}
+                      </Button>
+                      <Button onClick={() => handleSaveOrGrade(true)} disabled={formDisabled || (!essayText && !imageFile)}>
+                        {isGrading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2"/>}
+                        {isGrading ? 'Processing...' : 'Scan & Grade'}
                       </Button>
                   </div>
               </>
             )}
         </CardContent>
       </Card>
+      {newlyCreatedSubmission && selectedClass && (
+        <GradeSubmissionDialog
+            submission={newlyCreatedSubmission}
+            className={classes.find(c => c.id === selectedClass)?.name || ''}
+            classId={selectedClass}
+            isOpen={isGradeDialogOpen}
+            setIsOpen={setIsGradeDialogOpen}
+            runAiOnOpen={true}
+        />
+      )}
     </div>
   );
 }

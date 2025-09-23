@@ -31,10 +31,16 @@ type GradeSubmissionDialogProps = {
     submission: Submission;
     className: string;
     classId: string;
+    isOpen?: boolean;
+    setIsOpen?: (isOpen: boolean) => void;
+    runAiOnOpen?: boolean;
 }
 
-export function GradeSubmissionDialog({ submission: initialSubmission, className, classId }: GradeSubmissionDialogProps) {
-  const [open, setOpen] = useState(false);
+export function GradeSubmissionDialog({ submission: initialSubmission, className, classId, isOpen: controlledIsOpen, setIsOpen: setControlledIsOpen, runAiOnOpen = false }: GradeSubmissionDialogProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = controlledIsOpen ?? internalIsOpen;
+  const setIsOpen = setControlledIsOpen ?? setInternalIsOpen;
+
   const [submission, setSubmission] = useState<Submission>(initialSubmission);
   const [isLoading, setIsLoading] = useState(false);
   const [isRubricLoading, setIsRubricLoading] = useState(false);
@@ -50,74 +56,6 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
   const [grammarAnalysis, setGrammarAnalysis] = useState('');
 
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (open) {
-      // Set initial state from props and listen for real-time updates
-      const currentSubmission = {...initialSubmission};
-      setSubmission(currentSubmission);
-      setFinalScore(currentSubmission.grade || '');
-      setFinalFeedback(currentSubmission.feedback || '');
-
-      const submissionRef = doc(db, 'classes', classId, 'submissions', initialSubmission.id);
-      const unsubscribe = onSnapshot(submissionRef, (doc) => {
-        if (doc.exists()) {
-          const updatedData = { id: doc.id, ...doc.data() } as Submission;
-          setSubmission(updatedData);
-          setFinalScore(updatedData.grade || '');
-          setFinalFeedback(updatedData.feedback || '');
-        }
-      });
-      return () => unsubscribe();
-    }
-  }, [open, classId, initialSubmission]);
-
-  useEffect(() => {
-    const fetchActivityDetails = async () => {
-        if (!submission.activityId) {
-            setRubric('This essay was submitted as a general submission and is not tied to a specific activity rubric.');
-            setActivityDescription('No activity description available for this general submission.');
-            setIsRubricLoading(false);
-            return;
-        }
-
-        setIsRubricLoading(true);
-        try {
-            const activityDocRef = doc(db, 'classes', classId, 'activities', submission.activityId);
-            const activityDoc = await getDoc(activityDocRef);
-
-            if(activityDoc.exists()) {
-                const activityData = activityDoc.data();
-                setRubric(activityData.rubric);
-                setActivityDescription(activityData.description);
-            } else {
-                setRubric('No rubric found for this activity.');
-                setActivityDescription('No description found for this activity.');
-                toast({
-                    title: 'Activity Not Found',
-                    description: 'Could not find the details for the submitted activity.',
-                    variant: 'destructive'
-                })
-            }
-        } catch (error) {
-            console.error("Error fetching activity details: ", error);
-            setRubric('Error loading rubric.');
-            setActivityDescription('Error loading description.');
-             toast({
-                title: 'Error',
-                description: 'Could not load the details for this activity.',
-                variant: 'destructive',
-            })
-        } finally {
-            setIsRubricLoading(false);
-        }
-    }
-
-    if (open) {
-        fetchActivityDetails();
-    }
-  }, [submission.activityId, classId, open, toast]);
-
 
   const handleRunAiGrading = async () => {
     setIsLoading(true);
@@ -151,6 +89,77 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      const currentSubmission = {...initialSubmission};
+      setSubmission(currentSubmission);
+      setFinalScore(currentSubmission.grade || '');
+      setFinalFeedback(currentSubmission.feedback || '');
+
+      const submissionRef = doc(db, 'classes', classId, 'submissions', initialSubmission.id);
+      const unsubscribe = onSnapshot(submissionRef, (doc) => {
+        if (doc.exists()) {
+          const updatedData = { id: doc.id, ...doc.data() } as Submission;
+          setSubmission(updatedData);
+          // Only update if the user hasn't started editing
+          if (!finalScore) setFinalScore(updatedData.grade || '');
+          if (!finalFeedback) setFinalFeedback(updatedData.feedback || '');
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [isOpen, classId, initialSubmission.id]);
+
+  useEffect(() => {
+    const fetchActivityDetails = async () => {
+        if (!submission.activityId) {
+            setRubric('This essay was submitted as a general submission and is not tied to a specific activity rubric.');
+            setActivityDescription('No activity description available for this general submission.');
+            setIsRubricLoading(false);
+            return;
+        }
+
+        setIsRubricLoading(true);
+        try {
+            const activityDocRef = doc(db, 'classes', classId, 'activities', submission.activityId);
+            const activityDoc = await getDoc(activityDocRef);
+
+            if(activityDoc.exists()) {
+                const activityData = activityDoc.data();
+                setRubric(activityData.rubric);
+                setActivityDescription(activityData.description);
+                if (runAiOnOpen) {
+                  handleRunAiGrading();
+                }
+            } else {
+                setRubric('No rubric found for this activity.');
+                setActivityDescription('No description found for this activity.');
+                toast({
+                    title: 'Activity Not Found',
+                    description: 'Could not find the details for the submitted activity.',
+                    variant: 'destructive'
+                })
+            }
+        } catch (error) {
+            console.error("Error fetching activity details: ", error);
+            setRubric('Error loading rubric.');
+            setActivityDescription('Error loading description.');
+             toast({
+                title: 'Error',
+                description: 'Could not load the details for this activity.',
+                variant: 'destructive',
+            })
+        } finally {
+            setIsRubricLoading(false);
+        }
+    }
+
+    if (isOpen) {
+        fetchActivityDetails();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submission.activityId, classId, isOpen, toast]);
   
   const handleFinalizeGrade = async () => {
     if (!finalScore.trim()) {
@@ -188,11 +197,9 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
   }
 
   const handleClose = () => {
-    setOpen(false);
-    // Reset state on close
+    setIsOpen(false);
     setAiResult(null);
     setGrammarAnalysis('');
-    // We keep finalScore and finalFeedback as they are tied to the submission's state
   }
 
   const parseOptions = {
@@ -242,20 +249,20 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
   };
 
   const isGraded = submission.status === 'Graded';
+  const DialogComponent = controlledIsOpen !== undefined ? Dialog : DialogTrigger;
+
+  const trigger = (
+    <Button>
+        {isGraded ? 'View Grade' : 'Grade'}
+    </Button>
+  );
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-        if (!isOpen) {
-            handleClose();
-        } else {
-            setOpen(true);
-        }
+    <Dialog open={isOpen} onOpenChange={(open) => {
+        if (!open) handleClose();
+        else setIsOpen(true);
     }}>
-      <DialogTrigger asChild>
-        <Button>
-            {isGraded ? 'View Grade' : 'Grade'}
-        </Button>
-      </DialogTrigger>
+       {controlledIsOpen === undefined && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="max-w-7xl">
         <DialogHeader>
           <DialogTitle className="font-headline">
@@ -267,9 +274,8 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
         </DialogHeader>
         <div className="grid max-h-[75svh] grid-cols-1 gap-4 overflow-y-auto p-1 lg:grid-cols-3">
           
-          {/* Left Column: Image */}
-          {submission.essayImageUrl && (
-             <div className="space-y-4 lg:col-span-1">
+          <div className={`space-y-4 ${submission.essayImageUrl ? 'lg:col-span-1' : 'hidden'}`}>
+             {submission.essayImageUrl && (
                 <Card className="h-full">
                 <CardHeader>
                     <CardTitle className="font-headline text-lg">
@@ -287,10 +293,9 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
                     </div>
                 </CardContent>
                 </Card>
-            </div>
-          )}
+            )}
+          </div>
          
-          {/* Middle Column: Text & Rubric */}
           <div className={`space-y-4 ${submission.essayImageUrl ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
              <Card className="flex h-full flex-col">
               <CardHeader>
@@ -323,7 +328,6 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
             
           </div>
 
-          {/* Right Column: AI & Grading */}
           <div className="space-y-4 lg:col-span-1">
              <Card>
               <CardHeader>
