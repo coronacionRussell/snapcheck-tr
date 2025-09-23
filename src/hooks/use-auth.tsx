@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -19,7 +19,8 @@ export interface AppUser {
 
 export function useAuth() {
   const [user, setUser] = useState<AppUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // NEW: Introduce a more detailed loading state
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const router = useRouter();
   const pathname = usePathname();
 
@@ -32,23 +33,25 @@ export function useAuth() {
           if (userDoc.exists()) {
             const userData = userDoc.data() as AppUser;
             setUser(userData);
+            setAuthStatus('authenticated'); // User is fully loaded
           } else {
+            // This case means auth user exists but Firestore doc doesn't. Log them out.
             auth.signOut();
             setUser(null);
+            setAuthStatus('unauthenticated');
           }
-          setIsLoading(false);
         }, (error) => {
           console.error("Error fetching user document:", error);
           auth.signOut();
           setUser(null);
-          setIsLoading(false);
+          setAuthStatus('unauthenticated');
         });
         
         return () => docUnsubscribe();
 
       } else {
         setUser(null);
-        setIsLoading(false);
+        setAuthStatus('unauthenticated'); // No user is logged in
       }
     });
 
@@ -56,16 +59,17 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
-    if (isLoading) {
+    // Don't run any redirect logic until auth status is determined.
+    if (authStatus === 'loading') {
       return; 
     }
 
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname);
     const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
-    const isAppPage = pathname.startsWith('/student') || pathname.startsWith('/teacher') || pathname.startsWith('/admin');
-
-    if (user) {
+    
+    if (authStatus === 'authenticated' && user) {
+      // User is logged in.
       let targetDashboard = '/';
       if (user.role === 'admin') {
         targetDashboard = '/admin/dashboard';
@@ -75,23 +79,20 @@ export function useAuth() {
         targetDashboard = '/student/dashboard';
       }
       
+      // If they are on an auth page, redirect them to their dashboard.
       if (isAuthPage) {
         router.replace(targetDashboard);
-      } else if (user.role === 'teacher' && !pathname.startsWith('/teacher')) {
-         if (isAppPage) router.replace(targetDashboard);
-      } else if (user.role === 'student' && !pathname.startsWith('/student')) {
-         if (isAppPage) router.replace(targetDashboard);
-      } else if (user.role === 'admin' && !pathname.startsWith('/admin')) {
-         if (isAppPage) router.replace(targetDashboard);
       }
 
-    } else {
+    } else if (authStatus === 'unauthenticated') {
+      // User is not logged in.
+      // If they are on a page that requires authentication, redirect to login.
       if (!isPublicPage) {
         router.replace('/login');
       }
     }
-  }, [user, isLoading, pathname, router]);
+  }, [user, authStatus, pathname, router]);
 
 
-  return { user, isLoading };
+  return { user, isLoading: authStatus === 'loading' };
 }
