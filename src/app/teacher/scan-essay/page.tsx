@@ -3,14 +3,9 @@
 
 import { Suspense } from 'react';
 import { EssayScanner } from '@/components/teacher/essay-scanner';
-import { useSearchParams } from 'next/navigation';
 
+// This component is now simplified. It only needs to render the EssayScanner.
 function ScanEssayContent() {
-  const searchParams = useSearchParams();
-  const classId = searchParams.get('classId');
-  const activityId = searchParams.get('activityId');
-  const studentId = searchParams.get('studentId');
-
   return (
     <div>
       <div className="mb-6">
@@ -20,11 +15,7 @@ function ScanEssayContent() {
         </p>
       </div>
 
-      <EssayScanner
-        preselectedClassId={classId}
-        preselectedActivityId={activityId}
-        preselectedStudentId={studentId}
-      />
+      <EssayScanner />
     </div>
   );
 }

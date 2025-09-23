@@ -5,6 +5,7 @@ import { scanEssay } from '@/ai/flows/scan-essay';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, ClipboardCopy, Loader2, ScanLine, Trash2, UploadCloud, Save, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { useState, useRef, useEffect, useContext, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Label } from '../ui/label';
@@ -30,13 +31,12 @@ interface Student {
     name: string;
 }
 
-interface EssayScannerProps {
-  preselectedClassId?: string | null;
-  preselectedActivityId?: string | null;
-  preselectedStudentId?: string | null;
-}
+export function EssayScanner() {
+  const searchParams = useSearchParams();
+  const preselectedClassId = searchParams.get('classId');
+  const preselectedActivityId = searchParams.get('activityId');
+  const preselectedStudentId = searchParams.get('studentId');
 
-export function EssayScanner({ preselectedClassId, preselectedActivityId, preselectedStudentId }: EssayScannerProps) {
   const { user } = useAuth();
   const { classes, isLoading: areClassesLoading } = useContext(ClassContext);
   const [essayText, setEssayText] = useState('');
@@ -347,7 +347,17 @@ export function EssayScanner({ preselectedClassId, preselectedActivityId, presel
         }
 
         const studentName = isPrefilled ? prefilledData?.studentName : students.find(s => s.id === selectedStudent)?.name;
-        const currentActivity = activities.find(a => a.id === selectedActivity);
+        
+        let currentActivity: Activity | undefined;
+        if (isPrefilled) {
+            const activityDoc = await getDoc(doc(db, 'classes', selectedClass, 'activities', selectedActivity));
+            if(activityDoc.exists()) {
+                currentActivity = { id: activityDoc.id, ...activityDoc.data() } as Activity;
+            }
+        } else {
+            currentActivity = activities.find(a => a.id === selectedActivity);
+        }
+        
         const assignmentName = isPrefilled ? prefilledData?.activityName : currentActivity?.name;
         
         if (!studentName || !assignmentName || !currentActivity) {
