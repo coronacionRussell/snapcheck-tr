@@ -16,7 +16,7 @@ import {
     CardHeader,
     CardTitle,
   } from '@/components/ui/card';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { AppUser } from '@/hooks/use-auth';
@@ -24,7 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2, Users, School, BookCopy } from 'lucide-react';
+import { Loader2, Trash2, Users, School, BookCopy, UserCheck } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Image from 'next/image';
@@ -50,13 +50,11 @@ export default function AdminDashboard() {
             const usersCollection = collection(db, 'users');
             const classesCollection = collection(db, 'classes');
             
-            // Listener for all users
             const usersQuery = query(usersCollection, orderBy('fullName'));
             const unsubscribeUsers = onSnapshot(usersQuery, async (usersSnapshot) => {
                 const usersData = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
                 setAllUsers(usersData);
 
-                // Recalculate stats whenever users change
                 const classesSnapshot = await getDocs(classesCollection);
                 let totalTeachers = 0;
                 let totalStudents = 0;
@@ -79,7 +77,6 @@ export default function AdminDashboard() {
                 setIsLoading(false);
             });
 
-            // Listener for classes to update stats if a class is added/deleted
             const unsubscribeClasses = onSnapshot(classesCollection, (classesSnapshot) => {
                 setStats(prevStats => prevStats ? { ...prevStats, totalClasses: classesSnapshot.size } : null);
             });
@@ -93,6 +90,19 @@ export default function AdminDashboard() {
         const unsubscribe = fetchStatsAndUsers();
         return () => unsubscribe();
       }, []);
+
+    const { pendingTeachers, otherUsers } = useMemo(() => {
+        const pending: AppUser[] = [];
+        const others: AppUser[] = [];
+        allUsers.forEach(user => {
+            if (user.role === 'teacher' && !user.isVerified) {
+                pending.push(user);
+            } else {
+                others.push(user);
+            }
+        });
+        return { pendingTeachers: pending, otherUsers: others };
+    }, [allUsers]);
 
     const handleVerifyTeacher = async (teacherId: string, teacherName: string) => {
         setIsVerifying(teacherId);
@@ -139,7 +149,6 @@ export default function AdminDashboard() {
             title: 'Account Deleted',
             description: `The account for ${userName} has been deleted.`,
           });
-          // The onSnapshot listener will update the UI automatically.
         } catch (error) {
           console.error('Error deleting user:', error);
           toast({
@@ -206,12 +215,116 @@ export default function AdminDashboard() {
             </Card>
         </div>
 
+        <Card>
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center gap-2">
+            <UserCheck />
+            Teachers Pending Verification
+          </CardTitle>
+          <CardDescription>
+            Review the IDs for these teachers and verify their accounts.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Full Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                [...Array(2)].map((_, i) => (
+                    <TableRow key={i}>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                        <TableCell className="text-right space-x-2">
+                            <Skeleton className="h-8 w-20 inline-block" />
+                            <Skeleton className="h-8 w-24 inline-block" />
+                        </TableCell>
+                    </TableRow>
+                ))
+              ) : pendingTeachers.length > 0 ? (
+                pendingTeachers.map((user) => (
+                  <TableRow key={user.uid}>
+                    <TableCell className="font-medium">{user.fullName}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="text-right space-x-2">
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" disabled={!user.verificationIdUrl}>View ID</Button>
+                            </DialogTrigger>
+                            {user.verificationIdUrl && (
+                                <DialogContent className="sm:max-w-[425px] md:max-w-[600px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Verification ID: {user.fullName}</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="relative mt-2 aspect-video w-full">
+                                        <Image
+                                            src={user.verificationIdUrl}
+                                            alt={`Verification ID for ${user.fullName}`}
+                                            fill
+                                            className="object-contain"
+                                        />
+                                    </div>
+                                </DialogContent>
+                            )}
+                        </Dialog>
+                        <Button 
+                            size="sm" 
+                            onClick={() => handleVerifyTeacher(user.uid, user.fullName)}
+                            disabled={isVerifying === user.uid || !user.verificationIdUrl}
+                            >
+                            {isVerifying === user.uid && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
+                            Verify
+                        </Button>
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon" disabled={isDeleting === user.uid}>
+                                    {isDeleting === user.uid ? <Loader2 className="h-5 w-5 animate-spin"/> : <Trash2 className="size-4"/>}
+                                    <span className="sr-only">Delete account</span>
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Account?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                This will permanently delete the account for <strong>{user.fullName}</strong> and all associated data. This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={() => handleDeleteAccount(user.uid, user.fullName)}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                >
+                                    Yes, Delete Account
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center h-24">
+                    No teachers are currently pending verification.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
           <CardTitle className="font-headline">All Users</CardTitle>
           <CardDescription>
-            A list of all registered students and teachers.
+            A list of all registered students and verified teachers.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -236,8 +349,8 @@ export default function AdminDashboard() {
                         <TableCell className="text-right"><Skeleton className="h-8 w-24" /></TableCell>
                     </TableRow>
                 ))
-              ) : allUsers.length > 0 ? (
-                allUsers.map((user) => (
+              ) : otherUsers.length > 0 ? (
+                otherUsers.map((user) => (
                   <TableRow key={user.uid}>
                     <TableCell className="font-medium">{user.fullName}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -255,64 +368,31 @@ export default function AdminDashboard() {
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                         {user.role === 'teacher' && (
-                             <>
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" size="sm" disabled={!user.verificationIdUrl}>View ID</Button>
-                                    </DialogTrigger>
-                                    {user.verificationIdUrl && (
-                                        <DialogContent className="sm:max-w-[425px] md:max-w-[600px]">
-                                            <DialogHeader>
-                                                <DialogTitle>Verification ID: {user.fullName}</DialogTitle>
-                                            </DialogHeader>
-                                            <div className="relative mt-2 aspect-video w-full">
-                                                <Image
-                                                    src={user.verificationIdUrl}
-                                                    alt={`Verification ID for ${user.fullName}`}
-                                                    fill
-                                                    className="object-contain"
-                                                />
-                                            </div>
-                                        </DialogContent>
-                                    )}
-                                </Dialog>
-                                {!user.isVerified ? (
-                                <Button 
-                                    size="sm" 
-                                    onClick={() => handleVerifyTeacher(user.uid, user.fullName)}
-                                    disabled={isVerifying === user.uid}
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="sm" disabled={isUnverifying === user.uid}>
+                                        {isUnverifying === user.uid && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
+                                        Unverify
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    This will revoke verification for <strong>{user.fullName}</strong>. They will be moved to the 'Pending Verification' list and will lose access to teacher functionalities.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={() => handleUnverifyTeacher(user.uid, user.fullName)}
+                                        className="bg-destructive hover:bg-destructive/90"
                                     >
-                                    {isVerifying === user.uid && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
-                                    Verify
-                                </Button>
-                                ) : (
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="outline" size="sm" disabled={isUnverifying === user.uid}>
-                                                {isUnverifying === user.uid && <Loader2 className="mr-2 h-5 w-5 animate-spin"/>}
-                                                Unverify
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                            This will revoke verification for <strong>{user.fullName}</strong>. They will lose access to teacher functionalities until they are verified again.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction
-                                                onClick={() => handleUnverifyTeacher(user.uid, user.fullName)}
-                                                className="bg-destructive hover:bg-destructive/90"
-                                            >
-                                                Yes, Unverify
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                )}
-                             </>
+                                        Yes, Unverify
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         )}
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
