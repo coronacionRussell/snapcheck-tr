@@ -63,17 +63,9 @@ const deleteUserData = ai.defineTool(
 
 const prompt = ai.definePrompt({
     name: 'deleteUserPrompt',
-    input: { schema: DeleteUserInputSchema },
-    output: { schema: DeleteUserOutputSchema },
     tools: [deleteUserData],
-    system: "You are an administrative agent. Your task is to delete a user's data from the system. Use the provided 'deleteUserData' tool to delete the user with the given UID. Report back on the success or failure of the operation."
-}, async (input) => {
-    const llmResponse = await ai.generate({
-        prompt: `Delete user with UID: ${input.uid}`,
-        history: [],
-    });
-
-    return llmResponse.output;
+    prompt: "You are an administrative agent. Your task is to delete a user's data from the system. Use the provided 'deleteUserData' tool to delete the user with the given UID. Report back on the success or failure of the operation. UID to delete: {{uid}}",
+    input: { schema: DeleteUserInputSchema },
 });
 
 
@@ -83,15 +75,15 @@ const deleteUserFlow = ai.defineFlow(
     inputSchema: DeleteUserInputSchema,
     outputSchema: DeleteUserOutputSchema,
   },
-  async ({ uid }) => {
-     const llmResponse = await prompt({ uid });
+  async (input) => {
+     const llmResponse = await prompt(input);
+     const toolCall = llmResponse.toolCalls()?.[0];
 
-     if (llmResponse.choices[0].toolCalls) {
-        const toolCall = llmResponse.choices[0].toolCalls[0];
+     if (toolCall) {
         const toolResult = await deleteUserData(toolCall.input);
         return toolResult;
      }
 
-     return llmResponse.output || { success: false, message: 'Flow failed to produce a valid output.' };
+     return { success: false, message: 'Flow failed to call the deletion tool.' };
   }
 );
