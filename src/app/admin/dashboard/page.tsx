@@ -17,42 +17,86 @@ import {
     CardTitle,
   } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { AppUser } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, Users, School, BookCopy } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Image from 'next/image';
 import { deleteUser } from '@/ai/flows/delete-user';
 
+interface Stats {
+    totalUsers: number;
+    totalTeachers: number;
+    totalStudents: number;
+    totalClasses: number;
+}
+
 export default function AdminDashboard() {
     const [teachers, setTeachers] = useState<AppUser[]>([]);
+    const [stats, setStats] = useState<Stats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isVerifying, setIsVerifying] = useState<string | null>(null);
     const [isUnverifying, setIsUnverifying] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
     useEffect(() => {
-        setIsLoading(true);
-        const usersCollection = collection(db, 'users');
-        const q = query(usersCollection, where('role', '==', 'teacher'));
+        const fetchStats = async () => {
+            try {
+                const usersCollection = collection(db, 'users');
+                const classesCollection = collection(db, 'classes');
+
+                const [usersSnapshot, classesSnapshot] = await Promise.all([
+                    getDocs(usersCollection),
+                    getDocs(classesCollection)
+                ]);
+
+                let totalTeachers = 0;
+                let totalStudents = 0;
+
+                usersSnapshot.forEach(doc => {
+                    if (doc.data().role === 'teacher') totalTeachers++;
+                    if (doc.data().role === 'student') totalStudents++;
+                });
+
+                setStats({
+                    totalUsers: usersSnapshot.size,
+                    totalTeachers,
+                    totalStudents,
+                    totalClasses: classesSnapshot.size,
+                });
+
+            } catch (error) {
+                console.error("Error fetching stats:", error);
+                toast({ title: 'Error', description: 'Could not fetch platform statistics.', variant: 'destructive' });
+            }
+        };
+
+        const subscribeToTeachers = () => {
+            const usersCollection = collection(db, 'users');
+            const q = query(usersCollection, where('role', '==', 'teacher'));
+        
+            const unsubscribe = onSnapshot(q, (querySnapshot) => {
+                const teachersData = querySnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
+                setTeachers(teachersData);
+                setIsLoading(false);
+            }, (error) => {
+                console.error("Error fetching teachers: ", error);
+                toast({ title: 'Error', description: 'Could not fetch teachers list.', variant: 'destructive'});
+                setIsLoading(false);
+            });
+            return unsubscribe;
+        };
+
+        fetchStats();
+        const teacherUnsubscribe = subscribeToTeachers();
     
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const teachersData = querySnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
-            setTeachers(teachersData);
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Error fetching teachers: ", error);
-            toast({ title: 'Error', description: 'Could not fetch teachers list.', variant: 'destructive'});
-            setIsLoading(false);
-        });
-    
-        return () => unsubscribe();
+        return () => teacherUnsubscribe();
       }, []);
 
     const handleVerifyTeacher = async (teacherId: string, teacherName: string) => {
@@ -120,9 +164,54 @@ export default function AdminDashboard() {
       <div>
         <h1 className="font-headline text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground">
-          Manage teacher accounts and verify new registrations.
+          Manage teacher accounts and view platform statistics.
         </p>
       </div>
+
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    {stats ? <div className="text-2xl font-bold">{stats.totalUsers}</div> : <Skeleton className="h-8 w-12" />}
+                    <p className="text-xs text-muted-foreground">All registered users</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Teachers</CardTitle>
+                    <School className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    {stats ? <div className="text-2xl font-bold">{stats.totalTeachers}</div> : <Skeleton className="h-8 w-12" />}
+                    <p className="text-xs text-muted-foreground">Verified & pending teachers</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    {stats ? <div className="text-2xl font-bold">{stats.totalStudents}</div> : <Skeleton className="h-8 w-12" />}
+                    <p className="text-xs text-muted-foreground">All registered students</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Classes</CardTitle>
+                    <BookCopy className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    {stats ? <div className="text-2xl font-bold">{stats.totalClasses}</div> : <Skeleton className="h-8 w-12" />}
+                    <p className="text-xs text-muted-foreground">Classes created by teachers</p>
+                </CardContent>
+            </Card>
+        </div>
+
+
       <Card>
         <CardHeader>
           <CardTitle className="font-headline">Teacher Accounts</CardTitle>
