@@ -224,44 +224,60 @@ export function EssayScanner() {
             description: 'The AI is extracting text from your image. This may take a moment.'
         });
         const result = await scanEssay({ imageDataUri: dataUri });
-        
-        setEssayText(result.extractedText);
+        const fullText = result.extractedText;
+
         toast({
             title: 'Scan Complete!',
             description: 'The extracted text has been added below.'
         });
 
-        // NEW: Check for credentials from the AI response
-        if (result.credentials && !isPrefilled) {
-            const { name, activity } = result.credentials;
+        // NEW: Parse text based on line number convention
+        if (!isPrefilled) {
+            const lines = fullText.split('\n').map(line => line.trim());
+            let studentName = '';
+            let activityName = '';
+            let finalEssayText = fullText;
 
-            if (name && students.length > 0) {
-                // Find student by fuzzy matching
-                const matchedStudent = students.find(s => s.name.toLowerCase().includes(name.toLowerCase()));
+            if (lines.length >= 3) {
+                studentName = lines[0];
+                activityName = lines[1];
+                finalEssayText = lines.slice(2).join('\n');
+
+                const matchedStudent = students.find(s => s.name.toLowerCase().includes(studentName.toLowerCase()));
                 if (matchedStudent) {
                     setSelectedStudent(matchedStudent.id);
                     toast({
-                        title: 'Student Detected!',
-                        description: `Automatically selected "${matchedStudent.name}" from the scanned text.`,
+                        title: 'Student Matched!',
+                        description: `Automatically selected "${matchedStudent.name}" from the first line.`,
                     });
                 }
-            }
-
-            if (activity && activities.length > 0) {
-                // Find activity by fuzzy matching
-                const matchedActivity = activities.find(a => a.name.toLowerCase().includes(activity.toLowerCase()));
+                const matchedActivity = activities.find(a => a.name.toLowerCase().includes(activityName.toLowerCase()));
                 if (matchedActivity) {
                     setSelectedActivity(matchedActivity.id);
                     toast({
-                        title: 'Activity Detected!',
-                        description: `Automatically selected "${matchedActivity.name}" from the scanned text.`,
+                        title: 'Activity Matched!',
+                        description: `Automatically selected "${matchedActivity.name}" from the second line.`,
+                    });
+                }
+            } else if (lines.length === 2) {
+                studentName = lines[0];
+                finalEssayText = lines[1];
+                 const matchedStudent = students.find(s => s.name.toLowerCase().includes(studentName.toLowerCase()));
+                if (matchedStudent) {
+                    setSelectedStudent(matchedStudent.id);
+                    toast({
+                        title: 'Student Matched!',
+                        description: `Automatically selected "${matchedStudent.name}" from the first line.`,
                     });
                 }
             }
+            setEssayText(finalEssayText);
+        } else {
+             setEssayText(fullText);
         }
 
         setIsScanning(false);
-        return result.extractedText;
+        return fullText;
     } catch (error) {
         console.error("Error processing image: ", error);
         toast({
@@ -619,7 +635,7 @@ export function EssayScanner() {
                       </Button>
                       <Button onClick={() => handleSaveOrGrade(true)} disabled={formDisabled || (!essayText && !imageFile)}>
                         {isGrading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2"/>}
-                        {isGrading ? 'Processing...' : 'Scan & Grade'}
+                        {isGrading ? 'Processing...' : 'Save & Grade'}
                       </Button>
                   </div>
               </>
