@@ -162,8 +162,8 @@ export default function ClassesPage() {
                   <span>{c.pendingSubmissions} Submissions Pending</span>
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col gap-2 sm:flex-row">
-                <Button asChild className="w-full">
+              <CardFooter className="flex items-center gap-2">
+                <Button asChild className="flex-1">
                   <Link href={`/teacher/classes/${c.id}`}>
                     <DoorOpen className="mr-2 size-4" />
                     Enter Class
@@ -171,11 +171,11 @@ export default function ClassesPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full"
+                  size="icon"
                   onClick={() => handleCopyCode(c.id)}
+                  aria-label="Copy class code"
                 >
-                  <Copy className="mr-2 size-4" />
-                  Copy Code
+                  <Copy className="size-4" />
                 </Button>
               </CardFooter>
             </Card>
