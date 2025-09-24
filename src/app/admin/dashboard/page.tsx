@@ -24,11 +24,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2, Users, School, BookCopy, UserCheck } from 'lucide-react';
+import { Loader2, Trash2, Users, School, BookCopy, UserCheck, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Image from 'next/image';
 import { deleteUser } from '@/ai/flows/delete-user';
+import { Input } from '@/components/ui/input';
 
 interface Stats {
     totalUsers: number;
@@ -44,6 +45,8 @@ export default function AdminDashboard() {
     const [isVerifying, setIsVerifying] = useState<string | null>(null);
     const [isUnverifying, setIsUnverifying] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [teacherSearch, setTeacherSearch] = useState('');
+    const [studentSearch, setStudentSearch] = useState('');
 
     useEffect(() => {
         const usersQuery = query(collection(db, 'users'), orderBy('fullName'));
@@ -88,20 +91,30 @@ export default function AdminDashboard() {
         };
     }, []);
 
-    const { teachers, students } = useMemo(() => {
-        const teacherList: AppUser[] = [];
-        const studentList: AppUser[] = [];
-        allUsers.forEach(user => {
-            if (user.role === 'teacher') {
-                teacherList.push(user);
-            } else if (user.role === 'student') {
-                studentList.push(user);
-            }
-        });
-        // Sort teachers to show unverified ones at the top
-        teacherList.sort((a, b) => (a.isVerified === b.isVerified) ? 0 : a.isVerified ? 1 : -1);
-        return { teachers: teacherList, students: studentList };
-    }, [allUsers]);
+    const filteredTeachers = useMemo(() => {
+        let teachers = allUsers.filter(user => user.role === 'teacher');
+        
+        // Sort to show unverified ones at the top
+        teachers.sort((a, b) => (a.isVerified === b.isVerified) ? 0 : a.isVerified ? 1 : -1);
+
+        if (!teacherSearch) {
+            return teachers;
+        }
+        return teachers.filter(teacher => 
+            teacher.fullName.toLowerCase().includes(teacherSearch.toLowerCase())
+        );
+    }, [allUsers, teacherSearch]);
+
+    const filteredStudents = useMemo(() => {
+        let students = allUsers.filter(user => user.role === 'student');
+
+        if (!studentSearch) {
+            return students;
+        }
+        return students.filter(student => 
+            student.fullName.toLowerCase().includes(studentSearch.toLowerCase())
+        );
+    }, [allUsers, studentSearch]);
 
     const handleVerifyTeacher = async (teacherId: string, teacherName: string) => {
         setIsVerifying(teacherId);
@@ -216,13 +229,21 @@ export default function AdminDashboard() {
 
         <Card>
         <CardHeader>
-          <CardTitle className="font-headline flex items-center gap-2">
-            <School />
-            Teachers
-          </CardTitle>
-          <CardDescription>
-            Manage all teachers. Unverified teachers appear at the top.
-          </CardDescription>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <CardTitle className="font-headline flex items-center gap-2">
+                        <School />
+                        Teachers
+                    </CardTitle>
+                    <CardDescription>
+                        Manage all teachers. Unverified teachers appear at the top.
+                    </CardDescription>
+                </div>
+                <div className="relative sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input placeholder="Search teachers..." className="pl-10" value={teacherSearch} onChange={(e) => setTeacherSearch(e.target.value)} />
+                </div>
+            </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -247,8 +268,8 @@ export default function AdminDashboard() {
                         </TableCell>
                     </TableRow>
                 ))
-              ) : teachers.length > 0 ? (
-                teachers.map((user) => (
+              ) : filteredTeachers.length > 0 ? (
+                filteredTeachers.map((user) => (
                   <TableRow key={user.uid}>
                     <TableCell className="font-medium">{user.fullName}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -348,7 +369,7 @@ export default function AdminDashboard() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center h-24">
-                    No teachers have registered yet.
+                    {teacherSearch ? `No teachers found matching "${teacherSearch}".` : "No teachers have registered yet."}
                   </TableCell>
                 </TableRow>
               )}
@@ -359,13 +380,21 @@ export default function AdminDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline flex items-center gap-2">
-            <Users />
-            Students
-            </CardTitle>
-          <CardDescription>
-            A list of all registered students.
-          </CardDescription>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <CardTitle className="font-headline flex items-center gap-2">
+                        <Users />
+                        Students
+                    </CardTitle>
+                    <CardDescription>
+                        A list of all registered students.
+                    </CardDescription>
+                </div>
+                <div className="relative sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input placeholder="Search students..." className="pl-10" value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} />
+                </div>
+            </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -385,8 +414,8 @@ export default function AdminDashboard() {
                         <TableCell className="text-right"><Skeleton className="h-8 w-10" /></TableCell>
                     </TableRow>
                 ))
-              ) : students.length > 0 ? (
-                students.map((user) => (
+              ) : filteredStudents.length > 0 ? (
+                filteredStudents.map((user) => (
                   <TableRow key={user.uid}>
                     <TableCell className="font-medium">{user.fullName}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -422,7 +451,7 @@ export default function AdminDashboard() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center h-24">
-                    No students have registered yet.
+                    {studentSearch ? `No students found matching "${studentSearch}".` : "No students have registered yet."}
                   </TableCell>
                 </TableRow>
               )}
