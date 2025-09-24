@@ -9,9 +9,9 @@ function ScanEssayContent() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-headline text-3xl font-bold">Scan an Essay</h1>
+        <h1 className="font-headline text-3xl font-bold">Create a New Submission</h1>
         <p className="text-muted-foreground">
-          Upload or capture a photo of a handwritten essay to digitize it instantly.
+          Create a new submission for a student by scanning a paper or pasting in text.
         </p>
       </div>
 

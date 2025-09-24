@@ -453,7 +453,7 @@ export function EssayScanner() {
             <ScanLine className="size-5"/>
             Essay Input
           </CardTitle>
-          <CardDescription>First, scan the essay by uploading a photo or using your camera.</CardDescription>
+          <CardDescription>First, get the essay text by uploading a photo, using the camera, or pasting it directly.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -532,7 +532,7 @@ export function EssayScanner() {
         <CardHeader className="flex flex-row items-center justify-between">
             <div className="space-y-1.5">
                 <CardTitle className="font-headline text-lg">
-                    Extracted Text & Submission
+                    Submission Details
                 </CardTitle>
                  <CardDescription>Next, verify the text, choose a student and activity, and save it to your class.</CardDescription>
             </div>
@@ -621,7 +621,7 @@ export function EssayScanner() {
 
                   <Textarea
                       id="essay-text"
-                      placeholder="The text extracted from the essay image will appear here..."
+                      placeholder="The text extracted from the essay image will appear here, or you can paste it directly."
                       rows={12}
                       value={essayText}
                       onChange={(e) => setEssayText(e.target.value)}
