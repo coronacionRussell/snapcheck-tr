@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import Image from 'next/image';
 import { deleteUser } from '@/ai/flows/delete-user';
 import { Input } from '@/components/ui/input';
+import dynamic from 'next/dynamic';
 
 interface Stats {
     totalUsers: number;
@@ -38,7 +39,7 @@ interface Stats {
     totalClasses: number;
 }
 
-export default function AdminDashboard() {
+function AdminDashboardContent() {
     const [allUsers, setAllUsers] = useState<AppUser[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -461,4 +462,36 @@ export default function AdminDashboard() {
       </Card>
     </div>
   );
+}
+
+const AdminDashboardDynamic = dynamic(() => Promise.resolve(AdminDashboardContent), {
+  ssr: false,
+  loading: () => (
+    <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
+      <div>
+        <Skeleton className="h-9 w-64" />
+        <Skeleton className="mt-2 h-5 w-80" />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="size-4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-12" />
+              <Skeleton className="mt-1 h-3 w-24" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Skeleton className="h-96 w-full" />
+      <Skeleton className="h-96 w-full" />
+    </div>
+  ),
+});
+
+export default function AdminDashboard() {
+    return <AdminDashboardDynamic />;
 }

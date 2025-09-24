@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import Logo from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import dynamic from 'next/dynamic';
 
 function LoginPageContent() {
   const [email, setEmail] = useState('');
@@ -164,41 +165,37 @@ function LoginPageContent() {
   );
 }
 
+const LoginPageContentDynamic = dynamic(() => Promise.resolve(LoginPageContent), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2">
+      <Skeleton className="hidden md:block h-[500px] w-full rounded-l-lg" />
+      <div className="space-y-6 rounded-lg md:rounded-l-none border bg-card p-8 shadow-lg">
+          <div className="space-y-2 text-center">
+              <Skeleton className="mx-auto h-12 w-48" />
+              <Skeleton className="mx-auto h-6 w-32" />
+              <Skeleton className="mx-auto h-4 w-48" />
+          </div>
+          <div className="space-y-4">
+              <div className="space-y-2">
+                  <Skeleton className="h-4 w-12" />
+                  <Skeleton className="h-10 w-full" />
+              </div>
+               <div className="space-y-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-10 w-full" />
+              </div>
+          </div>
+          <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="mx-auto h-4 w-40" />
+          </div>
+      </div>
+    </div>
+  ),
+});
+
 
 export default function LoginPage() {
-  const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    return (
-      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2">
-        <Skeleton className="hidden md:block h-[500px] w-full rounded-l-lg" />
-        <div className="space-y-6 rounded-lg md:rounded-l-none border bg-card p-8 shadow-lg">
-            <div className="space-y-2 text-center">
-                <Skeleton className="mx-auto h-12 w-48" />
-                <Skeleton className="mx-auto h-6 w-32" />
-                <Skeleton className="mx-auto h-4 w-48" />
-            </div>
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-12" />
-                    <Skeleton className="h-10 w-full" />
-                </div>
-                 <div className="space-y-2">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-10 w-full" />
-                </div>
-            </div>
-            <div className="space-y-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="mx-auto h-4 w-40" />
-            </div>
-        </div>
-      </div>
-    );
-  }
-
-  return <LoginPageContent />;
+  return <LoginPageContentDynamic />;
 }
