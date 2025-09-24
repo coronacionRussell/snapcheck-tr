@@ -19,9 +19,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { BookOpen, DoorOpen, Loader2, LogOut, Trash2 } from 'lucide-react';
+import { BookOpen, DoorOpen, Loader2, LogOut, Search, Trash2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, writeBatch, increment, query, where, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
 
 const JoinClassCard = dynamic(
   () => import('@/components/student/join-class-card').then((mod) => mod.JoinClassCard),
@@ -46,6 +47,7 @@ export default function StudentClassesPage() {
   const [enrolledClasses, setEnrolledClasses] = useState<EnrolledClass[]>([]);
   const [isClassesLoading, setIsClassesLoading] = useState(true);
   const [isLeavingClass, setIsLeavingClass] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
   const fetchStudentData = useCallback(async () => {
@@ -85,6 +87,15 @@ export default function StudentClassesPage() {
         fetchStudentData();
     }
   }, [fetchStudentData, user]);
+
+  const filteredClasses = useMemo(() => {
+    if (!searchQuery) {
+      return enrolledClasses;
+    }
+    return enrolledClasses.filter((c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [enrolledClasses, searchQuery]);
 
   const handleLeaveClass = async (classId: string, className: string) => {
     if (!user) {
@@ -142,7 +153,20 @@ export default function StudentClassesPage() {
         <div className="lg:col-span-3">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline">Enrolled Classes</CardTitle>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <CardTitle className="font-headline">Enrolled Classes</CardTitle>
+                    </div>
+                    <div className="relative sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search classes..." 
+                            className="pl-10" 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -160,9 +184,9 @@ export default function StudentClassesPage() {
                         </div>
                     ))}
                  </div>
-              ) : enrolledClasses.length > 0 ? (
+              ) : filteredClasses.length > 0 ? (
                 <div className="space-y-4">
-                  {enrolledClasses.map((c) => (
+                  {filteredClasses.map((c) => (
                     <div
                       key={c.id}
                       className="flex items-center justify-between rounded-lg border p-4"
@@ -213,8 +237,14 @@ export default function StudentClassesPage() {
                 </div>
               ) : (
                 <div className="py-8 text-center text-muted-foreground">
-                  <p>You are not enrolled in any classes yet.</p>
-                  <p className="text-sm">Use the "Join a New Class" card to get started.</p>
+                    {searchQuery ? (
+                        <p>No classes found matching "{searchQuery}".</p>
+                    ) : (
+                        <>
+                            <p>You are not enrolled in any classes yet.</p>
+                            <p className="text-sm">Use the "Join a New Class" card to get started.</p>
+                        </>
+                    )}
                 </div>
               )}
             </CardContent>
