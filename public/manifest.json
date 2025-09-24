@@ -1,21 +1,22 @@
+
 {
   "name": "SnapCheck",
   "short_name": "SnapCheck",
   "description": "AI-Powered Essay Grading and Feedback",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F0F0F0",
+  "background_color": "#eef4f2",
   "theme_color": "#216a4f",
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.4 2h8.2l2 2H20.6c.6 0 1 .4 1 1v16c0 .6-.4 1-1 1H5.4c-.6 0-1-.4-1-1V3c0-.6.4-1 1-1h1z' fill='%2338a169'/%3E%3Cpath d='M8 7h8v9H8V7z' fill='white'/%3E%3Cpath d='M9.5 9.5h5' stroke='%23a0aec0' stroke-width='1' stroke-linecap='round'/%3E%3Cpath d='M9.5 11.5h5' stroke='%23a0aec0' stroke-width='1' stroke-linecap='round'/%3E%3Cpath d='M9.5 13.5h3' stroke='%23a0aecО' stroke-width='1' stroke-linecap='round'/%3E%3Cpath d='M10 16l1.5 1.5 3-3' stroke='%2338a169' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/svg+xml"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.4 2h8.2l2 2H20.6c.6 0 1 .4 1 1v16c0 .6-.4 1-1 1H5.4c-.6 0-1-.4-1-1V3c0-.6.4-1 1-1h1z' fill='%2338a169'/%3E%3Cpath d='M8 7h8v9H8V7z' fill='white'/%3E%3Cpath d='M9.5 9.5h5' stroke='%23a0aec0' stroke-width='1' stroke-linecap='round'/%3E%3Cpath d='M9.5 11.5h5' stroke='%23a0aec0' stroke-width='1' stroke-linecap='round'/%3E%3Cpath d='M9.5 13.5h3' stroke='%23a0aecО' stroke-width='1' stroke-linecap='round'/%3E%3Cpath d='M10 16l1.5 1.5 3-3' stroke='%2338a169' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/svg+xml"
     }
   ]
 }
