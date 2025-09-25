@@ -25,13 +25,12 @@ This collection stores information about each registered user.
 
 This collection stores all the classes created by teachers.
 
--   **Document ID:** Auto-generated Firestore ID (this ID is used as the "Class Code").
+-   **Document ID:** Auto-generated Firestore ID (this is used as the "Class Code").
 -   **Structure:**
     -   `name` (string): The name of the class (e.g., "English 101").
     -   `teacherId` (string): The `uid` of the teacher who created the class.
     -   `teacherName` (string): The full name of the teacher.
     -   `studentCount` (number): The number of students enrolled in the class.
-    -   `pendingSubmissions` (number): A count of submissions in this class with the status 'Pending Review'.
 
 #### Sub-collection: `students`
 
