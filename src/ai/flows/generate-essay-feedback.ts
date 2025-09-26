@@ -6,7 +6,7 @@
  *
  * - generateEssayFeedback - A function that generates essay feedback.
  * - GenerateEssayFeedbackInput - The input type for the generateEssayFeedback function.
- * - GenerateEssayFeedbackOutput - The return type for the generateEssayfeedback function.
+ * - GenerateEssayFeedbackOutput - The return type for the generatefeedback function.
  */
 
 import {ai} from '@/ai/genkit';
