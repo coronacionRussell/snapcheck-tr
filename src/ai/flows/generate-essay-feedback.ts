@@ -37,6 +37,7 @@ const prompt = ai.definePrompt({
   name: 'generateEssayFeedbackPrompt',
   input: {schema: GenerateEssayFeedbackInputSchema},
   output: {schema: GenerateEssayFeedbackOutputSchema},
+  model: 'gemini-1.5-flash-latest',
   prompt: `You are an AI writing tutor. You will be provided with an essay and a rubric. Your goal is to provide constructive feedback to the student based on the rubric to help them improve their essay.
 
 NEVER mention a score, grade, or any quantitative assessment. Your feedback should be purely qualitative and encouraging.
