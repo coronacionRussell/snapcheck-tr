@@ -4,4 +4,5 @@ import {vertexAI} from '@genkit-ai/vertexai';
 
 export const ai = genkit({
   plugins: [vertexAI()],
-  model: 'gemini-1.5-flash-
+  model: 'gemini-1.5-flash-latest',
+});

@@ -62,4 +62,7 @@ const assistTeacherGradingFlow = ai.defineFlow(
     outputSchema: AssistTeacherGradingOutputSchema,
   },
   async input => {
-    const {output}
+    const {output} = await prompt(input);
+    return output!;
+  }
+);
