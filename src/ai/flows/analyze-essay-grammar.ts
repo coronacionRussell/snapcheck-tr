@@ -38,6 +38,7 @@ export async function analyzeEssayGrammar(
 
 const prompt = ai.definePrompt({
   name: 'analyzeEssayGrammarPrompt',
+  model: 'gemini-1.0-pro',
   input: {schema: AnalyzeEssayGrammarInputSchema},
   output: {schema: AnalyzeEssayGrammarOutputSchema},
   prompt: `You are an expert grammar and spelling checker. Analyze the following essay text.
