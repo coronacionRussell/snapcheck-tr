@@ -1,6 +1,4 @@
 
-'use client';
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -10,10 +8,9 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { useEffect, useState, use } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Skeleton } from '@/components/ui/skeleton';
+import { notFound } from 'next/navigation';
 import { ClassRoster } from '@/components/teacher/class-roster';
 import { ClassActivities } from '@/components/teacher/class-activities';
 import { ClassSubmissions } from '@/components/teacher/class-submissions';
@@ -22,64 +19,30 @@ interface ClassInfo {
   name: string;
 }
 
-function ClassDetailsLoading() {
-    return (
-        <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
-            <Skeleton className="h-10 w-40" />
-            <div className="space-y-2">
-                <Skeleton className="h-9 w-64" />
-                <Skeleton className="h-5 w-96" />
-            </div>
-            <div className="mt-4">
-                <div className="flex space-x-1">
-                    <Skeleton className="h-10 w-28" />
-                    <Skeleton className="h-10 w-36" />
-                    <Skeleton className="h-10 w-24" />
-                </div>
-                <Skeleton className="mt-4 h-64 w-full" />
-            </div>
-        </div>
-    )
-}
-
-export default function ClassDetailsPage({
+// This is now an async Server Component
+export default async function ClassDetailsPage({
   params,
 }: {
-  params: Promise<{ classId: string }>;
+  params: { classId: string };
 }) {
-  const { classId } = use(params);
-  const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { classId } = params;
+  let classInfo: ClassInfo | null = null;
+  let error: string | null = null;
 
+  try {
+    const classDocRef = doc(db, 'classes', classId);
+    const classDoc = await getDoc(classDocRef);
 
-  useEffect(() => {
-    const fetchClassData = async () => {
-      if (!classId) return;
+    if (!classDoc.exists()) {
+      // Use Next.js notFound() for 404 pages
+      notFound();
+    }
+    classInfo = classDoc.data() as ClassInfo;
 
-      try {
-        setIsLoading(true);
-        const classDocRef = doc(db, 'classes', classId);
-        const classDoc = await getDoc(classDocRef);
-
-        if (!classDoc.exists()) {
-          throw new Error('Class not found.');
-        }
-        setClassInfo(classDoc.data() as ClassInfo);
-
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchClassData();
-  }, [classId]);
-
-  if (isLoading) {
-    return <ClassDetailsLoading />
+  } catch (err: any) {
+    console.error(err);
+    // In case of a server error during fetch
+    error = "Failed to load class data. Please try again later.";
   }
 
   if (error) {
