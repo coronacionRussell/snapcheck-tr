@@ -41,7 +41,7 @@ const prompt = ai.definePrompt({
   name: 'generateEssayFeedbackPrompt',
   input: {schema: GenerateEssayFeedbackInputSchema},
   output: {schema: GenerateEssayFeedbackOutputSchema},
-  model: 'gemini-1.5-flash-latest',
+  model: 'gemini-pro',
   prompt: `You are an AI teaching assistant. Your task is to provide constructive feedback on a student's essay based *only* on the provided rubric. Do not provide a score or grade.
 
 Analyze the essay against each criterion in the rubric and provide specific feedback on how well the student met each one.

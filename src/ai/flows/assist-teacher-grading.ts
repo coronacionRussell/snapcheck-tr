@@ -34,7 +34,7 @@ const prompt = ai.definePrompt({
   name: 'assistTeacherGradingPrompt',
   input: {schema: AssistTeacherGradingInputSchema},
   output: {schema: AssistTeacherGradingOutputSchema},
-  model: 'gemini-1.5-flash-latest',
+  model: 'gemini-pro',
   prompt: `You are an AI assistant for teachers. Your task is to provide feedback on a student's essay and suggest a preliminary score out of 100.
 
 The "Assignment Description" is the primary essay question or prompt. Your first priority is to evaluate how well the essay directly answers this prompt and fulfills its specific instructions.
