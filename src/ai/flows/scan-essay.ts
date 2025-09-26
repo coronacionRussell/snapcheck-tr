@@ -53,7 +53,4 @@ const scanEssayFlow = ai.defineFlow(
         outputSchema: ScanEssayOutputSchema,
     },
     async (input) => {
-        const {output} = await prompt(input);
-        return output!;
-    }
-);
+        const {output} = await prompt(
