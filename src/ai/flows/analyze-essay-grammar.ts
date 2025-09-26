@@ -10,6 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import { TEXT_MODEL } from '@/ai/models';
 import {z} from 'genkit';
 
 const AnalyzeEssayGrammarInputSchema = z.object({
@@ -38,7 +39,7 @@ export async function analyzeEssayGrammar(
 
 const prompt = ai.definePrompt({
   name: 'analyzeEssayGrammarPrompt',
-  model: 'gemini-1.0-pro',
+  model: TEXT_MODEL,
   input: {schema: AnalyzeEssayGrammarInputSchema},
   output: {schema: AnalyzeEssayGrammarOutputSchema},
   prompt: `You are an expert grammar and spelling checker. Analyze the following essay text.
