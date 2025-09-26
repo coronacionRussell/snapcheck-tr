@@ -40,7 +40,6 @@ const prompt = ai.definePrompt({
   name: 'analyzeEssayGrammarPrompt',
   input: {schema: AnalyzeEssayGrammarInputSchema},
   output: {schema: AnalyzeEssayGrammarOutputSchema},
-  model: 'gemini-pro',
   prompt: `You are an expert grammar and spelling checker. Analyze the following essay text.
 
 Your task is to return an HTML string with corrections. Do not alter the original text content itself, but wrap any errors in <span> tags.
