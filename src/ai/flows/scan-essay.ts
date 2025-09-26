@@ -34,7 +34,7 @@ const prompt = ai.definePrompt({
     name: 'scanEssayPrompt',
     input: {schema: ScanEssayInputSchema},
     output: {schema: ScanEssayOutputSchema},
-    model: 'gemini-pro-vision',
+    model: 'gemini-1.5-flash-latest',
     prompt: `You are a highly specialized Optical Character Recognition (OCR) engine. Your task is to extract all text from an image of an essay.
 
 - Accurately transcribe all text from the image.
