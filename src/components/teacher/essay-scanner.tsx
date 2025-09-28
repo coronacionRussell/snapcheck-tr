@@ -646,7 +646,7 @@ export function EssayScanner() {
       {newlyCreatedSubmission && selectedClass && (
         <GradeSubmissionDialog
             submission={newlyCreatedSubmission}
-            className={classes.find(c => c.id === selectedClass)?.name || 'this class'}
+            className={classes.find(c => c.id === selectedClass)?.name ?? 'this class'}
             classId={selectedClass}
             isOpen={isGradeDialogOpen}
             setIsOpen={setIsGradeDialogOpen}
@@ -656,5 +656,3 @@ export function EssayScanner() {
     </div>
   );
 }
-
-    

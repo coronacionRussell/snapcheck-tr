@@ -78,14 +78,6 @@ const deleteUserFlow = ai.defineFlow(
     outputSchema: DeleteUserOutputSchema,
   },
   async (input) => {
-    // DIAGNOSTIC STEP: Log available models
-    try {
-        const allModels = await genkit.listModels();
-        console.log('AVAILABLE GENKIT MODELS:', JSON.stringify(allModels, null, 2));
-    } catch (e: any) {
-        console.error('FAILED TO LIST MODELS:', e.message);
-    }
-    
      const llmResponse = await prompt(input);
      const toolCall = llmResponse.toolCalls()?.[0];
 
