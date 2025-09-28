@@ -14,51 +14,34 @@ const firebaseConfig = {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+// A function to check if the config is populated
 const isFirebaseConfigValid = (config: any): boolean => {
     return !!(config.apiKey && config.projectId && !config.apiKey.includes('YOUR_'));
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let storage;
 
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let storage: any = null;
 
-if (!isFirebaseConfigValid(firebaseConfig)) {
-    const errorMessage = `Firebase configuration is invalid or missing. Please ensure your .env file is in the project root and the server has been restarted. The API Key being read is: '${firebaseConfig.apiKey}'. If this is 'undefined', the .env file is not being loaded.`;
-    
-    // In a local development environment, it's better to fail loudly.
-    if (process.env.NODE_ENV === 'development') {
-        throw new Error(errorMessage);
-    } else {
-    // In production, we log the error but don't crash the app.
-        console.error(errorMessage);
+if (isFirebaseConfigValid(firebaseConfig)) {
+    try {
+        if (!getApps().length) {
+            app = initializeApp(firebaseConfig);
+        } else {
+            app = getApp();
+        }
+        
+        auth = getAuth(app);
+        db = getFirestore(app);
+        storage = getStorage(app);
+
+    } catch (error: any) {
+        console.error("Firebase initialization failed:", error);
     }
-}
-
-try {
-    if (!getApps().length) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        app = getApp();
-    }
-
-    auth = getAuth(app);
-    db = getFirestore(app);
-    storage = getStorage(app);
-
-} catch (error: any) {
-    let errorMessage = `An unexpected Firebase error occurred: ${error.message}`;
-
-    if (error.code === 'auth/invalid-api-key') {
-        errorMessage = `Firebase Error: Invalid API Key. Please double-check that the NEXT_PUBLIC_FIREBASE_API_KEY in your .env file is correct and that you have restarted the development server.`;
-    }
-    
-    if (process.env.NODE_ENV === 'development') {
-        throw new Error(errorMessage);
-    } else {
-        console.error(errorMessage);
-    }
+} else {
+    console.error("Firebase configuration is invalid. Please check your .env file.");
 }
 
 
