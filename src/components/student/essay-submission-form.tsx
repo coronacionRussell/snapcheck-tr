@@ -45,7 +45,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [availableActivities, setAvailableActivities] = useState<Activity[]>([]);
   const [isActivityListLoading, setIsActivityListLoading] = useState(true);
-  const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<string | undefined>(preselectedActivityId || undefined);
   
   const [rubric, setRubric] = useState('');
   
@@ -76,11 +76,11 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
         setIsActivityListLoading(false);
         return;
       }
-      const classesQuery = query(collection(db, 'classes'), where('__name__', 'in', classIds));
-      const classesSnapshot = await getDocs(classesQuery);
-      
-      for (const classDoc of classesSnapshot.docs) {
-          const activitiesQuery = query(collection(db, 'classes', classDoc.id, 'activities'));
+
+      for (const classId of classIds) {
+        const classDoc = await getDoc(doc(db, 'classes', classId));
+        if (classDoc.exists()) {
+          const activitiesQuery = query(collection(db, 'classes', classId, 'activities'));
           const activitiesSnapshot = await getDocs(activitiesQuery);
 
           activitiesSnapshot.forEach(activityDoc => {
@@ -89,12 +89,14 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
                 id: activityDoc.id,
                 name: data.name,
                 className: classDoc.data().name,
-                classId: classDoc.id,
+                classId: classId,
                 rubric: data.rubric,
                 description: data.description,
             });
           });
+        }
       }
+      
       setAvailableActivities(activitiesData);
       if (preselectedActivityId && activitiesData.some(a => a.id === preselectedActivityId)) {
         setSelectedActivity(preselectedActivityId);
@@ -113,7 +115,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
   }, [toast, user, preselectedActivityId]);
 
   useEffect(() => {
-    if (user) {
+    if (user && db) {
         fetchActivities();
     }
   }, [user, fetchActivities]);
@@ -376,7 +378,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
         setImageFile(null);
         setImagePreviewUrl(null);
         if (!preselectedActivityId) {
-            setSelectedActivity(null);
+            setSelectedActivity(undefined);
         }
 
     } catch (error) {
@@ -486,7 +488,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
                 <CardContent>
                     <div className="space-y-2">
                         <Label htmlFor="activity-select">Activity</Label>
-                        <Select onValueChange={setSelectedActivity} required disabled={formDisabled || availableActivities.length === 0} value={selectedActivity || ''}>
+                        <Select onValueChange={setSelectedActivity} required disabled={formDisabled || availableActivities.length === 0} value={selectedActivity}>
                             <SelectTrigger id="activity-select">
                                 <SelectValue placeholder={isAuthLoading || isActivityListLoading ? "Loading activities..." : "Select an activity..."} />
                             </SelectTrigger>
@@ -697,5 +699,3 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     </form>
   );
 }
-
-    

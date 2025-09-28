@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/tabs';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { notFound, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { ClassRoster } from '@/components/teacher/class-roster';
 import { ClassActivities } from '@/components/teacher/class-activities';
 import { ClassSubmissions } from '@/components/teacher/class-submissions';
@@ -47,16 +47,16 @@ export default function ClassDetailsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!classId || !db) {
+    if (!classId) return;
+
+    const fetchClassData = async () => {
       if (!db) {
         console.error("Firestore db object is not available.");
         setError("Could not connect to the database. Please check your Firebase configuration.");
         setIsLoading(false);
+        return;
       }
-      return;
-    }
 
-    const fetchClassData = async () => {
       setIsLoading(true);
       try {
         const classDocRef = doc(db, 'classes', classId);
@@ -64,10 +64,9 @@ export default function ClassDetailsPage() {
 
         if (!classDoc.exists()) {
           setError('Class not found.');
-          notFound();
-          return;
+        } else {
+          setClassInfo(classDoc.data() as ClassInfo);
         }
-        setClassInfo(classDoc.data() as ClassInfo);
       } catch (err: any) {
         console.error(err);
         setError("Failed to load class data. Please try again later.");

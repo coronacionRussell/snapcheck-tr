@@ -4,11 +4,12 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StudentClassActivities } from '@/components/student/student-class-activities';
+import { useParams } from 'next/navigation';
 
 interface ClassInfo {
   name: string;
@@ -31,12 +32,9 @@ function ClassDetailsLoading() {
     )
 }
 
-export default function StudentClassDetailsPage({
-  params,
-}: {
-  params: Promise<{ classId: string }>;
-}) {
-  const { classId } = use(params);
+export default function StudentClassDetailsPage() {
+  const params = useParams();
+  const classId = params.classId as string;
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +42,7 @@ export default function StudentClassDetailsPage({
 
   useEffect(() => {
     const fetchClassData = async () => {
-      if (!classId) return;
+      if (!classId || !db) return;
 
       try {
         setIsLoading(true);

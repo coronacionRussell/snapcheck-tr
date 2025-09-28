@@ -45,13 +45,13 @@ export function EssayScanner() {
   
   const [prefilledData, setPrefilledData] = useState<{className: string, studentName: string, activityName: string} | null>(null);
 
-  const [selectedClass, setSelectedClass] = useState<string | null>(preselectedClassId || null);
+  const [selectedClass, setSelectedClass] = useState<string | undefined>(preselectedClassId || undefined);
   const [students, setStudents] = useState<Student[]>([]);
   const [isStudentListLoading, setIsStudentListLoading] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(preselectedStudentId || null);
+  const [selectedStudent, setSelectedStudent] = useState<string | undefined>(preselectedStudentId || undefined);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isActivityListLoading, setIsActivityListLoading] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<string | null>(preselectedActivityId || null);
+  const [selectedActivity, setSelectedActivity] = useState<string | undefined>(preselectedActivityId || undefined);
 
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -68,7 +68,7 @@ export function EssayScanner() {
   const formDisabled = isScanning || isSaving || isGrading;
 
   const fetchPrefilledData = useCallback(async () => {
-    if (!isPrefilled) return;
+    if (!isPrefilled || !db) return;
 
     try {
         const [classDoc, studentDoc, activityDoc] = await Promise.all([
@@ -106,13 +106,11 @@ export function EssayScanner() {
   }, [preselectedClassId, preselectedStudentId, preselectedActivityId]);
 
    useEffect(() => {
-    if (isPrefilled) return;
-
-    if (!selectedClass) {
+    if (isPrefilled || !selectedClass || !db) {
         setStudents([]);
-        setSelectedStudent(null);
+        setSelectedStudent(preselectedStudentId || undefined);
         setActivities([]);
-        setSelectedActivity(null);
+        setSelectedActivity(preselectedActivityId || undefined);
         return;
     };
 
@@ -147,7 +145,7 @@ export function EssayScanner() {
       unsubscribeStudents();
       unsubscribeActivities();
     }
-  }, [selectedClass, toast, isPrefilled]);
+  }, [selectedClass, toast, isPrefilled, preselectedStudentId, preselectedActivityId]);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -327,8 +325,8 @@ export function EssayScanner() {
     setImageFile(null);
     handleRemoveImage();
     if(!isPrefilled) {
-        setSelectedStudent(null);
-        setSelectedActivity(null);
+        setSelectedStudent(undefined);
+        setSelectedActivity(undefined);
     }
     const fileInput = document.getElementById('essay-photo') as HTMLInputElement;
     if(fileInput) fileInput.value = '';
@@ -576,7 +574,7 @@ export function EssayScanner() {
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                             <Label htmlFor="class-select">Class</Label>
-                            <Select onValueChange={(value) => setSelectedClass(value)} value={selectedClass || ''} disabled={areClassesLoading || formDisabled}>
+                            <Select onValueChange={(value) => setSelectedClass(value)} value={selectedClass} disabled={areClassesLoading || formDisabled}>
                                 <SelectTrigger id="class-select">
                                     <SelectValue placeholder={areClassesLoading ? "Loading classes..." : "Select a class"} />
                                 </SelectTrigger>
@@ -589,7 +587,7 @@ export function EssayScanner() {
                             </div>
                             <div className="space-y-2">
                             <Label htmlFor="student-select">Student</Label>
-                            <Select onValueChange={(value) => setSelectedStudent(value)} value={selectedStudent || ''} disabled={!selectedClass || isStudentListLoading || formDisabled}>
+                            <Select onValueChange={(value) => setSelectedStudent(value)} value={selectedStudent} disabled={!selectedClass || isStudentListLoading || formDisabled}>
                                 <SelectTrigger id="student-select">
                                     <SelectValue placeholder={!selectedClass ? "First select a class" : isStudentListLoading ? "Loading students..." : "Select a student"} />
                                 </SelectTrigger>
@@ -604,7 +602,7 @@ export function EssayScanner() {
 
                         <div className="space-y-2">
                             <Label htmlFor="activity-select">Activity</Label>
-                            <Select onValueChange={(value) => setSelectedActivity(value)} value={selectedActivity || ''} disabled={!selectedClass || isActivityListLoading || formDisabled}>
+                            <Select onValueChange={(value) => setSelectedActivity(value)} value={selectedActivity} disabled={!selectedClass || isActivityListLoading || formDisabled}>
                                 <SelectTrigger id="activity-select">
                                     <SelectValue placeholder={!selectedClass ? "First select a class" : isActivityListLoading ? "Loading activities..." : "Select an activity"} />
                                 </SelectTrigger>
