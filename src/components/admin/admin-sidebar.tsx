@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Settings } from 'lucide-react';
+import { LayoutDashboard, Settings, Cpu } from 'lucide-react';
 import {
   SidebarContent,
   SidebarHeader,
@@ -21,6 +21,11 @@ export default function AdminSidebar() {
       href: '/admin/dashboard',
       label: 'Dashboard',
       icon: <LayoutDashboard />,
+    },
+    {
+      href: '/admin/models',
+      label: 'Available Models',
+      icon: <Cpu />,
     },
     {
       href: '/admin/settings',
