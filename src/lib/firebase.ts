@@ -14,35 +14,45 @@ const firebaseConfig = {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// A function to check if the config is populated
-const isFirebaseConfigValid = (config: any): boolean => {
-    return !!(config.apiKey && config.projectId && !config.apiKey.includes('YOUR_'));
-};
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let storage: any;
 
+function initializeFirebase() {
+    if (typeof window === 'undefined') {
+        return null;
+    }
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
-let storage: any = null;
+    // Check for valid config
+    if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes('YOUR_')) {
+        console.error('Firebase configuration is invalid. Please check your .env.local file.');
+        return null;
+    }
 
-if (isFirebaseConfigValid(firebaseConfig)) {
     try {
         if (!getApps().length) {
-            app = initializeApp(firebaseConfig);
+            return initializeApp(firebaseConfig);
         } else {
-            app = getApp();
+            return getApp();
         }
-        
-        auth = getAuth(app);
-        db = getFirestore(app);
-        storage = getStorage(app);
-
-    } catch (error: any) {
-        console.error("Firebase initialization failed:", error);
+    } catch(e) {
+        console.error('Failed to initialize Firebase.', e);
+        return null;
     }
-} else {
-    console.error("Firebase configuration is invalid. Please check your .env file.");
 }
 
+const initializedApp = initializeFirebase();
+
+if (initializedApp) {
+    app = initializedApp;
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+} else {
+    // In a server-side context or if initialization fails,
+    // these will be undefined. Your application logic
+    // (e.g., in `useAuth`) should handle this gracefully.
+}
 
 export { app, db, auth, storage };
