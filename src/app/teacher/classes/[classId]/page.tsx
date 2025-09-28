@@ -1,4 +1,6 @@
 
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -10,53 +12,89 @@ import {
 } from '@/components/ui/tabs';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { ClassRoster } from '@/components/teacher/class-roster';
 import { ClassActivities } from '@/components/teacher/class-activities';
 import { ClassSubmissions } from '@/components/teacher/class-submissions';
+import { useEffect, useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ClassInfo {
   name: string;
 }
 
-// This is now an async Server Component
-export default async function ClassDetailsPage({
-  params,
-}: {
-  params: { classId: string };
-}) {
-  const { classId } = params;
-  let classInfo: ClassInfo | null = null;
-  let error: string | null = null;
+function ClassDetailsLoading() {
+  return (
+    <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
+      <Skeleton className="h-10 w-48" />
+      <div className="space-y-2">
+        <Skeleton className="h-9 w-64" />
+        <Skeleton className="h-5 w-96" />
+      </div>
+      <div className="mt-4">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="mt-4 h-72 w-full" />
+      </div>
+    </div>
+  );
+}
 
-  try {
-    const classDocRef = doc(db, 'classes', classId);
-    const classDoc = await getDoc(classDocRef);
+export default function ClassDetailsPage() {
+  const params = useParams();
+  const classId = params.classId as string;
+  const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    if (!classDoc.exists()) {
-      // Use Next.js notFound() for 404 pages
-      notFound();
+  useEffect(() => {
+    if (!classId || !db) {
+      if (!db) {
+        console.error("Firestore db object is not available.");
+        setError("Could not connect to the database. Please check your Firebase configuration.");
+        setIsLoading(false);
+      }
+      return;
     }
-    classInfo = classDoc.data() as ClassInfo;
 
-  } catch (err: any) {
-    console.error(err);
-    // In case of a server error during fetch
-    error = "Failed to load class data. Please try again later.";
+    const fetchClassData = async () => {
+      setIsLoading(true);
+      try {
+        const classDocRef = doc(db, 'classes', classId);
+        const classDoc = await getDoc(classDocRef);
+
+        if (!classDoc.exists()) {
+          setError('Class not found.');
+          notFound();
+          return;
+        }
+        setClassInfo(classDoc.data() as ClassInfo);
+      } catch (err: any) {
+        console.error(err);
+        setError("Failed to load class data. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClassData();
+  }, [classId]);
+
+  if (isLoading) {
+    return <ClassDetailsLoading />;
   }
-
+  
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-10">
-          <p className="text-destructive font-bold text-lg">{error}</p>
-          <Button variant="outline" asChild className="mt-4">
-            <Link href="/teacher/classes">
-              <ArrowLeft className="mr-2" />
-              Back to Classes
-            </Link>
-          </Button>
+        <p className="text-destructive font-bold text-lg">{error}</p>
+        <Button variant="outline" asChild className="mt-4">
+          <Link href="/teacher/classes">
+            <ArrowLeft className="mr-2" />
+            Back to Classes
+          </Link>
+        </Button>
       </div>
-    )
+    );
   }
 
   return (
