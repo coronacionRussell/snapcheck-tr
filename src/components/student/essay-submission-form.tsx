@@ -62,20 +62,16 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
   const [isAnalyzingGrammar, setIsAnalyzingGrammar] = useState(false);
 
   const fetchActivities = useCallback(async () => {
-    if (!user || !user.enrolledClassIds || user.enrolledClassIds.length === 0) {
+    if (!user || !user.enrolledClassIds || user.enrolledClassIds.length === 0 || !db) {
+      setAvailableActivities([]);
       setIsActivityListLoading(false);
       return;
     }
+
     setIsActivityListLoading(true);
     try {
       const activitiesData: Activity[] = [];
-      
       const classIds = user.enrolledClassIds;
-      if (classIds.length === 0) {
-        setAvailableActivities([]);
-        setIsActivityListLoading(false);
-        return;
-      }
 
       for (const classId of classIds) {
         const classDoc = await getDoc(doc(db, 'classes', classId));
@@ -100,6 +96,12 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
       setAvailableActivities(activitiesData);
       if (preselectedActivityId && activitiesData.some(a => a.id === preselectedActivityId)) {
         setSelectedActivity(preselectedActivityId);
+      } else if (preselectedActivityId) {
+        toast({
+          title: 'Activity Not Found',
+          description: "The pre-selected activity could not be found in your enrolled classes.",
+          variant: 'destructive',
+        });
       }
 
     } catch (error) {
@@ -113,6 +115,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
       setIsActivityListLoading(false);
     }
   }, [toast, user, preselectedActivityId]);
+
 
   useEffect(() => {
     if (user && db) {

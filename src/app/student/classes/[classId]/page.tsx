@@ -42,7 +42,13 @@ export default function StudentClassDetailsPage() {
 
   useEffect(() => {
     const fetchClassData = async () => {
-      if (!classId || !db) return;
+      if (!classId || !db) {
+        if (!db) {
+          setError("Database connection is not available. Please try again later.");
+          setIsLoading(false);
+        }
+        return;
+      }
 
       try {
         setIsLoading(true);

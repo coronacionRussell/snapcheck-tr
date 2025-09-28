@@ -19,30 +19,25 @@ let auth: Auth;
 let db: Firestore;
 let storage: any;
 
-function initializeFirebase() {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
-    // Check for valid config
-    if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes('YOUR_')) {
-        console.error('Firebase configuration is invalid. Please check your .env.local file.');
-        return null;
-    }
-
-    try {
+// This function initializes Firebase and is designed to be called in the browser.
+// It's safe to call it multiple times, as it checks if Firebase is already initialized.
+function initializeFirebaseClient() {
+    if (typeof window !== 'undefined') {
         if (!getApps().length) {
-            return initializeApp(firebaseConfig);
-        } else {
-            return getApp();
+            // Check for valid config before initializing
+            if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('YOUR_')) {
+                return initializeApp(firebaseConfig);
+            } else {
+                console.error('Firebase configuration is invalid or missing. Please check your environment variables.');
+                return null;
+            }
         }
-    } catch(e) {
-        console.error('Failed to initialize Firebase.', e);
-        return null;
+        return getApp();
     }
+    return null;
 }
 
-const initializedApp = initializeFirebase();
+const initializedApp = initializeFirebaseClient();
 
 if (initializedApp) {
     app = initializedApp;
@@ -50,9 +45,9 @@ if (initializedApp) {
     db = getFirestore(app);
     storage = getStorage(app);
 } else {
-    // In a server-side context or if initialization fails,
-    // these will be undefined. Your application logic
-    // (e.g., in `useAuth`) should handle this gracefully.
+    // If the app is running on the server or initialization fails,
+    // these will be undefined. Application logic should handle this gracefully,
+    // for example by only calling Firebase services inside useEffect or client components.
 }
 
 export { app, db, auth, storage };

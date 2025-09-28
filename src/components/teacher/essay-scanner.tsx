@@ -106,18 +106,21 @@ export function EssayScanner() {
   }, [preselectedClassId, preselectedStudentId, preselectedActivityId]);
 
    useEffect(() => {
+    let studentUnsub: (() => void) | undefined;
+    let activityUnsub: (() => void) | undefined;
+
     if (isPrefilled || !selectedClass || !db) {
-        setStudents([]);
-        setSelectedStudent(preselectedStudentId || undefined);
-        setActivities([]);
-        setSelectedActivity(preselectedActivityId || undefined);
-        return;
-    };
+      setStudents([]);
+      setSelectedStudent(preselectedStudentId || undefined);
+      setActivities([]);
+      setSelectedActivity(preselectedActivityId || undefined);
+      return;
+    }
 
     setIsStudentListLoading(true);
     const studentsCollection = collection(db, 'classes', selectedClass, 'students');
     const studentsQuery = query(studentsCollection);
-    const unsubscribeStudents = onSnapshot(studentsQuery, (querySnapshot) => {
+    studentUnsub = onSnapshot(studentsQuery, (querySnapshot) => {
         const studentData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Student[];
         setStudents(studentData);
         setIsStudentListLoading(false);
@@ -130,7 +133,7 @@ export function EssayScanner() {
     setIsActivityListLoading(true);
     const activitiesCollection = collection(db, 'classes', selectedClass, 'activities');
     const activitiesQuery = query(activitiesCollection);
-    const unsubscribeActivities = onSnapshot(activitiesQuery, (querySnapshot) => {
+    activityUnsub = onSnapshot(activitiesQuery, (querySnapshot) => {
         const activityData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Activity[];
         setActivities(activityData);
         setIsActivityListLoading(false);
@@ -142,8 +145,8 @@ export function EssayScanner() {
 
 
     return () => {
-      unsubscribeStudents();
-      unsubscribeActivities();
+      if (studentUnsub) studentUnsub();
+      if (activityUnsub) activityUnsub();
     }
   }, [selectedClass, toast, isPrefilled, preselectedStudentId, preselectedActivityId]);
 
