@@ -6,4 +6,4 @@
 export const TEXT_MODEL = 'gemini-1.5-flash-latest';
 
 // For tasks involving image input (Optical Character Recognition).
-export const VISION_MODEL = 'gemini-1.5-pro-latest';
+export const VISION_MODEL = 'gemini-1.5-flash-latest';
