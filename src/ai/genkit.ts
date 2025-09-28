@@ -6,7 +6,7 @@ export const ai = genkit({
   plugins: [
     vertexAI({
       // The region to run the models in.
-      // region: 'us-central1',
+      location: 'us-central1',
     }),
   ],
   // Log all traces to the console.
