@@ -96,6 +96,13 @@ export default function ClassDetailsPage() {
     );
   }
 
+  // Do not render the main content until classInfo is successfully loaded.
+  if (!classInfo) {
+    // This can happen briefly or if there's an unhandled error.
+    // A loading skeleton is appropriate here.
+    return <ClassDetailsLoading />;
+  }
+
   return (
     <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
       <div className="flex items-center justify-between">
@@ -107,7 +114,7 @@ export default function ClassDetailsPage() {
             </Link>
           </Button>
           <h1 className="font-headline mt-4 text-3xl font-bold">
-            {classInfo?.name || 'Loading class...'}
+            {classInfo.name}
           </h1>
           <p className="text-muted-foreground">
             Manage your class rubric, view student roster, and track
@@ -126,7 +133,7 @@ export default function ClassDetailsPage() {
           <ClassActivities classId={classId} />
         </TabsContent>
          <TabsContent value="submissions" className="mt-4">
-           <ClassSubmissions classId={classId} className={classInfo?.name} />
+           <ClassSubmissions classId={classId} className={classInfo.name} />
         </TabsContent>
          <TabsContent value="roster" className="mt-4">
           <ClassRoster classId={classId} />
