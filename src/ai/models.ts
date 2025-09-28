@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview Centralized model definitions for the application.
  */
