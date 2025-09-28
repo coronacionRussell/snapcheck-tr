@@ -5,7 +5,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { listModels } from 'genkit';
+import * as genkit from 'genkit';
 import { z } from 'genkit';
 
 const ModelInfoSchema = z.object({
@@ -38,7 +38,7 @@ const listModelsFlow = ai.defineFlow(
     outputSchema: ListModelsOutputSchema,
   },
   async () => {
-    const allModels = await listModels();
+    const allModels = await genkit.listModels();
     
     const models = allModels.map(model => ({
       name: model.name,
