@@ -37,6 +37,7 @@ export interface Submission {
     };
     status: 'Pending Review' | 'Graded';
     grade?: string;
+    feedback?: string;
 }
 
 const getStatusVariant = (status: string) => {
@@ -50,7 +51,7 @@ const getStatusVariant = (status: string) => {
     }
 }
 
-export function ClassSubmissions({ classId, className }: { classId: string, className: string }) {
+export function ClassSubmissions({ classId, className }: { classId: string, className?: string }) {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -121,7 +122,7 @@ export function ClassSubmissions({ classId, className }: { classId: string, clas
                     {submission.grade || '-'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <GradeSubmissionDialog submission={submission} className={className} classId={classId} />
+                    <GradeSubmissionDialog submission={submission} className={className || 'this class'} classId={classId} />
                   </TableCell>
                 </TableRow>
               ))
