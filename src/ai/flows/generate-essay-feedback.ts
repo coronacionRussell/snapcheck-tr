@@ -50,10 +50,10 @@ Analyze the essay against each criterion in the rubric and provide specific feed
 You MUST output your response in a valid JSON format.
 
 Rubric:
-{{rubric}}
+{{{rubric}}}
 
 Essay Text:
-{{essayText}}
+{{{essayText}}}
 `,
 });
 

@@ -53,7 +53,7 @@ Your task is to return an HTML string with corrections. Do not alter the origina
 5.  You MUST output your response in a valid JSON format.
 
 Essay Text:
-{{essayText}}
+{{{essayText}}}
 `,
 });
 

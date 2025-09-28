@@ -46,13 +46,13 @@ Generate constructive feedback that explains how the essay performs against both
 You MUST output your response in a valid JSON format.
 
 Assignment Description / Essay Question:
-{{activityDescription}}
+{{{activityDescription}}}
 
 Rubric:
-{{rubricText}}
+{{{rubricText}}}
 
 Essay Text:
-{{essayText}}
+{{{essayText}}}
 `,
 });
 
