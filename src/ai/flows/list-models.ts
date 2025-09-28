@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -5,7 +6,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { listModels } from 'genkit/registry';
+import { listModels } from 'genkit';
 import { z } from 'genkit';
 
 const ModelInfoSchema = z.object({
