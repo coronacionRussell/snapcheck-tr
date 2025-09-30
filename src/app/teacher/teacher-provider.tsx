@@ -29,31 +29,23 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const fetchClasses = useCallback(() => {
     if (!user) {
         setIsLoading(false);
-        return;
+        setClasses([]);
+        return () => {};
     };
 
     setIsLoading(true);
     const q = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const classesDataPromises = snapshot.docs.map(async (doc) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const classesData = snapshot.docs.map((doc) => {
         const data = doc.data();
-        
-        const submissionsQuery = query(collection(db, 'classes', doc.id, 'submissions'), where('status', '==', 'Pending Review'));
-        const submissionsSnapshot = await getDocs(submissionsQuery);
-
-        const studentsQuery = collection(db, 'classes', doc.id, 'students');
-        const studentsSnapshot = await getDocs(studentsQuery);
-
         return {
           id: doc.id,
           ...data,
-          studentCount: studentsSnapshot.size,
-          pendingSubmissions: submissionsSnapshot.size,
+          studentCount: data.studentCount || 0, // Fallback to 0
+          pendingSubmissions: data.pendingSubmissions || 0, // Fallback to 0
         } as Class;
       });
-
-      const classesData = await Promise.all(classesDataPromises);
       setClasses(classesData);
       setIsLoading(false);
     }, (error) => {
@@ -66,7 +58,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return unsubscribe;
   }, [user, toast]);
 
   useEffect(() => {
@@ -103,9 +95,12 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
             description: `The class "${newClass.name}" has been created successfully.`
         });
         
+        // The onSnapshot listener will automatically update the UI
         return {
             id: docRef.id,
-            ...classData
+            ...classData,
+            studentCount: 0,
+            pendingSubmissions: 0,
         };
 
     } catch (error) {

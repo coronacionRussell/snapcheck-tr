@@ -75,10 +75,10 @@ export default function StudentClassDetailsPage() {
     return <ClassDetailsLoading />
   }
 
-  if (error) {
+  if (error || !classInfo) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-10">
-          <p className="text-destructive font-bold text-lg">{error}</p>
+          <p className="text-destructive font-bold text-lg">{error || 'Could not load class details.'}</p>
           <Button variant="outline" asChild className="mt-4">
             <Link href="/student/classes">
               <ArrowLeft className="mr-2" />
@@ -100,10 +100,10 @@ export default function StudentClassDetailsPage() {
             </Link>
           </Button>
           <h1 className="font-headline mt-4 text-3xl font-bold">
-            {classInfo?.name || 'Loading class...'}
+            {classInfo.name}
           </h1>
           <p className="text-xl text-muted-foreground">
-            Taught by: {classInfo?.teacherName || '...'}
+            Taught by: {classInfo.teacherName}
           </p>
           <p className="text-muted-foreground mt-2">
             View activities and submissions for this class.
