@@ -30,6 +30,47 @@ interface Student {
     name: string;
 }
 
+// A simple string similarity function
+function similarity(s1: string, s2: string) {
+  let longer = s1;
+  let shorter = s2;
+  if (s1.length < s2.length) {
+    longer = s2;
+    shorter = s1;
+  }
+  const longerLength = longer.length;
+  if (longerLength === 0) {
+    return 1.0;
+  }
+  return (longerLength - editDistance(longer, shorter)) / parseFloat(String(longerLength));
+}
+
+function editDistance(s1: string, s2: string) {
+  s1 = s1.toLowerCase();
+  s2 = s2.toLowerCase();
+
+  const costs = [];
+  for (let i = 0; i <= s1.length; i++) {
+    let lastValue = i;
+    for (let j = 0; j <= s2.length; j++) {
+      if (i == 0) {
+        costs[j] = j;
+      } else {
+        if (j > 0) {
+          let newValue = costs[j - 1];
+          if (s1.charAt(i - 1) != s2.charAt(j - 1))
+            newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+          costs[j - 1] = lastValue;
+          lastValue = newValue;
+        }
+      }
+    }
+    if (i > 0) costs[s2.length] = lastValue;
+  }
+  return costs[s2.length];
+}
+
+
 export function EssayScanner() {
   const searchParams = useSearchParams();
   const preselectedClassId = searchParams.get('classId');
@@ -45,7 +86,9 @@ export function EssayScanner() {
   const [prefilledData, setPrefilledData] = useState<{className: string, studentName: string, activityName: string} | null>(null);
 
   const [selectedClass, setSelectedClass] = useState<string | undefined>(preselectedClassId || undefined);
-  const [students, setStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [studentsInSelectedClass, setStudentsInSelectedClass] = useState<Student[]>([]);
+
   const [isStudentListLoading, setIsStudentListLoading] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<string | undefined>(preselectedStudentId || undefined);
   
@@ -94,6 +137,22 @@ export function EssayScanner() {
     fetchPrefilledData();
   }, [fetchPrefilledData]);
 
+  const fetchAllStudents = useCallback(async () => {
+    if (!classes || classes.length === 0 || allStudents.length > 0) return;
+    
+    let allStudentsData: Student[] = [];
+    for (const c of classes) {
+        const studentsQuery = query(collection(db, 'classes', c.id, 'students'));
+        const studentsSnapshot = await getDocs(studentsQuery);
+        const students = studentsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as Student));
+        allStudentsData = [...allStudentsData, ...students];
+    }
+    setAllStudents(allStudentsData);
+  }, [classes, allStudents.length]);
+
+  useEffect(() => {
+    fetchAllStudents();
+  }, [fetchAllStudents]);
 
    useEffect(() => {
     if (preselectedClassId) {
@@ -112,7 +171,7 @@ export function EssayScanner() {
     let unsubActivities: (() => void) | undefined;
   
     if (isPrefilled) {
-      setStudents([]);
+      setStudentsInSelectedClass([]);
       setActivities([]);
       return;
     }
@@ -123,7 +182,7 @@ export function EssayScanner() {
       unsubStudents = onSnapshot(studentsQuery, 
         (snapshot) => {
           const studentData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student));
-          setStudents(studentData);
+          setStudentsInSelectedClass(studentData);
           if (!preselectedStudentId) setSelectedStudent(undefined);
           setIsStudentListLoading(false);
         },
@@ -150,7 +209,7 @@ export function EssayScanner() {
         }
       );
     } else {
-      setStudents([]);
+      setStudentsInSelectedClass([]);
       setActivities([]);
       if (!preselectedStudentId) setSelectedStudent(undefined);
       if (!preselectedActivityId) setSelectedActivity(undefined);
@@ -245,6 +304,37 @@ export function EssayScanner() {
                 title: 'Scan Complete!',
                 description: 'The extracted text has been added below.'
             });
+
+            // Automatic selection logic
+            if (result.className && classes.length > 0) {
+                let bestClassMatch = { id: '', score: 0 };
+                classes.forEach(c => {
+                    const score = similarity(result.className!, c.name);
+                    if (score > bestClassMatch.score) {
+                        bestClassMatch = { id: c.id, score };
+                    }
+                });
+                if (bestClassMatch.score > 0.7) { // Confidence threshold
+                    setSelectedClass(bestClassMatch.id);
+                    toast({ title: 'Auto-Selected Class', description: `Matched to "${classes.find(c => c.id === bestClassMatch.id)?.name}"`});
+                }
+            }
+
+            if (result.studentName && allStudents.length > 0) {
+                let bestStudentMatch = { id: '', score: 0 };
+                allStudents.forEach(s => {
+                    const score = similarity(result.studentName!, s.name);
+                    if (score > bestStudentMatch.score) {
+                        bestStudentMatch = { id: s.id, score };
+                    }
+                });
+                if (bestStudentMatch.score > 0.7) {
+                    setSelectedStudent(bestStudentMatch.id);
+                    toast({ title: 'Auto-Selected Student', description: `Matched to "${allStudents.find(s => s.id === bestStudentMatch.id)?.name}"`});
+                }
+            }
+
+
         } else {
              throw new Error("AI did not return any text.");
         }
@@ -545,7 +635,7 @@ export function EssayScanner() {
                                     <SelectValue placeholder={!selectedClass ? "First select a class" : isStudentListLoading ? "Loading students..." : "Select a student"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {students.map(s => (
+                                    {studentsInSelectedClass.map(s => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
