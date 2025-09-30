@@ -387,13 +387,14 @@ export function EssayScanner() {
             imageUrl = await getDownloadURL(uploadTask.ref);
         }
 
-        const studentName = isPrefilled ? prefilledData?.studentName : students.find(s => s.id === selectedStudent)?.name;
-        if (!studentName) {
+        const student = isPrefilled ? { name: prefilledData?.studentName } : students.find(s => s.id === selectedStudent);
+        if (!student?.name) {
             toast({ title: 'Error', description: 'Could not find the selected student.', variant: 'destructive' });
             setIsSaving(false);
             setIsGrading(false);
             return;
         }
+        const studentName = student.name;
         
         let currentActivity: Activity | undefined;
         if (isPrefilled) {
@@ -405,13 +406,12 @@ export function EssayScanner() {
             currentActivity = activities.find(a => a.id === selectedActivity);
         }
         
-        if (!currentActivity) {
+        if (!currentActivity?.name) {
             toast({ title: 'Error', description: 'Could not find the selected activity.', variant: 'destructive' });
             setIsSaving(false);
             setIsGrading(false);
             return;
         }
-
         const assignmentName = currentActivity.name;
 
         const submissionData = {
@@ -665,3 +665,5 @@ export function EssayScanner() {
     </div>
   );
 }
+
+    
