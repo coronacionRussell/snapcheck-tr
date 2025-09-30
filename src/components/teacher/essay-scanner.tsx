@@ -250,11 +250,15 @@ export function EssayScanner() {
           variant: 'destructive'
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error processing image: ", error);
+      let errorMessage = 'There was an issue preparing or scanning your image. Please try again.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       toast({
         title: 'Image Processing Failed',
-        description: error.message || 'There was an issue preparing or scanning your image. Please try again.',
+        description: errorMessage,
         variant: 'destructive'
       });
       if (!essayText) {
@@ -399,9 +403,13 @@ export function EssayScanner() {
       
       resetForm();
   
-    } catch (error: any) {
+    } catch (error: unknown) {
+        let errorMessage = 'Could not save the submission.';
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        }
         console.error("Error saving submission: ", error);
-        toast({ title: 'Error Saving Submission', description: error.message || 'Could not save the submission.', variant: 'destructive' });
+        toast({ title: 'Error Saving Submission', description: errorMessage, variant: 'destructive' });
     } finally {
         setIsSaving(false);
         setIsGrading(false);
