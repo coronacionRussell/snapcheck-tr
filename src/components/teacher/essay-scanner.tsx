@@ -117,7 +117,6 @@ export function EssayScanner() {
     }
   
     if (selectedClass && db) {
-      // Fetch students for the selected class
       setIsStudentListLoading(true);
       const studentsQuery = query(collection(db, 'classes', selectedClass, 'students'));
       unsubStudents = onSnapshot(studentsQuery, 
@@ -133,7 +132,6 @@ export function EssayScanner() {
         }
       );
   
-      // Fetch activities for the selected class
       setIsActivityListLoading(true);
       const activitiesQuery = query(collection(db, 'classes', selectedClass, 'activities'));
       unsubActivities = onSnapshot(activitiesQuery,
@@ -149,7 +147,6 @@ export function EssayScanner() {
         }
       );
     } else {
-      // Reset lists if no class is selected
       setStudents([]);
       setActivities([]);
       setSelectedStudent(undefined);
@@ -251,7 +248,6 @@ export function EssayScanner() {
                 const studentNameLine = lines[0];
                 const activityNameLine = lines[1];
 
-                // Attempt to match student
                 const matchedStudent = students.find(s => s.name.toLowerCase().includes(studentNameLine.toLowerCase()));
                 if (matchedStudent) {
                     setSelectedStudent(matchedStudent.id);
@@ -261,7 +257,6 @@ export function EssayScanner() {
                     });
                 }
 
-                // Attempt to match activity
                 const matchedActivity = activities.find(a => a.name.toLowerCase().includes(activityNameLine.toLowerCase()));
                 if (matchedActivity) {
                     setSelectedActivity(matchedActivity.id);
@@ -347,35 +342,21 @@ export function EssayScanner() {
     else setIsSaving(true);
     
     try {
-        let student: Student | undefined;
-        let activity: Activity | undefined;
+        const studentDoc = await getDoc(doc(db, 'classes', selectedClass!, 'students', selectedStudent!));
+        const activityDoc = await getDoc(doc(db, 'classes', selectedClass!, 'activities', selectedActivity!));
 
-        if (isPrefilled) {
-            if (!prefilledData) {
-                toast({ title: 'Error', description: 'Prefilled data is not ready. Please try again.', variant: 'destructive' });
-                setIsSaving(false); setIsGrading(false); return;
-            }
-            // In prefilled mode, we still need to get the objects for the final submission
-            student = { id: preselectedStudentId!, name: prefilledData.studentName };
-            const activityDoc = await getDoc(doc(db, 'classes', preselectedClassId!, 'activities', preselectedActivityId!));
-            if (activityDoc.exists()) {
-                activity = {id: activityDoc.id, ...activityDoc.data()} as Activity
-            }
-
-        } else {
-            student = students.find(s => s.id === selectedStudent);
-            activity = activities.find(a => a.id === selectedActivity);
-        }
-
-        if (!student) {
-            toast({ title: 'Error', description: 'Could not find the selected student.', variant: 'destructive' });
+        if (!studentDoc.exists()) {
+            toast({ title: 'Error', description: 'Could not find the selected student in the database.', variant: 'destructive' });
             setIsSaving(false); setIsGrading(false); return;
         }
 
-        if (!activity) {
-            toast({ title: 'Error', description: 'Could not find the selected activity.', variant: 'destructive' });
+        if (!activityDoc.exists()) {
+            toast({ title: 'Error', description: 'Could not find the selected activity in the database.', variant: 'destructive' });
             setIsSaving(false); setIsGrading(false); return;
         }
+
+        const student = { id: studentDoc.id, ...studentDoc.data() } as Student;
+        const activity = { id: activityDoc.id, ...activityDoc.data() } as Activity;
 
         let imageUrl = '';
         if (imageFile) {
