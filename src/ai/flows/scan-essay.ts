@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { VISION_MODEL } from '../models';
 
 const ScanEssayInputSchema = z.object({
   imageDataUri: z
@@ -32,6 +33,7 @@ export async function scanEssay(input: ScanEssayInput): Promise<ScanEssayOutput>
 
 const prompt = ai.definePrompt({
     name: 'scanEssayPrompt',
+    model: VISION_MODEL,
     input: {schema: ScanEssayInputSchema},
     output: {schema: ScanEssayOutputSchema},
     prompt: `You are a highly specialized Optical Character Recognition (OCR) engine. Your task is to extract all text from an image of an essay.
