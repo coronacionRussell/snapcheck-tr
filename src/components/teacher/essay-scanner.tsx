@@ -298,7 +298,6 @@ export function EssayScanner() {
 
       const result = await scanEssay({ imageDataUri: dataUri });
 
-      // First, always set the essay text if it exists.
       if (result?.extractedText) {
         setEssayText(result.extractedText);
         toast({
@@ -306,13 +305,9 @@ export function EssayScanner() {
           description: 'The extracted text has been added below.'
         });
       } else {
-        // Handle case where scan returns nothing.
         setEssayText('[Scan failed or no text was found. Please try again with a clearer image.]');
-        throw new Error("AI did not return any text.");
       }
 
-      // Now, attempt auto-selection.
-      // This logic runs independently of setting the text.
       if (result.className && classes.length > 0) {
         let bestClassMatch = { id: '', score: 0 };
         classes.forEach(c => {
@@ -323,7 +318,10 @@ export function EssayScanner() {
         });
         if (bestClassMatch.score > 0.7) { // Confidence threshold
           setSelectedClass(bestClassMatch.id);
-          toast({ title: 'Auto-Selected Class', description: `Matched to "${classes.find(c => c.id === bestClassMatch.id)?.name}"` });
+          const foundClass = classes.find(c => c.id === bestClassMatch.id);
+          if (foundClass) {
+            toast({ title: 'Auto-Selected Class', description: `Matched to "${foundClass.name}"` });
+          }
         }
       }
 
@@ -337,7 +335,10 @@ export function EssayScanner() {
         });
         if (bestStudentMatch.score > 0.7) {
           setSelectedStudent(bestStudentMatch.id);
-          toast({ title: 'Auto-Selected Student', description: `Matched to "${allStudents.find(s => s.id === bestStudentMatch.id)?.name}"` });
+           const foundStudent = allStudents.find(s => s.id === bestStudentMatch.id);
+           if (foundStudent) {
+            toast({ title: 'Auto-Selected Student', description: `Matched to "${foundStudent.name}"` });
+           }
         }
       }
     } catch (error) {
