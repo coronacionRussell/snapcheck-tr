@@ -340,25 +340,25 @@ export function EssayScanner() {
       toast({ title: 'Missing Information', description: 'Please provide essay text/image and select a class, student, and activity.', variant: 'destructive'});
       return;
     }
-
+  
     const finalClassId = isPrefilled ? preselectedClassId : selectedClass;
     const finalStudentId = isPrefilled ? preselectedStudentId : selectedStudent;
     const finalActivityId = isPrefilled ? preselectedActivityId : selectedActivity;
-
+  
     if (!finalClassId || !finalStudentId || !finalActivityId) {
-        toast({ title: 'Selection Error', description: 'A valid class, student, and activity must be selected.', variant: 'destructive'});
-        return;
+      toast({ title: 'Selection Error', description: 'A valid class, student, and activity must be selected.', variant: 'destructive'});
+      return;
     }
-
+  
     if (gradeAfterSave) setIsGrading(true);
     else setIsSaving(true);
-    
+      
     try {
       const studentDocRef = doc(db, 'classes', finalClassId, 'students', finalStudentId);
       const activityDocRef = doc(db, 'classes', finalClassId, 'activities', finalActivityId);
-
+  
       const [studentDoc, activityDoc] = await Promise.all([getDoc(studentDocRef), getDoc(activityDocRef)]);
-
+  
       if (!studentDoc.exists()) {
         toast({ title: 'Error', description: 'Could not find the selected student in the database.', variant: 'destructive' });
         setIsSaving(false); setIsGrading(false); return;
@@ -368,7 +368,7 @@ export function EssayScanner() {
         toast({ title: 'Error', description: 'Could not find the selected activity in the database.', variant: 'destructive' });
         setIsSaving(false); setIsGrading(false); return;
       }
-
+  
       const studentName = studentDoc.data().name;
       const activityName = activityDoc.data().name;
         
@@ -392,7 +392,7 @@ export function EssayScanner() {
           status: 'Pending Review' as 'Pending Review',
           essayImageUrl: imageUrl,
       };
-
+  
       const submissionsCollection = collection(db, 'classes', finalClassId, 'submissions');
       const docRef = await addDoc(submissionsCollection, submissionData);
       
@@ -400,9 +400,9 @@ export function EssayScanner() {
           id: docRef.id,
           ...submissionData,
       };
-
+  
       toast({ title: 'Essay Saved!', description: `The submission for ${studentName} was created.` });
-
+  
       if (gradeAfterSave) {
            toast({ title: 'Running AI Assistant...', description: 'Preparing the grading dialog.' });
            setNewlyCreatedSubmission(finalSubmissionObject);
@@ -410,7 +410,7 @@ export function EssayScanner() {
       }
       
       resetForm();
-
+  
     } catch (error) {
         console.error("Error saving submission: ", error);
         toast({ title: 'Error', description: 'Could not save the submission.', variant: 'destructive' });
@@ -418,7 +418,7 @@ export function EssayScanner() {
         setIsSaving(false);
         setIsGrading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -630,3 +630,5 @@ export function EssayScanner() {
     </div>
   );
 }
+
+    
