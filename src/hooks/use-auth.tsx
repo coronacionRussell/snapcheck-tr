@@ -19,7 +19,6 @@ export interface AppUser {
 
 export function useAuth() {
   const [user, setUser] = useState<AppUser | null>(null);
-  // NEW: Introduce a more detailed loading state
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const router = useRouter();
   const pathname = usePathname();
@@ -27,34 +26,40 @@ export function useAuth() {
   useEffect(() => {
     const authUnsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
+        // A user is authenticated, now set up a real-time listener for their Firestore document.
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         
         const docUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
           if (userDoc.exists()) {
             const userData = userDoc.data() as AppUser;
             setUser(userData);
-            setAuthStatus('authenticated'); // User is fully loaded
+            setAuthStatus('authenticated');
           } else {
-            // This case means auth user exists but Firestore doc doesn't. Log them out.
+            // This case means auth user exists but Firestore doc doesn't. This can happen
+            // if doc creation fails during registration. Log them out to prevent a broken state.
             auth.signOut();
             setUser(null);
             setAuthStatus('unauthenticated');
           }
         }, (error) => {
+          // Handle errors fetching the user document (e.g., permissions)
           console.error("Error fetching user document:", error);
-          auth.signOut();
+          auth.signOut(); // Log out on error to be safe
           setUser(null);
           setAuthStatus('unauthenticated');
         });
         
+        // Return the cleanup function for the Firestore listener
         return () => docUnsubscribe();
 
       } else {
+        // No Firebase user is authenticated.
         setUser(null);
-        setAuthStatus('unauthenticated'); // No user is logged in
+        setAuthStatus('unauthenticated');
       }
     });
 
+    // Return the cleanup function for the auth state listener
     return () => authUnsubscribe();
   }, []);
 
