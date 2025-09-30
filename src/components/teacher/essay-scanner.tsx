@@ -406,14 +406,13 @@ export function EssayScanner() {
         }
         
         if (!currentActivity) {
-            throw new Error("Could not find the selected activity.");
+            toast({ title: 'Error', description: 'Could not find the selected activity.', variant: 'destructive' });
+            setIsSaving(false);
+            setIsGrading(false);
+            return;
         }
 
         const assignmentName = currentActivity.name;
-        
-        if (!assignmentName) {
-            throw new Error("Could not determine student or assignment name.");
-        }
 
         const submissionData = {
             studentId: selectedStudent,
