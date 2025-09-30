@@ -96,7 +96,6 @@ export default function ClassDetailsPage() {
     );
   }
 
-  // Do not render the main content until classInfo is successfully loaded.
   if (!classInfo) {
     return <ClassDetailsLoading />;
   }

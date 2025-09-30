@@ -56,13 +56,14 @@ export default function StudentClassDetailsPage() {
         const classDoc = await getDoc(classDocRef);
 
         if (!classDoc.exists()) {
-          throw new Error('Class not found.');
+          setError('Class not found.');
+        } else {
+          setClassInfo(classDoc.data() as ClassInfo);
         }
-        setClassInfo(classDoc.data() as ClassInfo);
 
       } catch (err: any) {
         console.error(err);
-        setError(err.message);
+        setError('Failed to load class data. Please try again later.');
       } finally {
         setIsLoading(false);
       }
@@ -75,10 +76,10 @@ export default function StudentClassDetailsPage() {
     return <ClassDetailsLoading />
   }
 
-  if (error || !classInfo) {
+  if (error) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-10">
-          <p className="text-destructive font-bold text-lg">{error || 'Could not load class details.'}</p>
+          <p className="text-destructive font-bold text-lg">{error}</p>
           <Button variant="outline" asChild className="mt-4">
             <Link href="/student/classes">
               <ArrowLeft className="mr-2" />
@@ -87,6 +88,10 @@ export default function StudentClassDetailsPage() {
           </Button>
       </div>
     )
+  }
+  
+  if (!classInfo) {
+    return <ClassDetailsLoading />;
   }
 
   return (
