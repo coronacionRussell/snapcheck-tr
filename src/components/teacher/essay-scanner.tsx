@@ -276,79 +276,82 @@ export function EssayScanner() {
     setIsScanning(true);
     setEssayText('');
     try {
-        toast({ title: 'Compressing Image...', description: 'Preparing your image for a faster upload.' });
-        const options = {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1920,
-            useWebWorker: true,
-        };
-        const compressedFile = await imageCompression(file, options);
-        setImageFile(compressedFile);
+      toast({ title: 'Compressing Image...', description: 'Preparing your image for a faster upload.' });
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(file, options);
+      setImageFile(compressedFile);
 
-        if (imagePreviewUrl) {
-            URL.revokeObjectURL(imagePreviewUrl);
-        }
-        setImagePreviewUrl(URL.createObjectURL(compressedFile));
-        
-        const dataUri = await imageCompression.getDataUrlFromFile(compressedFile);
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      setImagePreviewUrl(URL.createObjectURL(compressedFile));
+
+      const dataUri = await imageCompression.getDataUrlFromFile(compressedFile);
+      toast({
+        title: 'Scanning Essay...',
+        description: 'The AI is extracting text from your image. This may take a moment.'
+      });
+
+      const result = await scanEssay({ imageDataUri: dataUri });
+
+      // First, always set the essay text if it exists.
+      if (result?.extractedText) {
+        setEssayText(result.extractedText);
         toast({
-            title: 'Scanning Essay...',
-            description: 'The AI is extracting text from your image. This may take a moment.'
+          title: 'Scan Complete!',
+          description: 'The extracted text has been added below.'
         });
-        
-        const result = await scanEssay({ imageDataUri: dataUri });
+      } else {
+        // Handle case where scan returns nothing.
+        setEssayText('[Scan failed or no text was found. Please try again with a clearer image.]');
+        throw new Error("AI did not return any text.");
+      }
 
-        if (result && result.extractedText) {
-            setEssayText(result.extractedText);
-            toast({
-                title: 'Scan Complete!',
-                description: 'The extracted text has been added below.'
-            });
-
-            // Automatic selection logic
-            if (result.className && classes.length > 0) {
-                let bestClassMatch = { id: '', score: 0 };
-                classes.forEach(c => {
-                    const score = similarity(result.className!, c.name);
-                    if (score > bestClassMatch.score) {
-                        bestClassMatch = { id: c.id, score };
-                    }
-                });
-                if (bestClassMatch.score > 0.7) { // Confidence threshold
-                    setSelectedClass(bestClassMatch.id);
-                    toast({ title: 'Auto-Selected Class', description: `Matched to "${classes.find(c => c.id === bestClassMatch.id)?.name}"`});
-                }
-            }
-
-            if (result.studentName && allStudents.length > 0) {
-                let bestStudentMatch = { id: '', score: 0 };
-                allStudents.forEach(s => {
-                    const score = similarity(result.studentName!, s.name);
-                    if (score > bestStudentMatch.score) {
-                        bestStudentMatch = { id: s.id, score };
-                    }
-                });
-                if (bestStudentMatch.score > 0.7) {
-                    setSelectedStudent(bestStudentMatch.id);
-                    toast({ title: 'Auto-Selected Student', description: `Matched to "${allStudents.find(s => s.id === bestStudentMatch.id)?.name}"`});
-                }
-            }
-
-
-        } else {
-             throw new Error("AI did not return any text.");
+      // Now, attempt auto-selection.
+      // This logic runs independently of setting the text.
+      if (result.className && classes.length > 0) {
+        let bestClassMatch = { id: '', score: 0 };
+        classes.forEach(c => {
+          const score = similarity(result.className!, c.name);
+          if (score > bestClassMatch.score) {
+            bestClassMatch = { id: c.id, score };
+          }
+        });
+        if (bestClassMatch.score > 0.7) { // Confidence threshold
+          setSelectedClass(bestClassMatch.id);
+          toast({ title: 'Auto-Selected Class', description: `Matched to "${classes.find(c => c.id === bestClassMatch.id)?.name}"` });
         }
+      }
 
+      if (result.studentName && allStudents.length > 0) {
+        let bestStudentMatch = { id: '', score: 0 };
+        allStudents.forEach(s => {
+          const score = similarity(result.studentName!, s.name);
+          if (score > bestStudentMatch.score) {
+            bestStudentMatch = { id: s.id, score };
+          }
+        });
+        if (bestStudentMatch.score > 0.7) {
+          setSelectedStudent(bestStudentMatch.id);
+          toast({ title: 'Auto-Selected Student', description: `Matched to "${allStudents.find(s => s.id === bestStudentMatch.id)?.name}"` });
+        }
+      }
     } catch (error) {
-        console.error("Error processing image: ", error);
-        toast({
-            title: 'Image Processing Failed',
-            description: 'There was an issue preparing or scanning your image. Please try again.',
-            variant: 'destructive'
-        });
+      console.error("Error processing image: ", error);
+      toast({
+        title: 'Image Processing Failed',
+        description: 'There was an issue preparing or scanning your image. Please try again.',
+        variant: 'destructive'
+      });
+      if (!essayText) {
         setEssayText('[Scan failed. Please try again with a clearer image.]');
+      }
     } finally {
-        setIsScanning(false);
+      setIsScanning(false);
     }
   };
 
