@@ -130,7 +130,7 @@ export default function ClassDetailsPage() {
           <ClassActivities classId={classId} />
         </TabsContent>
          <TabsContent value="submissions" className="mt-4">
-           <ClassSubmissions classId={classId} className={classInfo.name} />
+           {classInfo && <ClassSubmissions classId={classId} className={classInfo.name} />}
         </TabsContent>
          <TabsContent value="roster" className="mt-4">
           <ClassRoster classId={classId} />
