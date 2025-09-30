@@ -128,7 +128,7 @@ export function ClassSubmissions({ classId, className }: { classId: string, clas
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
+                <TableCell colSpan={6} className="text-center h-24">
                   No students have submitted essays for this class yet.
                 </TableCell>
               </TableRow>
@@ -139,3 +139,4 @@ export function ClassSubmissions({ classId, className }: { classId: string, clas
     </Card>
   );
 }
+
