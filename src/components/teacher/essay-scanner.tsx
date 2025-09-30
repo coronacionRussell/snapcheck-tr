@@ -364,7 +364,6 @@ export function EssayScanner() {
         return;
     }
 
-
     if (gradeAfterSave) {
         setIsGrading(true);
     } else {
@@ -388,7 +387,7 @@ export function EssayScanner() {
         }
 
         const student = isPrefilled ? { name: prefilledData?.studentName } : students.find(s => s.id === selectedStudent);
-        if (!student?.name) {
+        if (!student) {
             toast({ title: 'Error', description: 'Could not find the selected student.', variant: 'destructive' });
             setIsSaving(false);
             setIsGrading(false);
@@ -406,7 +405,7 @@ export function EssayScanner() {
             currentActivity = activities.find(a => a.id === selectedActivity);
         }
         
-        if (!currentActivity?.name) {
+        if (!currentActivity) {
             toast({ title: 'Error', description: 'Could not find the selected activity.', variant: 'destructive' });
             setIsSaving(false);
             setIsGrading(false);
@@ -666,4 +665,3 @@ export function EssayScanner() {
   );
 }
 
-    
