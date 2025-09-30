@@ -1,13 +1,13 @@
 
 import {genkit} from 'genkit';
-import {vertexAI} from '@genkit-ai/vertexai';
+import {googleAI} from '@genkit-ai/googleai';
 import {TEXT_MODEL} from './models';
 
 export const ai = genkit({
   plugins: [
-    vertexAI({
+    googleAI({
       // The region to run the models in.
-      location: 'us-central1',
+      // location: 'us-central1',
     }),
   ],
   // Log all traces to the console.
