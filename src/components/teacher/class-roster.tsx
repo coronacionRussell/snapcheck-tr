@@ -141,7 +141,7 @@ export function ClassRoster({ classId }: { classId: string }) {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will permanently remove <strong>{student.name}</strong> from your class. They will lose access and this action cannot be undone.
+                            This will permanently remove <strong>{student?.name || 'this student'}</strong> from your class. They will lose access and this action cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

@@ -105,10 +105,10 @@ export default function StudentClassDetailsPage() {
             </Link>
           </Button>
           <h1 className="font-headline mt-4 text-3xl font-bold">
-            {classInfo.name}
+            {classInfo?.name || 'Loading Class...'}
           </h1>
           <p className="text-xl text-muted-foreground">
-            Taught by: {classInfo.teacherName}
+            Taught by: {classInfo?.teacherName || '...'}
           </p>
           <p className="text-muted-foreground mt-2">
             View activities and submissions for this class.

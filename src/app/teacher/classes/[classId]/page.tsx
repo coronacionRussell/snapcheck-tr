@@ -111,7 +111,7 @@ export default function ClassDetailsPage() {
             </Link>
           </Button>
           <h1 className="font-headline mt-4 text-3xl font-bold">
-            {classInfo.name}
+            {classInfo?.name || 'Loading Class...'}
           </h1>
           <p className="text-muted-foreground">
             Manage your class rubric, view student roster, and track

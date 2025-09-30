@@ -77,7 +77,7 @@ export default function StudentHistoryPage() {
             const classDocRef = doc(db, 'classes', classId);
             const classDoc = await getDoc(classDocRef);
             if (classDoc.exists()) {
-                className = classDoc.data().name || 'Unknown Class';
+                className = classDoc.data()?.name || 'Unknown Class';
             }
         }
         

@@ -80,9 +80,9 @@ export function EssayScanner() {
         ]);
         
         setPrefilledData({
-            className: classDoc.exists() ? classDoc.data().name : 'Unknown Class',
-            studentName: studentDoc.exists() ? studentDoc.data().name : 'Unknown Student',
-            activityName: activityDoc.exists() ? activityDoc.data().name : 'Unknown Activity'
+            className: classDoc.exists() ? classDoc.data()?.name ?? 'Unknown Class' : 'Unknown Class',
+            studentName: studentDoc.exists() ? studentDoc.data()?.name ?? 'Unknown Student' : 'Unknown Student',
+            activityName: activityDoc.exists() ? activityDoc.data()?.name ?? 'Unknown Activity' : 'Unknown Activity'
         });
     } catch(error) {
         console.error("Error fetching prefilled data: ", error);
@@ -348,8 +348,12 @@ export function EssayScanner() {
         throw new Error('Could not find the selected activity in the database.');
       }
   
-      const studentName = studentDoc.data().name;
-      const activityName = activityDoc.data().name;
+      const studentName = studentDoc.data()?.name;
+      const activityName = activityDoc.data()?.name;
+
+      if (!studentName || !activityName) {
+        throw new Error('Could not retrieve student or activity name.');
+      }
         
       let imageUrl = '';
       if (imageFile) {
