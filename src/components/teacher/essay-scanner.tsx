@@ -388,6 +388,12 @@ export function EssayScanner() {
         }
 
         const studentName = isPrefilled ? prefilledData?.studentName : students.find(s => s.id === selectedStudent)?.name;
+        if (!studentName) {
+            toast({ title: 'Error', description: 'Could not find the selected student.', variant: 'destructive' });
+            setIsSaving(false);
+            setIsGrading(false);
+            return;
+        }
         
         let currentActivity: Activity | undefined;
         if (isPrefilled) {
@@ -405,7 +411,7 @@ export function EssayScanner() {
 
         const assignmentName = currentActivity.name;
         
-        if (!studentName || !assignmentName) {
+        if (!assignmentName) {
             throw new Error("Could not determine student or assignment name.");
         }
 
