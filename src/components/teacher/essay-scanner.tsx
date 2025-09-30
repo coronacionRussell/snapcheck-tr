@@ -66,7 +66,8 @@ export function EssayScanner() {
 
   const isPrefilled = !!(preselectedClassId && preselectedActivityId && preselectedStudentId);
   const formDisabled = isScanning || isSaving || isGrading;
-  const canSave = selectedClass && selectedStudent && selectedActivity && (essayText.trim() || imageFile);
+  
+  const canSave = (isPrefilled || (selectedClass && selectedStudent && selectedActivity)) && (essayText.trim() || imageFile);
 
   const fetchPrefilledData = useCallback(async () => {
     if (!isPrefilled || !db) return;
@@ -109,11 +110,6 @@ export function EssayScanner() {
   useEffect(() => {
     let unsubStudents: (() => void) | undefined;
     let unsubActivities: (() => void) | undefined;
-
-    const clearSelections = () => {
-        if (!preselectedStudentId) setSelectedStudent(undefined);
-        if (!preselectedActivityId) setSelectedActivity(undefined);
-    };
   
     if (isPrefilled) {
       setStudents([]);
@@ -128,8 +124,8 @@ export function EssayScanner() {
         (snapshot) => {
           const studentData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student));
           setStudents(studentData);
+          if (!preselectedStudentId) setSelectedStudent(undefined);
           setIsStudentListLoading(false);
-          clearSelections();
         },
         (error) => {
           console.error("Error fetching students:", error);
@@ -144,8 +140,8 @@ export function EssayScanner() {
         (snapshot) => {
           const activityData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Activity));
           setActivities(activityData);
+          if (!preselectedActivityId) setSelectedActivity(undefined);
           setIsActivityListLoading(false);
-          clearSelections();
         },
         (error) => {
           console.error("Error fetching activities:", error);
@@ -156,7 +152,8 @@ export function EssayScanner() {
     } else {
       setStudents([]);
       setActivities([]);
-      clearSelections();
+      if (!preselectedStudentId) setSelectedStudent(undefined);
+      if (!preselectedActivityId) setSelectedActivity(undefined);
     }
   
     return () => {
@@ -344,12 +341,21 @@ export function EssayScanner() {
       return;
     }
 
+    const finalClassId = isPrefilled ? preselectedClassId : selectedClass;
+    const finalStudentId = isPrefilled ? preselectedStudentId : selectedStudent;
+    const finalActivityId = isPrefilled ? preselectedActivityId : selectedActivity;
+
+    if (!finalClassId || !finalStudentId || !finalActivityId) {
+        toast({ title: 'Selection Error', description: 'A valid class, student, and activity must be selected.', variant: 'destructive'});
+        return;
+    }
+
     if (gradeAfterSave) setIsGrading(true);
     else setIsSaving(true);
     
     try {
-      const studentDocRef = doc(db, 'classes', selectedClass!, 'students', selectedStudent!);
-      const activityDocRef = doc(db, 'classes', selectedClass!, 'activities', selectedActivity!);
+      const studentDocRef = doc(db, 'classes', finalClassId, 'students', finalStudentId);
+      const activityDocRef = doc(db, 'classes', finalClassId, 'activities', finalActivityId);
 
       const [studentDoc, activityDoc] = await Promise.all([getDoc(studentDocRef), getDoc(activityDocRef)]);
 
@@ -357,18 +363,19 @@ export function EssayScanner() {
         toast({ title: 'Error', description: 'Could not find the selected student in the database.', variant: 'destructive' });
         setIsSaving(false); setIsGrading(false); return;
       }
-      const student = { id: studentDoc.id, ...studentDoc.data() } as Student;
-
+      
       if (!activityDoc.exists()) {
         toast({ title: 'Error', description: 'Could not find the selected activity in the database.', variant: 'destructive' });
         setIsSaving(false); setIsGrading(false); return;
       }
-      const activity = { id: activityDoc.id, ...activityDoc.data() } as Activity;
+
+      const studentName = studentDoc.data().name;
+      const activityName = activityDoc.data().name;
         
       let imageUrl = '';
       if (imageFile) {
           const uploadId = uuidv4();
-          const filePath = `submissions/${selectedClass}/${selectedStudent}/${uploadId}-${imageFile.name}`;
+          const filePath = `submissions/${finalClassId}/${finalStudentId}/${uploadId}-${imageFile.name}`;
           const storageRef = ref(storage, filePath);
           toast({ title: 'Uploading Image...', description: 'Please wait while the image is uploaded.' });
           const uploadTask = await uploadBytes(storageRef, imageFile);
@@ -376,17 +383,17 @@ export function EssayScanner() {
       }
       
       const submissionData = {
-          studentId: student.id,
-          studentName: student.name,
-          assignmentName: activity.name,
-          activityId: activity.id,
+          studentId: finalStudentId,
+          studentName: studentName,
+          assignmentName: activityName,
+          activityId: finalActivityId,
           essayText: essayText,
           submittedAt: Timestamp.now(),
           status: 'Pending Review' as 'Pending Review',
           essayImageUrl: imageUrl,
       };
 
-      const submissionsCollection = collection(db, 'classes', selectedClass!, 'submissions');
+      const submissionsCollection = collection(db, 'classes', finalClassId, 'submissions');
       const docRef = await addDoc(submissionsCollection, submissionData);
       
       const finalSubmissionObject: Submission = {
@@ -394,7 +401,7 @@ export function EssayScanner() {
           ...submissionData,
       };
 
-      toast({ title: 'Essay Saved!', description: `The submission for ${student.name} was created.` });
+      toast({ title: 'Essay Saved!', description: `The submission for ${studentName} was created.` });
 
       if (gradeAfterSave) {
            toast({ title: 'Running AI Assistant...', description: 'Preparing the grading dialog.' });
@@ -610,11 +617,11 @@ export function EssayScanner() {
             )}
         </CardContent>
       </Card>
-      {newlyCreatedSubmission && selectedClass && (
+      {newlyCreatedSubmission && (selectedClass || preselectedClassId) && (
         <GradeSubmissionDialog
             submission={newlyCreatedSubmission}
-            className={classes.find(c => c.id === selectedClass)?.name ?? 'this class'}
-            classId={selectedClass}
+            className={classes.find(c => c.id === (selectedClass || preselectedClassId))?.name ?? 'this class'}
+            classId={(selectedClass || preselectedClassId)!}
             isOpen={isGradeDialogOpen}
             setIsOpen={setIsGradeDialogOpen}
             runAiOnOpen={true}
@@ -623,5 +630,3 @@ export function EssayScanner() {
     </div>
   );
 }
-
-    
