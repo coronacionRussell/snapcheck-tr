@@ -27,11 +27,11 @@
       "fields": [
         {
           "fieldPath": "studentId",
-          "arrayConfig": "CONTAINS"
+          "order": "ASCENDING"
         },
         {
-          "fieldPath": "status",
-          "arrayConfig": "CONTAINS"
+          "fieldPath": "submittedAt",
+          "order": "DESCENDING"
         }
       ]
     },
@@ -41,7 +41,7 @@
       "fields": [
         {
           "fieldPath": "activityId",
-          "arrayConfig": "CONTAINS"
+          "order": "ASCENDING"
         }
       ]
     },
@@ -51,21 +51,11 @@
       "fields": [
         {
           "fieldPath": "status",
-          "arrayConfig": "CONTAINS"
+          "order": "ASCENDING"
         },
         {
           "fieldPath": "submittedAt",
           "order": "DESCENDING"
-        }
-      ]
-    },
-     {
-      "collectionGroup": "submissions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "studentId",
-          "arrayConfig": "CONTAINS"
         }
       ]
     },
@@ -76,6 +66,16 @@
         {
           "fieldPath": "submittedAt",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fullName",
+          "order": "ASCENDING"
         }
       ]
     }

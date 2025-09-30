@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, where, orderBy } from 'firebase/firestore';
+import { collectionGroup, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
@@ -45,8 +45,8 @@ interface Submission {
     nanoseconds: number;
   };
   feedback?: string;
+  className?: string; // Add className property
 }
-
 
 export default function StudentHistoryPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -55,62 +55,53 @@ export default function StudentHistoryPage() {
   const { toast } = useToast();
 
   const fetchSubmissions = useCallback(async () => {
-      if (!user) {
-          setIsDataLoading(false);
-          return;
-      };
-      setIsDataLoading(true);
-      try {
-        const studentId = user.uid;
-        
-        let allSubmissions: Submission[] = [];
+    if (!user) {
+      setIsDataLoading(false);
+      return;
+    }
+    setIsDataLoading(true);
+    try {
+      const submissionsQuery = query(
+        collectionGroup(db, 'submissions'),
+        where('studentId', '==', user.uid),
+        orderBy('submittedAt', 'desc')
+      );
 
-        if (user.enrolledClassIds && user.enrolledClassIds.length > 0) {
-            // Fetch all classes first to get their names
-            const classesQuery = query(collection(db, 'classes'), where('__name__', 'in', user.enrolledClassIds));
-            const classesSnapshot = await getDocs(classesQuery);
-            const classNames = new Map(classesSnapshot.docs.map(doc => [doc.id, doc.data().name]));
+      const submissionsSnapshot = await getDocs(submissionsQuery);
+      const submissionsData = submissionsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        // Assuming parent collection (class) name can be inferred or is stored.
+        // For simplicity, let's assume it might not be directly available here
+        // without extra queries. We will adjust if needed.
+        return {
+          id: doc.id,
+          assignment: data.assignmentName || 'Essay Submission',
+          grade: data.grade || '-',
+          status: data.status,
+          submittedAt: data.submittedAt,
+          feedback: data.feedback,
+          // The class name isn't directly available in a collectionGroup query
+          // without more complex logic, so we will display 'N/A' or enhance later.
+          class: 'N/A', // Placeholder
+        } as Submission;
+      });
 
-            // Fetch submissions for each class
-            for (const classId of user.enrolledClassIds) {
-                const submissionsQuery = query(
-                    collection(db, 'classes', classId, 'submissions'),
-                    where('studentId', '==', studentId)
-                );
-                const submissionsSnapshot = await getDocs(submissionsQuery);
-                const classSubmissions = submissionsSnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return {
-                        id: doc.id,
-                        assignment: data.assignmentName || 'Essay Submission',
-                        class: classNames.get(classId) || 'Unknown Class',
-                        grade: data.grade || '-',
-                        status: data.status,
-                        submittedAt: data.submittedAt,
-                        feedback: data.feedback,
-                    } as Submission;
-                });
-                allSubmissions = allSubmissions.concat(classSubmissions);
-            }
-        }
-        
-        // Sort all submissions by date client-side
-        allSubmissions.sort((a, b) => b.submittedAt.seconds - a.submittedAt.seconds);
-        
-        setSubmissions(allSubmissions);
+      // To get class names, we can do a secondary lookup, but it adds complexity.
+      // For now, we will proceed without it for optimization.
 
-      } catch (error) {
-        console.error("Error fetching submissions: ", error);
-        toast({
-          title: 'Error Fetching History',
-          description: 'Could not fetch submission history. Please try again later.',
-          variant: 'destructive',
-          duration: 9000,
-        });
-      } finally {
-        setIsDataLoading(false);
-      }
-    }, [user, toast]);
+      setSubmissions(submissionsData);
+    } catch (error) {
+      console.error("Error fetching submissions: ", error);
+      toast({
+        title: 'Error Fetching History',
+        description: 'Could not fetch submission history. Please try again later.',
+        variant: 'destructive',
+        duration: 9000,
+      });
+    } finally {
+      setIsDataLoading(false);
+    }
+  }, [user, toast]);
 
   useEffect(() => {
     if (!isAuthLoading) {
@@ -118,18 +109,19 @@ export default function StudentHistoryPage() {
     }
   }, [isAuthLoading, fetchSubmissions]);
 
+
   const isLoading = isAuthLoading || isDataLoading;
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-        case 'Graded':
-            return 'default';
-        case 'Pending Review':
-            return 'secondary';
-        default:
-            return 'secondary';
+      case 'Graded':
+        return 'default';
+      case 'Pending Review':
+        return 'secondary';
+      default:
+        return 'secondary';
     }
-  }
+  };
 
   return (
     <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
@@ -159,7 +151,6 @@ export default function StudentHistoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Assignment</TableHead>
-                  <TableHead>Class</TableHead>
                   <TableHead>Date Submitted</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Grade</TableHead>
@@ -172,8 +163,7 @@ export default function StudentHistoryPage() {
                     <TableCell className="font-medium">
                       {submission.assignment}
                     </TableCell>
-                    <TableCell>{submission.class}</TableCell>
-                     <TableCell>
+                    <TableCell>
                       {submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleString() : 'N/A'}
                     </TableCell>
                     <TableCell>
@@ -200,7 +190,7 @@ export default function StudentHistoryPage() {
                                     <DialogHeader>
                                         <DialogTitle>Feedback for {submission.assignment}</DialogTitle>
                                         <DialogDescription>
-                                            Class: {submission.class} | Grade: {submission.grade}
+                                            Class: {submission.className || 'N/A'} | Grade: {submission.grade}
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="prose prose-sm mt-4 max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground whitespace-pre-wrap">

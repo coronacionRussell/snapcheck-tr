@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, writeBatch, increment } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, writeBatch, increment, arrayRemove } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '../ui/skeleton';
 import { Button } from '../ui/button';
@@ -68,9 +68,13 @@ export function ClassRoster({ classId }: { classId: string }) {
         const studentRef = doc(db, 'classes', classId, 'students', studentId);
         batch.delete(studentRef);
 
-        // Reference to the parent class document
+        // Reference to the parent class document to decrement student count
         const classRef = doc(db, 'classes', classId);
         batch.update(classRef, { studentCount: increment(-1) });
+
+        // Reference to the user document to remove the class from their enrolled list
+        const userRef = doc(db, 'users', studentId);
+        batch.update(userRef, { enrolledClassIds: arrayRemove(classId) });
 
         await batch.commit();
 
@@ -156,7 +160,7 @@ export function ClassRoster({ classId }: { classId: string }) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="text-center">
+                <TableCell colSpan={3} className="text-center h-24">
                   No students have enrolled in this class yet.
                 </TableCell>
               </TableRow>
