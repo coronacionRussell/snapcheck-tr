@@ -213,7 +213,9 @@ export function EssayScanner() {
     }
   };
 
-  const processImage = async (file: File): Promise<string | null> => {
+  const processImage = async (file: File) => {
+    setIsScanning(true);
+    setEssayText('');
     try {
         toast({ title: 'Compressing Image...', description: 'Preparing your image for a faster upload.' });
         const options = {
@@ -228,27 +230,25 @@ export function EssayScanner() {
             URL.revokeObjectURL(imagePreviewUrl);
         }
         setImagePreviewUrl(URL.createObjectURL(compressedFile));
-
-        setIsScanning(true);
-        setEssayText('');
         
         const dataUri = await imageCompression.getDataUrlFromFile(compressedFile);
         toast({
             title: 'Scanning Essay...',
             description: 'The AI is extracting text from your image. This may take a moment.'
         });
-        const result = await scanEssay({ imageDataUri: dataUri });
-        const fullText = result.extractedText;
-
-        toast({
-            title: 'Scan Complete!',
-            description: 'The extracted text has been added below.'
-        });
         
-        setEssayText(fullText);
+        const result = await scanEssay({ imageDataUri: dataUri });
 
-        setIsScanning(false);
-        return fullText;
+        if (result && result.extractedText) {
+            setEssayText(result.extractedText);
+            toast({
+                title: 'Scan Complete!',
+                description: 'The extracted text has been added below.'
+            });
+        } else {
+             throw new Error("AI did not return any text.");
+        }
+
     } catch (error) {
         console.error("Error processing image: ", error);
         toast({
@@ -256,8 +256,9 @@ export function EssayScanner() {
             description: 'There was an issue preparing or scanning your image. Please try again.',
             variant: 'destructive'
         });
+        setEssayText('[Scan failed. Please try again with a clearer image.]');
+    } finally {
         setIsScanning(false);
-        return null;
     }
   };
 
@@ -605,5 +606,3 @@ export function EssayScanner() {
     </div>
   );
 }
-
-    
