@@ -98,8 +98,6 @@ export default function ClassDetailsPage() {
 
   // Do not render the main content until classInfo is successfully loaded.
   if (!classInfo) {
-    // This can happen briefly or if there's an unhandled error.
-    // A loading skeleton is appropriate here.
     return <ClassDetailsLoading />;
   }
 
