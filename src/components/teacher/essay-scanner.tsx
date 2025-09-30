@@ -109,6 +109,11 @@ export function EssayScanner() {
   useEffect(() => {
     let unsubStudents: (() => void) | undefined;
     let unsubActivities: (() => void) | undefined;
+
+    const clearSelections = () => {
+        if (!preselectedStudentId) setSelectedStudent(undefined);
+        if (!preselectedActivityId) setSelectedActivity(undefined);
+    };
   
     if (isPrefilled) {
       setStudents([]);
@@ -124,6 +129,7 @@ export function EssayScanner() {
           const studentData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student));
           setStudents(studentData);
           setIsStudentListLoading(false);
+          clearSelections();
         },
         (error) => {
           console.error("Error fetching students:", error);
@@ -139,6 +145,7 @@ export function EssayScanner() {
           const activityData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Activity));
           setActivities(activityData);
           setIsActivityListLoading(false);
+          clearSelections();
         },
         (error) => {
           console.error("Error fetching activities:", error);
@@ -149,15 +156,14 @@ export function EssayScanner() {
     } else {
       setStudents([]);
       setActivities([]);
-      setSelectedStudent(undefined);
-      setSelectedActivity(undefined);
+      clearSelections();
     }
   
     return () => {
       unsubStudents?.();
       unsubActivities?.();
     };
-  }, [selectedClass, isPrefilled, toast]);
+  }, [selectedClass, isPrefilled, preselectedActivityId, preselectedStudentId, toast]);
 
 
   useEffect(() => {
@@ -330,72 +336,73 @@ export function EssayScanner() {
   
   const handleSaveOrGrade = async (gradeAfterSave: boolean) => {
     if (!user) {
-        toast({ title: 'Not Authenticated', variant: 'destructive' });
-        return;
+      toast({ title: 'Not Authenticated', variant: 'destructive' });
+      return;
     }
     if (!canSave) {
-        toast({ title: 'Missing Information', description: 'Please provide essay text/image and select a class, student, and activity.', variant: 'destructive'});
-        return;
+      toast({ title: 'Missing Information', description: 'Please provide essay text/image and select a class, student, and activity.', variant: 'destructive'});
+      return;
     }
 
     if (gradeAfterSave) setIsGrading(true);
     else setIsSaving(true);
     
     try {
-        const studentDoc = await getDoc(doc(db, 'classes', selectedClass!, 'students', selectedStudent!));
-        const activityDoc = await getDoc(doc(db, 'classes', selectedClass!, 'activities', selectedActivity!));
+      const studentDocRef = doc(db, 'classes', selectedClass!, 'students', selectedStudent!);
+      const activityDocRef = doc(db, 'classes', selectedClass!, 'activities', selectedActivity!);
 
-        if (!studentDoc.exists()) {
-            toast({ title: 'Error', description: 'Could not find the selected student in the database.', variant: 'destructive' });
-            setIsSaving(false); setIsGrading(false); return;
-        }
+      const [studentDoc, activityDoc] = await Promise.all([getDoc(studentDocRef), getDoc(activityDocRef)]);
 
-        if (!activityDoc.exists()) {
-            toast({ title: 'Error', description: 'Could not find the selected activity in the database.', variant: 'destructive' });
-            setIsSaving(false); setIsGrading(false); return;
-        }
+      if (!studentDoc.exists()) {
+        toast({ title: 'Error', description: 'Could not find the selected student in the database.', variant: 'destructive' });
+        setIsSaving(false); setIsGrading(false); return;
+      }
+      const student = { id: studentDoc.id, ...studentDoc.data() } as Student;
 
-        const student = { id: studentDoc.id, ...studentDoc.data() } as Student;
-        const activity = { id: activityDoc.id, ...activityDoc.data() } as Activity;
-
-        let imageUrl = '';
-        if (imageFile) {
-            const uploadId = uuidv4();
-            const filePath = `submissions/${selectedClass}/${selectedStudent}/${uploadId}-${imageFile.name}`;
-            const storageRef = ref(storage, filePath);
-            toast({ title: 'Uploading Image...', description: 'Please wait while the image is uploaded.' });
-            const uploadTask = await uploadBytes(storageRef, imageFile);
-            imageUrl = await getDownloadURL(uploadTask.ref);
-        }
+      if (!activityDoc.exists()) {
+        toast({ title: 'Error', description: 'Could not find the selected activity in the database.', variant: 'destructive' });
+        setIsSaving(false); setIsGrading(false); return;
+      }
+      const activity = { id: activityDoc.id, ...activityDoc.data() } as Activity;
         
-        const submissionData = {
-            studentId: student.id,
-            studentName: student.name,
-            assignmentName: activity.name,
-            activityId: activity.id,
-            essayText: essayText,
-            submittedAt: Timestamp.now(),
-            status: 'Pending Review' as 'Pending Review',
-            essayImageUrl: imageUrl,
-        };
+      let imageUrl = '';
+      if (imageFile) {
+          const uploadId = uuidv4();
+          const filePath = `submissions/${selectedClass}/${selectedStudent}/${uploadId}-${imageFile.name}`;
+          const storageRef = ref(storage, filePath);
+          toast({ title: 'Uploading Image...', description: 'Please wait while the image is uploaded.' });
+          const uploadTask = await uploadBytes(storageRef, imageFile);
+          imageUrl = await getDownloadURL(uploadTask.ref);
+      }
+      
+      const submissionData = {
+          studentId: student.id,
+          studentName: student.name,
+          assignmentName: activity.name,
+          activityId: activity.id,
+          essayText: essayText,
+          submittedAt: Timestamp.now(),
+          status: 'Pending Review' as 'Pending Review',
+          essayImageUrl: imageUrl,
+      };
 
-        const submissionsCollection = collection(db, 'classes', selectedClass!, 'submissions');
-        const docRef = await addDoc(submissionsCollection, submissionData);
-        
-        const finalSubmissionObject: Submission = {
-            id: docRef.id,
-            ...submissionData,
-        };
+      const submissionsCollection = collection(db, 'classes', selectedClass!, 'submissions');
+      const docRef = await addDoc(submissionsCollection, submissionData);
+      
+      const finalSubmissionObject: Submission = {
+          id: docRef.id,
+          ...submissionData,
+      };
 
-        toast({ title: 'Essay Saved!', description: `The submission for ${student.name} was created.` });
+      toast({ title: 'Essay Saved!', description: `The submission for ${student.name} was created.` });
 
-        if (gradeAfterSave) {
-             toast({ title: 'Running AI Assistant...', description: 'Preparing the grading dialog.' });
-             setNewlyCreatedSubmission(finalSubmissionObject);
-             setIsGradeDialogOpen(true);
-        }
-        
-        resetForm();
+      if (gradeAfterSave) {
+           toast({ title: 'Running AI Assistant...', description: 'Preparing the grading dialog.' });
+           setNewlyCreatedSubmission(finalSubmissionObject);
+           setIsGradeDialogOpen(true);
+      }
+      
+      resetForm();
 
     } catch (error) {
         console.error("Error saving submission: ", error);
