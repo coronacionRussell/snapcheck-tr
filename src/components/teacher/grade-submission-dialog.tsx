@@ -15,7 +15,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, CheckCircle, Eye, Loader2, Sparkles } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -57,7 +57,16 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
 
   const { toast } = useToast();
 
-  const handleRunAiGrading = async () => {
+  const handleRunAiGrading = useCallback(async () => {
+    if (!activityDescription) {
+      toast({
+        title: 'Cannot Run AI',
+        description: 'AI grading requires an activity with a description.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setIsLoading(true);
     setAiResult(null);
     setGrammarAnalysis('');
@@ -88,7 +97,7 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activityDescription, submission.essayText, rubric, toast]);
 
   useEffect(() => {
     if (isOpen) {
@@ -96,26 +105,27 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
       setSubmission(currentSubmission);
       setFinalScore(currentSubmission.grade || '');
       setFinalFeedback(currentSubmission.feedback || '');
+      setAiResult(null);
+      setGrammarAnalysis('');
 
       const submissionRef = doc(db, 'classes', classId, 'submissions', initialSubmission.id);
       const unsubscribe = onSnapshot(submissionRef, (doc) => {
         if (doc.exists()) {
           const updatedData = { id: doc.id, ...doc.data() } as Submission;
           setSubmission(updatedData);
-          // Only update if the user hasn't started editing
           if (!finalScore) setFinalScore(updatedData.grade || '');
           if (!finalFeedback) setFinalFeedback(updatedData.feedback || '');
         }
       });
       return () => unsubscribe();
     }
-  }, [isOpen, classId, initialSubmission.id]);
+  }, [isOpen, classId, initialSubmission.id, initialSubmission, finalScore, finalFeedback]);
 
   useEffect(() => {
     const fetchActivityDetails = async () => {
         if (!submission.activityId) {
             setRubric('This essay was submitted as a general submission and is not tied to a specific activity rubric.');
-            setActivityDescription('No activity description available for this general submission.');
+            setActivityDescription(''); // Set to empty string
             setIsRubricLoading(false);
             return;
         }
@@ -127,14 +137,15 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
 
             if(activityDoc.exists()) {
                 const activityData = activityDoc.data();
+                const desc = activityData.description || 'No description provided for this activity.';
                 setRubric(activityData.rubric);
-                setActivityDescription(activityData.description);
-                if (runAiOnOpen) {
+                setActivityDescription(desc);
+                if (runAiOnOpen && desc) {
                   handleRunAiGrading();
                 }
             } else {
                 setRubric('No rubric found for this activity.');
-                setActivityDescription('No description found for this activity.');
+                setActivityDescription('');
                 toast({
                     title: 'Activity Not Found',
                     description: 'Could not find the details for the submitted activity.',
@@ -144,7 +155,7 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
         } catch (error) {
             console.error("Error fetching activity details: ", error);
             setRubric('Error loading rubric.');
-            setActivityDescription('Error loading description.');
+            setActivityDescription('');
              toast({
                 title: 'Error',
                 description: 'Could not load the details for this activity.',
@@ -158,8 +169,7 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
     if (isOpen) {
         fetchActivityDetails();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submission.activityId, classId, isOpen, toast]);
+  }, [submission.activityId, classId, isOpen, toast, runAiOnOpen, handleRunAiGrading]);
   
   const handleFinalizeGrade = async () => {
     if (!finalScore.trim()) {
@@ -249,7 +259,6 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
   };
 
   const isGraded = submission.status === 'Graded';
-  const DialogComponent = controlledIsOpen !== undefined ? Dialog : DialogTrigger;
 
   const trigger = (
     <Button>
@@ -353,7 +362,7 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
                         <Button
                             className="w-full"
                             onClick={handleRunAiGrading}
-                            disabled={isLoading || isRubricLoading || !rubric}
+                            disabled={isLoading || isRubricLoading || !rubric || !activityDescription}
                             >
                             {isLoading ? (
                                 <>
