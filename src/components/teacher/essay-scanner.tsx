@@ -66,6 +66,7 @@ export function EssayScanner() {
 
   const isPrefilled = !!(preselectedClassId && preselectedActivityId && preselectedStudentId);
   const formDisabled = isScanning || isSaving || isGrading;
+  const canSave = selectedClass && selectedStudent && selectedActivity && (essayText.trim() || imageFile);
 
   const fetchPrefilledData = useCallback(async () => {
     if (!isPrefilled || !db) return;
@@ -336,16 +337,12 @@ export function EssayScanner() {
   }
   
   const handleSaveOrGrade = async (gradeAfterSave: boolean) => {
-    if (!selectedClass || !selectedStudent || !selectedActivity) {
-        toast({ title: 'Missing Information', description: 'Please select a class, student, and activity.', variant: 'destructive'});
-        return;
-    }
-    if (!essayText.trim() && !imageFile) {
-        toast({ title: 'Missing Input', description: 'Please provide essay text or upload an image to scan.', variant: 'destructive' });
-        return;
-    }
     if (!user) {
         toast({ title: 'Not Authenticated', description: 'You must be logged in to save an essay.', variant: 'destructive' });
+        return;
+    }
+    if (!canSave) {
+        toast({ title: 'Missing Information', description: 'Please provide essay text/image and select a class, student, and activity.', variant: 'destructive'});
         return;
     }
 
@@ -356,48 +353,29 @@ export function EssayScanner() {
     }
     
     try {
-        let studentName: string | undefined;
-        let student: Student | undefined;
+        let student, studentName, activity, activityName;
 
         if (isPrefilled) {
             if (!prefilledData) {
-                toast({ title: 'Error', description: 'Prefilled data is not ready yet. Please wait a moment and try again.', variant: 'destructive' });
-                setIsSaving(false);
-                setIsGrading(false);
-                return;
+                toast({ title: 'Error', description: 'Prefilled data is not ready. Please wait a moment and try again.', variant: 'destructive' });
+                setIsSaving(false); setIsGrading(false); return;
             }
             studentName = prefilledData.studentName;
+            activityName = prefilledData.activityName;
         } else {
             student = students.find(s => s.id === selectedStudent);
             if (!student) {
                 toast({ title: 'Error', description: 'Could not find the selected student in the class roster.', variant: 'destructive' });
-                setIsSaving(false);
-                setIsGrading(false);
-                return;
+                setIsSaving(false); setIsGrading(false); return;
             }
             studentName = student.name;
-        }
 
-        let activityName: string | undefined;
-        let currentActivity: Activity | undefined;
-
-        if (isPrefilled) {
-             if (!prefilledData) {
-                toast({ title: 'Error', description: 'Prefilled data is not ready yet. Please wait a moment and try again.', variant: 'destructive' });
-                setIsSaving(false);
-                setIsGrading(false);
-                return;
-            }
-            activityName = prefilledData.activityName;
-        } else {
-            currentActivity = activities.find(a => a.id === selectedActivity);
-            if (!currentActivity) {
+            activity = activities.find(a => a.id === selectedActivity);
+            if (!activity) {
                 toast({ title: 'Error', description: 'Could not find the selected activity.', variant: 'destructive' });
-                setIsSaving(false);
-                setIsGrading(false);
-                return;
+                setIsSaving(false); setIsGrading(false); return;
             }
-            activityName = currentActivity.name;
+            activityName = activity.name;
         }
 
         let currentEssayText = essayText;
@@ -405,18 +383,14 @@ export function EssayScanner() {
             const processedText = await processImage(imageFile);
             if (!processedText) {
                 toast({ title: 'Scan Failed', description: 'Could not extract text from image to proceed.', variant: 'destructive' });
-                setIsSaving(false);
-                setIsGrading(false);
-                return;
+                setIsSaving(false); setIsGrading(false); return;
             }
             currentEssayText = processedText;
         }
     
         if (!currentEssayText) {
             toast({ title: 'No Text', description: 'There is no essay text to save or grade.', variant: 'destructive' });
-            setIsSaving(false);
-            setIsGrading(false);
-            return;
+            setIsSaving(false); setIsGrading(false); return;
         }
 
         let imageUrl = '';
@@ -445,7 +419,7 @@ export function EssayScanner() {
             essayImageUrl: imageUrl,
         };
 
-        const submissionsCollection = collection(db, 'classes', selectedClass, 'submissions');
+        const submissionsCollection = collection(db, 'classes', selectedClass!, 'submissions');
         const docRef = await addDoc(submissionsCollection, submissionData);
         
         const finalSubmissionObject: Submission = {
@@ -659,11 +633,11 @@ export function EssayScanner() {
                       disabled={formDisabled}
                   />
                    <div className="flex justify-end gap-2">
-                      <Button onClick={() => handleSaveOrGrade(false)} disabled={formDisabled || (!essayText && !imageFile)}>
+                      <Button onClick={() => handleSaveOrGrade(false)} disabled={formDisabled || !canSave}>
                         {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2"/>}
                         {isSaving ? 'Saving...' : 'Save to Class'}
                       </Button>
-                      <Button onClick={() => handleSaveOrGrade(true)} disabled={formDisabled || (!essayText && !imageFile)}>
+                      <Button onClick={() => handleSaveOrGrade(true)} disabled={formDisabled || !canSave}>
                         {isGrading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2"/>}
                         {isGrading ? 'Processing...' : 'Save & Grade'}
                       </Button>
@@ -686,3 +660,4 @@ export function EssayScanner() {
   );
 }
 
+    
