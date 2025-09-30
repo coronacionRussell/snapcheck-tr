@@ -73,16 +73,14 @@ export function EssayScanner() {
     if (!isPrefilled || !db) return;
 
     try {
-        const [classDoc, studentDoc, activityDoc] = await Promise.all([
-            getDoc(doc(db, 'classes', preselectedClassId!)),
-            getDoc(doc(db, 'classes', preselectedClassId!, 'students', preselectedStudentId!)),
-            getDoc(doc(db, 'classes', preselectedClassId!, 'activities', preselectedActivityId!)),
-        ]);
-        
+        const classDoc = preselectedClassId ? await getDoc(doc(db, 'classes', preselectedClassId)) : null;
+        const studentDoc = preselectedClassId && preselectedStudentId ? await getDoc(doc(db, 'classes', preselectedClassId, 'students', preselectedStudentId)) : null;
+        const activityDoc = preselectedClassId && preselectedActivityId ? await getDoc(doc(db, 'classes', preselectedClassId, 'activities', preselectedActivityId)) : null;
+
         setPrefilledData({
-            className: classDoc.exists() ? classDoc.data()?.name ?? 'Unknown Class' : 'Unknown Class',
-            studentName: studentDoc.exists() ? studentDoc.data()?.name ?? 'Unknown Student' : 'Unknown Student',
-            activityName: activityDoc.exists() ? activityDoc.data()?.name ?? 'Unknown Activity' : 'Unknown Activity'
+            className: classDoc?.exists() ? classDoc.data()?.name ?? 'Unknown Class' : 'Unknown Class',
+            studentName: studentDoc?.exists() ? studentDoc.data()?.name ?? 'Unknown Student' : 'Unknown Student',
+            activityName: activityDoc?.exists() ? activityDoc.data()?.name ?? 'Unknown Activity' : 'Unknown Activity'
         });
     } catch(error) {
         console.error("Error fetching prefilled data: ", error);
@@ -252,11 +250,11 @@ export function EssayScanner() {
           variant: 'destructive'
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing image: ", error);
       toast({
         title: 'Image Processing Failed',
-        description: 'There was an issue preparing or scanning your image. Please try again.',
+        description: error.message || 'There was an issue preparing or scanning your image. Please try again.',
         variant: 'destructive'
       });
       if (!essayText) {
@@ -355,16 +353,6 @@ export function EssayScanner() {
         throw new Error('Could not retrieve student or activity name.');
       }
         
-      let imageUrl = '';
-      if (imageFile) {
-          const uploadId = uuidv4();
-          const filePath = `submissions/${finalClassId}/${finalStudentId}/${uploadId}-${imageFile.name}`;
-          const storageRef = ref(storage, filePath);
-          toast({ title: 'Uploading Image...', description: 'Please wait while the image is uploaded.' });
-          const uploadTask = await uploadBytes(storageRef, imageFile);
-          imageUrl = await getDownloadURL(uploadTask.ref);
-      }
-      
       const submissionData = {
           studentId: finalStudentId,
           studentName: studentName,
@@ -373,9 +361,10 @@ export function EssayScanner() {
           essayText: essayText,
           submittedAt: Timestamp.now(),
           status: 'Pending Review' as 'Pending Review',
-          essayImageUrl: imageUrl,
+          essayImageUrl: '', // Start with an empty URL
       };
-  
+      
+      // 1. Create Firestore doc immediately
       const submissionsCollection = collection(db, 'classes', finalClassId, 'submissions');
       const docRef = await addDoc(submissionsCollection, submissionData);
       
@@ -385,7 +374,23 @@ export function EssayScanner() {
       };
   
       toast({ title: 'Essay Saved!', description: `The submission for ${studentName} was created.` });
+
+      // 2. Upload image in background
+      if (imageFile) {
+          const uploadId = uuidv4();
+          const filePath = `submissions/${finalClassId}/${finalStudentId}/${uploadId}-${imageFile.name}`;
+          const storageRef = ref(storage, filePath);
+          
+          uploadBytes(storageRef, imageFile).then(uploadTask => {
+              getDownloadURL(uploadTask.ref).then(imageUrl => {
+                  updateDoc(docRef, { essayImageUrl: imageUrl });
+              });
+          }).catch(error => {
+              console.error("Background image upload failed: ", error);
+          });
+      }
   
+      // 3. Handle post-save actions
       if (gradeAfterSave) {
            toast({ title: 'Running AI Assistant...', description: 'Preparing the grading dialog.' });
            setNewlyCreatedSubmission(finalSubmissionObject);

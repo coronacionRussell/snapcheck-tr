@@ -337,52 +337,52 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     setIsSubmitting(true);
     
     try {
-        let imageUrl = '';
-        // If there's an image, upload it now and get the URL
-        if (imageFile) {
-            const uploadId = uuidv4();
-            const filePath = `pending_uploads/${uploadId}/${imageFile.name}`;
-            const storageRef = ref(storage, filePath);
-            
-            toast({
-              title: 'Uploading Image...',
-              description: 'Please wait while your essay image is uploaded.'
-            });
+      const studentId = user.uid; 
+      const studentName = user.fullName;
 
-            const uploadTask = await uploadBytes(storageRef, imageFile);
-            imageUrl = await getDownloadURL(uploadTask.ref);
-        }
+      // 1. Create submission document in Firestore immediately.
+      const submissionsCollection = collection(db, 'classes', activity.classId, 'submissions');
+      const submissionRef = await addDoc(submissionsCollection, {
+          studentId,
+          studentName,
+          essayText,
+          submittedAt: Timestamp.now(),
+          status: 'Pending Review',
+          assignmentName: activity.name,
+          activityId: activity.id,
+          essayImageUrl: '', // Start with empty URL
+      });
+
+      toast({
+          title: 'Essay Submitted!',
+          description: 'Your teacher has received your essay. Uploading image in the background if attached.',
+      });
+
+      // 2. If there's an image, upload it in the background and update the doc.
+      if (imageFile) {
+          const uploadId = uuidv4();
+          const filePath = `pending_uploads/${uploadId}/${imageFile.name}`;
+          const storageRef = ref(storage, filePath);
+          
+          uploadBytes(storageRef, imageFile).then(uploadTask => {
+              getDownloadURL(uploadTask.ref).then(imageUrl => {
+                  updateDoc(submissionRef, { essayImageUrl: imageUrl });
+              });
+          }).catch(error => {
+              console.error("Background image upload failed: ", error);
+              // Optionally notify the user that image upload failed but text was submitted
+          });
+      }
       
-        const studentId = user.uid; 
-        const studentName = user.fullName;
-
-        // Create submission document with the final image URL
-        const submissionsCollection = collection(db, 'classes', activity.classId, 'submissions');
-        await addDoc(submissionsCollection, {
-            studentId,
-            studentName,
-            essayText,
-            submittedAt: Timestamp.now(),
-            status: 'Pending Review',
-            assignmentName: activity.name,
-            activityId: activity.id,
-            essayImageUrl: imageUrl,
-        });
-
-        toast({
-            title: 'Essay Submitted!',
-            description: 'Your teacher has received your essay for grading.',
-        });
-        
-        // Reset form
-        setEssayText('');
-        setFeedback('');
-        setGrammarAnalysis('');
-        setImageFile(null);
-        setImagePreviewUrl(null);
-        if (!preselectedActivityId) {
-            setSelectedActivity(undefined);
-        }
+      // 3. Reset form immediately for a fast UI response.
+      setEssayText('');
+      setFeedback('');
+      setGrammarAnalysis('');
+      setImageFile(null);
+      setImagePreviewUrl(null);
+      if (!preselectedActivityId) {
+          setSelectedActivity(undefined);
+      }
 
     } catch (error) {
         console.error(error);
