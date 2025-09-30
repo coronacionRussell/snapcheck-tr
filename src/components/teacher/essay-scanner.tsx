@@ -21,7 +21,6 @@ import { useAuth } from '@/hooks/use-auth';
 import type { Activity } from './class-activities';
 import imageCompression from 'browser-image-compression';
 import { v4 as uuidv4 } from 'uuid';
-import { assistTeacherGrading } from '@/ai/flows/assist-teacher-grading';
 import { GradeSubmissionDialog } from './grade-submission-dialog';
 import { Submission } from './class-submissions';
 import Image from 'next/image';
@@ -107,50 +106,62 @@ export function EssayScanner() {
     }
   }, [preselectedClassId, preselectedStudentId, preselectedActivityId]);
 
-   useEffect(() => {
-    let studentUnsub: (() => void) | undefined;
-    let activityUnsub: (() => void) | undefined;
-
-    if (isPrefilled || !selectedClass || !db) {
+  useEffect(() => {
+    let unsubStudents: (() => void) | undefined;
+    let unsubActivities: (() => void) | undefined;
+  
+    if (isPrefilled) {
       setStudents([]);
-      setSelectedStudent(preselectedStudentId || undefined);
       setActivities([]);
-      setSelectedActivity(preselectedActivityId || undefined);
       return;
     }
-
-    setIsStudentListLoading(true);
-    const studentsCollection = collection(db, 'classes', selectedClass, 'students');
-    const studentsQuery = query(studentsCollection);
-    studentUnsub = onSnapshot(studentsQuery, (querySnapshot) => {
-        const studentData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Student[];
-        setStudents(studentData);
-        setIsStudentListLoading(false);
-    }, (error) => {
-        console.error("Error fetching students: ", error);
-        toast({ title: 'Error', description: 'Could not fetch student list for this class.', variant: 'destructive'});
-        setIsStudentListLoading(false);
-    });
-
-    setIsActivityListLoading(true);
-    const activitiesCollection = collection(db, 'classes', selectedClass, 'activities');
-    const activitiesQuery = query(activitiesCollection);
-    activityUnsub = onSnapshot(activitiesQuery, (querySnapshot) => {
-        const activityData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Activity[];
-        setActivities(activityData);
-        setIsActivityListLoading(false);
-    }, (error) => {
-        console.error("Error fetching activities: ", error);
-        toast({ title: 'Error', description: 'Could not fetch activity list for this class.', variant: 'destructive'});
-        setIsActivityListLoading(false);
-    });
-
-
-    return () => {
-      if (studentUnsub) studentUnsub();
-      if (activityUnsub) activityUnsub();
+  
+    if (selectedClass && db) {
+      // Fetch students for the selected class
+      setIsStudentListLoading(true);
+      const studentsQuery = query(collection(db, 'classes', selectedClass, 'students'));
+      unsubStudents = onSnapshot(studentsQuery, 
+        (snapshot) => {
+          const studentData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student));
+          setStudents(studentData);
+          setIsStudentListLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching students:", error);
+          toast({ title: 'Error', description: 'Could not fetch students for this class.', variant: 'destructive' });
+          setIsStudentListLoading(false);
+        }
+      );
+  
+      // Fetch activities for the selected class
+      setIsActivityListLoading(true);
+      const activitiesQuery = query(collection(db, 'classes', selectedClass, 'activities'));
+      unsubActivities = onSnapshot(activitiesQuery,
+        (snapshot) => {
+          const activityData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Activity));
+          setActivities(activityData);
+          setIsActivityListLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching activities:", error);
+          toast({ title: 'Error', description: 'Could not fetch activities for this class.', variant: 'destructive' });
+          setIsActivityListLoading(false);
+        }
+      );
+    } else {
+      // Reset lists if no class is selected
+      setStudents([]);
+      setActivities([]);
+      setSelectedStudent(undefined);
+      setSelectedActivity(undefined);
     }
-  }, [selectedClass, toast, isPrefilled, preselectedStudentId, preselectedActivityId]);
+  
+    return () => {
+      unsubStudents?.();
+      unsubActivities?.();
+    };
+  }, [selectedClass, isPrefilled, toast]);
+
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -234,49 +245,34 @@ export function EssayScanner() {
             description: 'The extracted text has been added below.'
         });
 
-        if (!isPrefilled) {
+        if (!isPrefilled && students.length > 0 && activities.length > 0) {
             const lines = fullText.split('\n').map(line => line.trim());
-            let studentName = '';
-            let activityName = '';
-            let finalEssayText = fullText;
+            if (lines.length > 1) {
+                const studentNameLine = lines[0];
+                const activityNameLine = lines[1];
 
-            if (lines.length >= 3) {
-                studentName = lines[0];
-                activityName = lines[1];
-                finalEssayText = lines.slice(2).join('\n');
-
-                const matchedStudent = students.find(s => s.name.toLowerCase().includes(studentName.toLowerCase()));
+                // Attempt to match student
+                const matchedStudent = students.find(s => s.name.toLowerCase().includes(studentNameLine.toLowerCase()));
                 if (matchedStudent) {
                     setSelectedStudent(matchedStudent.id);
                     toast({
                         title: 'Student Matched!',
-                        description: `Automatically selected "${matchedStudent.name}" from the first line.`,
+                        description: `Automatically selected "${matchedStudent.name}".`,
                     });
                 }
-                const matchedActivity = activities.find(a => a.name.toLowerCase().includes(activityName.toLowerCase()));
+
+                // Attempt to match activity
+                const matchedActivity = activities.find(a => a.name.toLowerCase().includes(activityNameLine.toLowerCase()));
                 if (matchedActivity) {
                     setSelectedActivity(matchedActivity.id);
                     toast({
                         title: 'Activity Matched!',
-                        description: `Automatically selected "${matchedActivity.name}" from the second line.`,
-                    });
-                }
-            } else if (lines.length === 2) {
-                studentName = lines[0];
-                finalEssayText = lines[1];
-                 const matchedStudent = students.find(s => s.name.toLowerCase().includes(studentName.toLowerCase()));
-                if (matchedStudent) {
-                    setSelectedStudent(matchedStudent.id);
-                    toast({
-                        title: 'Student Matched!',
-                        description: `Automatically selected "${matchedStudent.name}" from the first line.`,
+                        description: `Automatically selected "${matchedActivity.name}".`,
                     });
                 }
             }
-            setEssayText(finalEssayText);
-        } else {
-             setEssayText(fullText);
         }
+        setEssayText(fullText);
 
         setIsScanning(false);
         return fullText;
@@ -329,6 +325,7 @@ export function EssayScanner() {
     setImageFile(null);
     handleRemoveImage();
     if(!isPrefilled) {
+        setSelectedClass(undefined);
         setSelectedStudent(undefined);
         setSelectedActivity(undefined);
     }
@@ -338,7 +335,7 @@ export function EssayScanner() {
   
   const handleSaveOrGrade = async (gradeAfterSave: boolean) => {
     if (!user) {
-        toast({ title: 'Not Authenticated', description: 'You must be logged in to save an essay.', variant: 'destructive' });
+        toast({ title: 'Not Authenticated', variant: 'destructive' });
         return;
     }
     if (!canSave) {
@@ -346,76 +343,58 @@ export function EssayScanner() {
         return;
     }
 
-    if (gradeAfterSave) {
-        setIsGrading(true);
-    } else {
-        setIsSaving(true);
-    }
+    if (gradeAfterSave) setIsGrading(true);
+    else setIsSaving(true);
     
     try {
-        let studentName, activityName, currentActivity;
+        let student: Student | undefined;
+        let activity: Activity | undefined;
 
         if (isPrefilled) {
             if (!prefilledData) {
-                toast({ title: 'Error', description: 'Prefilled data is not ready. Please wait a moment and try again.', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Prefilled data is not ready. Please try again.', variant: 'destructive' });
                 setIsSaving(false); setIsGrading(false); return;
             }
-            studentName = prefilledData.studentName;
-            activityName = prefilledData.activityName;
+            // In prefilled mode, we still need to get the objects for the final submission
+            student = { id: preselectedStudentId!, name: prefilledData.studentName };
+            const activityDoc = await getDoc(doc(db, 'classes', preselectedClassId!, 'activities', preselectedActivityId!));
+            if (activityDoc.exists()) {
+                activity = {id: activityDoc.id, ...activityDoc.data()} as Activity
+            }
+
         } else {
-            const student = students.find(s => s.id === selectedStudent);
-            if (!student) {
-                toast({ title: 'Error', description: 'Could not find the selected student in the class roster.', variant: 'destructive' });
-                setIsSaving(false); setIsGrading(false); return;
-            }
-            studentName = student.name;
-
-            currentActivity = activities.find(a => a.id === selectedActivity);
-            if (!currentActivity) {
-                toast({ title: 'Error', description: 'Could not find the selected activity.', variant: 'destructive' });
-                setIsSaving(false); setIsGrading(false); return;
-            }
-            activityName = currentActivity.name;
+            student = students.find(s => s.id === selectedStudent);
+            activity = activities.find(a => a.id === selectedActivity);
         }
 
-        let currentEssayText = essayText;
-        if (!currentEssayText && imageFile) {
-            const processedText = await processImage(imageFile);
-            if (!processedText) {
-                toast({ title: 'Scan Failed', description: 'Could not extract text from image to proceed.', variant: 'destructive' });
-                setIsSaving(false); setIsGrading(false); return;
-            }
-            currentEssayText = processedText;
+        if (!student) {
+            toast({ title: 'Error', description: 'Could not find the selected student.', variant: 'destructive' });
+            setIsSaving(false); setIsGrading(false); return;
         }
-    
-        if (!currentEssayText) {
-            toast({ title: 'No Text', description: 'There is no essay text to save or grade.', variant: 'destructive' });
+
+        if (!activity) {
+            toast({ title: 'Error', description: 'Could not find the selected activity.', variant: 'destructive' });
             setIsSaving(false); setIsGrading(false); return;
         }
 
         let imageUrl = '';
         if (imageFile) {
             const uploadId = uuidv4();
-            const filePath = `pending_uploads/${uploadId}/${imageFile.name}`;
+            const filePath = `submissions/${selectedClass}/${selectedStudent}/${uploadId}-${imageFile.name}`;
             const storageRef = ref(storage, filePath);
-            
-            toast({
-                title: 'Uploading Image...',
-                description: 'Please wait while the image is being uploaded.'
-            });
-
+            toast({ title: 'Uploading Image...', description: 'Please wait while the image is uploaded.' });
             const uploadTask = await uploadBytes(storageRef, imageFile);
             imageUrl = await getDownloadURL(uploadTask.ref);
         }
         
         const submissionData = {
-            studentId: selectedStudent,
-            studentName,
-            assignmentName: activityName,
-            activityId: selectedActivity,
-            essayText: currentEssayText,
+            studentId: student.id,
+            studentName: student.name,
+            assignmentName: activity.name,
+            activityId: activity.id,
+            essayText: essayText,
             submittedAt: Timestamp.now(),
-            status: 'Pending Review' as 'Pending Review' | 'Graded',
+            status: 'Pending Review' as 'Pending Review',
             essayImageUrl: imageUrl,
         };
 
@@ -427,10 +406,7 @@ export function EssayScanner() {
             ...submissionData,
         };
 
-        toast({
-            title: 'Essay Saved!',
-            description: `The essay for ${studentName} has been saved for activity "${activityName}".`
-        });
+        toast({ title: 'Essay Saved!', description: `The submission for ${student.name} was created.` });
 
         if (gradeAfterSave) {
              toast({ title: 'Running AI Assistant...', description: 'Preparing the grading dialog.' });
@@ -441,8 +417,8 @@ export function EssayScanner() {
         resetForm();
 
     } catch (error) {
-        console.error("Error saving essay submission: ", error);
-        toast({ title: 'Error', description: 'Could not save the essay submission.', variant: 'destructive' });
+        console.error("Error saving submission: ", error);
+        toast({ title: 'Error', description: 'Could not save the submission.', variant: 'destructive' });
     } finally {
         setIsSaving(false);
         setIsGrading(false);
@@ -580,7 +556,7 @@ export function EssayScanner() {
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                             <Label htmlFor="class-select">Class</Label>
-                            <Select onValueChange={(value) => setSelectedClass(value)} value={selectedClass} disabled={areClassesLoading || formDisabled}>
+                            <Select onValueChange={(value) => { setSelectedClass(value); setSelectedStudent(undefined); setSelectedActivity(undefined); }} value={selectedClass} disabled={areClassesLoading || formDisabled}>
                                 <SelectTrigger id="class-select">
                                     <SelectValue placeholder={areClassesLoading ? "Loading classes..." : "Select a class"} />
                                 </SelectTrigger>
