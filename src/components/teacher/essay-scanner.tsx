@@ -30,47 +30,6 @@ interface Student {
     name: string;
 }
 
-// A simple string similarity function
-function similarity(s1: string, s2: string) {
-  let longer = s1;
-  let shorter = s2;
-  if (s1.length < s2.length) {
-    longer = s2;
-    shorter = s1;
-  }
-  const longerLength = longer.length;
-  if (longerLength === 0) {
-    return 1.0;
-  }
-  return (longerLength - editDistance(longer, shorter)) / parseFloat(String(longerLength));
-}
-
-function editDistance(s1: string, s2: string) {
-  s1 = s1.toLowerCase();
-  s2 = s2.toLowerCase();
-
-  const costs = [];
-  for (let i = 0; i <= s1.length; i++) {
-    let lastValue = i;
-    for (let j = 0; j <= s2.length; j++) {
-      if (i == 0) {
-        costs[j] = j;
-      } else {
-        if (j > 0) {
-          let newValue = costs[j - 1];
-          if (s1.charAt(i - 1) != s2.charAt(j - 1))
-            newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
-          costs[j - 1] = lastValue;
-          lastValue = newValue;
-        }
-      }
-    }
-    if (i > 0) costs[s2.length] = lastValue;
-  }
-  return costs[s2.length];
-}
-
-
 export function EssayScanner() {
   const searchParams = useSearchParams();
   const preselectedClassId = searchParams.get('classId');
@@ -86,9 +45,7 @@ export function EssayScanner() {
   const [prefilledData, setPrefilledData] = useState<{className: string, studentName: string, activityName: string} | null>(null);
 
   const [selectedClass, setSelectedClass] = useState<string | undefined>(preselectedClassId || undefined);
-  const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [studentsInSelectedClass, setStudentsInSelectedClass] = useState<Student[]>([]);
-
   const [isStudentListLoading, setIsStudentListLoading] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<string | undefined>(preselectedStudentId || undefined);
   
@@ -136,23 +93,6 @@ export function EssayScanner() {
   useEffect(() => {
     fetchPrefilledData();
   }, [fetchPrefilledData]);
-
-  const fetchAllStudents = useCallback(async () => {
-    if (!classes || classes.length === 0 || allStudents.length > 0) return;
-    
-    let allStudentsData: Student[] = [];
-    for (const c of classes) {
-        const studentsQuery = query(collection(db, 'classes', c.id, 'students'));
-        const studentsSnapshot = await getDocs(studentsQuery);
-        const students = studentsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as Student));
-        allStudentsData = [...allStudentsData, ...students];
-    }
-    setAllStudents(allStudentsData);
-  }, [classes, allStudents.length]);
-
-  useEffect(() => {
-    fetchAllStudents();
-  }, [fetchAllStudents]);
 
    useEffect(() => {
     if (preselectedClassId) {
@@ -306,40 +246,11 @@ export function EssayScanner() {
         });
       } else {
         setEssayText('[Scan failed or no text was found. Please try again with a clearer image.]');
-      }
-
-      if (result.className && classes.length > 0) {
-        let bestClassMatch = { id: '', score: 0 };
-        classes.forEach(c => {
-          const score = similarity(result.className!, c.name);
-          if (score > bestClassMatch.score) {
-            bestClassMatch = { id: c.id, score };
-          }
+         toast({
+          title: 'Scan Incomplete',
+          description: 'The AI could not extract text from the image. Please try a clearer picture.',
+          variant: 'destructive'
         });
-        if (bestClassMatch.score > 0.7) { // Confidence threshold
-          setSelectedClass(bestClassMatch.id);
-          const foundClass = classes.find(c => c.id === bestClassMatch.id);
-          if (foundClass) {
-            toast({ title: 'Auto-Selected Class', description: `Matched to "${foundClass.name}"` });
-          }
-        }
-      }
-
-      if (result.studentName && allStudents.length > 0) {
-        let bestStudentMatch = { id: '', score: 0 };
-        allStudents.forEach(s => {
-          const score = similarity(result.studentName!, s.name);
-          if (score > bestStudentMatch.score) {
-            bestStudentMatch = { id: s.id, score };
-          }
-        });
-        if (bestStudentMatch.score > 0.7) {
-          setSelectedStudent(bestStudentMatch.id);
-           const foundStudent = allStudents.find(s => s.id === bestStudentMatch.id);
-           if (foundStudent) {
-            toast({ title: 'Auto-Selected Student', description: `Matched to "${foundStudent.name}"` });
-           }
-        }
       }
     } catch (error) {
       console.error("Error processing image: ", error);
@@ -430,13 +341,11 @@ export function EssayScanner() {
       const [studentDoc, activityDoc] = await Promise.all([getDoc(studentDocRef), getDoc(activityDocRef)]);
   
       if (!studentDoc.exists()) {
-        toast({ title: 'Error', description: 'Could not find the selected student in the database.', variant: 'destructive' });
-        setIsSaving(false); setIsGrading(false); return;
+        throw new Error('Could not find the selected student in the database.');
       }
       
       if (!activityDoc.exists()) {
-        toast({ title: 'Error', description: 'Could not find the selected activity in the database.', variant: 'destructive' });
-        setIsSaving(false); setIsGrading(false); return;
+        throw new Error('Could not find the selected activity in the database.');
       }
   
       const studentName = studentDoc.data().name;
@@ -481,9 +390,9 @@ export function EssayScanner() {
       
       resetForm();
   
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error saving submission: ", error);
-        toast({ title: 'Error', description: 'Could not save the submission.', variant: 'destructive' });
+        toast({ title: 'Error Saving Submission', description: error.message || 'Could not save the submission.', variant: 'destructive' });
     } finally {
         setIsSaving(false);
         setIsGrading(false);
@@ -496,7 +405,7 @@ export function EssayScanner() {
         <CardHeader>
           <CardTitle className="font-headline text-lg flex items-center gap-2">
             <ScanLine className="size-5"/>
-            Essay Input
+            1. Essay Input
           </CardTitle>
           <CardDescription>First, get the essay text by uploading a photo, using the camera, or pasting it directly.</CardDescription>
         </CardHeader>
@@ -570,6 +479,33 @@ export function EssayScanner() {
                 </CardContent>
             </Card>
           )}
+
+          <div className="space-y-2 pt-4">
+            <div className="flex items-center justify-between">
+                <Label htmlFor="essay-text">Extracted Text</Label>
+                <Button variant="ghost" size="sm" onClick={handleCopyText} disabled={!essayText || formDisabled}>
+                    <ClipboardCopy className="mr-2" />
+                    Copy Text
+                </Button>
+            </div>
+            {isScanning ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed h-60">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="mt-4 text-muted-foreground">AI is scanning the essay...</p>
+                </div>
+            ) : (
+                <Textarea
+                    id="essay-text"
+                    placeholder="The text extracted from the essay image will appear here, or you can paste it directly."
+                    rows={12}
+                    value={essayText}
+                    onChange={(e) => setEssayText(e.target.value)}
+                    className="font-code"
+                    disabled={formDisabled}
+                />
+            )}
+          </div>
+
         </CardContent>
       </Card>
 
@@ -577,116 +513,90 @@ export function EssayScanner() {
         <CardHeader className="flex flex-row items-center justify-between">
             <div className="space-y-1.5">
                 <CardTitle className="font-headline text-lg">
-                    Submission Details
+                    2. Submission Details
                 </CardTitle>
-                 <CardDescription>Next, verify the text, choose a student and activity, and save it to your class.</CardDescription>
+                 <CardDescription>Choose a student and activity, then save it to your class.</CardDescription>
             </div>
-            <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleCopyText} disabled={!essayText || formDisabled}>
-                    <ClipboardCopy className="mr-2" />
-                    Copy
-                </Button>
-                 <Button variant="outline" size="sm" onClick={resetForm} disabled={(!essayText && !imageFile) || formDisabled}>
-                    <Trash2 className="mr-2" />
-                    Clear
-                </Button>
-            </div>
+             <Button variant="outline" size="sm" onClick={resetForm} disabled={(!essayText && !imageFile) || formDisabled}>
+                <Trash2 className="mr-2" />
+                Clear Form
+            </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-             {isScanning && (
-                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed h-60">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="mt-4 text-muted-foreground">AI is scanning the essay...</p>
+             { isPrefilled && prefilledData ? (
+                <div className="space-y-4 rounded-md border bg-muted p-4">
+                    <div>
+                        <p className="text-sm font-medium text-muted-foreground">Class</p>
+                        <p className="font-semibold">{prefilledData.className}</p>
+                    </div>
+                    <div>
+                        <p className="mt-2 text-sm font-medium text-muted-foreground">Student</p>
+                        <p className="font-semibold">{prefilledData.studentName}</p>
+                    </div>
+                    <div>
+                        <p className="mt-2 text-sm font-medium text-muted-foreground">Activity</p>
+                        <p className="font-semibold">{prefilledData.activityName}</p>
+                    </div>
                 </div>
-            )}
-            {!isScanning && (
-              <>
-                 { isPrefilled && prefilledData ? (
-                    <div className="space-y-4 rounded-md border bg-muted p-4">
-                        <div>
-                            <p className="text-sm font-medium text-muted-foreground">Class</p>
-                            <p className="font-semibold">{prefilledData.className}</p>
+             ) : (
+                <>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                        <Label htmlFor="class-select">Class</Label>
+                        <Select onValueChange={(value) => { setSelectedClass(value); setSelectedStudent(undefined); setSelectedActivity(undefined); }} value={selectedClass} disabled={areClassesLoading || formDisabled}>
+                            <SelectTrigger id="class-select">
+                                <SelectValue placeholder={areClassesLoading ? "Loading classes..." : "Select a class"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {classes.map(c => (
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         </div>
-                        <div>
-                            <p className="mt-2 text-sm font-medium text-muted-foreground">Student</p>
-                            <p className="font-semibold">{prefilledData.studentName}</p>
-                        </div>
-                        <div>
-                            <p className="mt-2 text-sm font-medium text-muted-foreground">Activity</p>
-                            <p className="font-semibold">{prefilledData.activityName}</p>
+                        <div className="space-y-2">
+                        <Label htmlFor="student-select">Student</Label>
+                        <Select onValueChange={(value) => setSelectedStudent(value)} value={selectedStudent} disabled={!selectedClass || isStudentListLoading || formDisabled}>
+                            <SelectTrigger id="student-select">
+                                <SelectValue placeholder={!selectedClass ? "First select a class" : isStudentListLoading ? "Loading students..." : "Select a student"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {studentsInSelectedClass.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         </div>
                     </div>
-                 ) : (
-                    <>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                            <Label htmlFor="class-select">Class</Label>
-                            <Select onValueChange={(value) => { setSelectedClass(value); setSelectedStudent(undefined); setSelectedActivity(undefined); }} value={selectedClass} disabled={areClassesLoading || formDisabled}>
-                                <SelectTrigger id="class-select">
-                                    <SelectValue placeholder={areClassesLoading ? "Loading classes..." : "Select a class"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {classes.map(c => (
-                                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            </div>
-                            <div className="space-y-2">
-                            <Label htmlFor="student-select">Student</Label>
-                            <Select onValueChange={(value) => setSelectedStudent(value)} value={selectedStudent} disabled={!selectedClass || isStudentListLoading || formDisabled}>
-                                <SelectTrigger id="student-select">
-                                    <SelectValue placeholder={!selectedClass ? "First select a class" : isStudentListLoading ? "Loading students..." : "Select a student"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {studentsInSelectedClass.map(s => (
-                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            </div>
-                        </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="activity-select">Activity</Label>
-                            <Select onValueChange={(value) => setSelectedActivity(value)} value={selectedActivity} disabled={!selectedClass || isActivityListLoading || formDisabled}>
-                                <SelectTrigger id="activity-select">
-                                    <SelectValue placeholder={!selectedClass ? "First select a class" : isActivityListLoading ? "Loading activities..." : "Select an activity"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {activities.map(a => (
-                                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </>
-                 )}
-
-
-                  <Textarea
-                      id="essay-text"
-                      placeholder="The text extracted from the essay image will appear here, or you can paste it directly."
-                      rows={12}
-                      value={essayText}
-                      onChange={(e) => setEssayText(e.target.value)}
-                      className="font-code"
-                      disabled={formDisabled}
-                  />
-                   <div className="flex justify-end gap-2">
-                      <Button onClick={() => handleSaveOrGrade(false)} disabled={formDisabled || !canSave}>
-                        {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2"/>}
-                        {isSaving ? 'Saving...' : 'Save to Class'}
-                      </Button>
-                      <Button onClick={() => handleSaveOrGrade(true)} disabled={formDisabled || !canSave}>
-                        {isGrading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2"/>}
-                        {isGrading ? 'Processing...' : 'Save & Grade'}
-                      </Button>
-                  </div>
-              </>
-            )}
+                    <div className="space-y-2">
+                        <Label htmlFor="activity-select">Activity</Label>
+                        <Select onValueChange={(value) => setSelectedActivity(value)} value={selectedActivity} disabled={!selectedClass || isActivityListLoading || formDisabled}>
+                            <SelectTrigger id="activity-select">
+                                <SelectValue placeholder={!selectedClass ? "First select a class" : isActivityListLoading ? "Loading activities..." : "Select an activity"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {activities.map(a => (
+                                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </>
+             )}
+               <div className="flex justify-end gap-2 pt-4">
+                  <Button onClick={() => handleSaveOrGrade(false)} disabled={formDisabled || !canSave}>
+                    {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2"/>}
+                    {isSaving ? 'Saving...' : 'Save to Class'}
+                  </Button>
+                  <Button onClick={() => handleSaveOrGrade(true)} disabled={formDisabled || !canSave}>
+                    {isGrading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2"/>}
+                    {isGrading ? 'Processing...' : 'Save & Grade'}
+                  </Button>
+              </div>
         </CardContent>
       </Card>
+
       {newlyCreatedSubmission && (selectedClass || preselectedClassId) && (
         <GradeSubmissionDialog
             submission={newlyCreatedSubmission}

@@ -23,8 +23,6 @@ const ScanEssayInputSchema = z.object({
 export type ScanEssayInput = z.infer<typeof ScanEssayInputSchema>;
 
 const ScanEssayOutputSchema = z.object({
-  studentName: z.string().optional().describe("The student's name, if found at the top of the essay."),
-  className: z.string().optional().describe("The class name, if found at the top of the essay."),
   extractedText: z.string().describe('The full text extracted from the essay image. If no text can be found, this should explicitly say so.'),
 });
 export type ScanEssayOutput = z.infer<typeof ScanEssayOutputSchema>;
@@ -38,13 +36,12 @@ const prompt = ai.definePrompt({
     model: VISION_MODEL,
     input: {schema: ScanEssayInputSchema},
     output: {schema: ScanEssayOutputSchema},
-    prompt: `You are a highly specialized Optical Character Recognition (OCR) engine. Your primary task is to extract all text from the provided image of an essay.
+    prompt: `You are a highly specialized Optical Character Recognition (OCR) engine. Your only task is to extract all text from the provided image of an essay.
 
 - Transcribe all text from the image with the highest possible accuracy.
 - Preserve all original formatting, including paragraph breaks, line breaks, and indentation.
-- Pay special attention to the top of the essay. Identify and extract the student's full name into the 'studentName' field and the class name into the 'className' field if they are present.
 - If the image is blurry, contains no text, or is otherwise unreadable, you MUST return a response that explicitly states that no text could be extracted in the 'extractedText' field. Do not return an empty string for the text.
-- Return only the transcribed text and identified names in the specified JSON format. Do not add any extra commentary or information.
+- Return only the transcribed text in the specified JSON format. Do not add any extra commentary or information.
 
 Image: {{media url=imageDataUri}}`
 });
