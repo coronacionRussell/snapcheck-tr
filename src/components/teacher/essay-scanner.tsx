@@ -399,9 +399,13 @@ export function EssayScanner() {
             currentActivity = activities.find(a => a.id === selectedActivity);
         }
         
-        const assignmentName = isPrefilled ? prefilledData?.activityName : currentActivity?.name;
+        if (!currentActivity) {
+            throw new Error("Could not find the selected activity.");
+        }
+
+        const assignmentName = currentActivity.name;
         
-        if (!studentName || !assignmentName || !currentActivity) {
+        if (!studentName || !assignmentName) {
             throw new Error("Could not determine student or assignment name.");
         }
 
