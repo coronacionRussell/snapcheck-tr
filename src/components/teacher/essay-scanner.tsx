@@ -244,32 +244,7 @@ export function EssayScanner() {
             title: 'Scan Complete!',
             description: 'The extracted text has been added below.'
         });
-
-        if (!isPrefilled && students.length > 0 && activities.length > 0) {
-            const lines = fullText.split('\n').map(line => line.trim());
-            if (lines.length > 1) {
-                const studentNameLine = lines[0];
-                const activityNameLine = lines[1];
-
-                const matchedStudent = students.find(s => s.name.toLowerCase().includes(studentNameLine.toLowerCase()));
-                if (matchedStudent) {
-                    setSelectedStudent(matchedStudent.id);
-                    toast({
-                        title: 'Student Matched!',
-                        description: `Automatically selected "${matchedStudent.name}".`,
-                    });
-                }
-
-                const matchedActivity = activities.find(a => a.name.toLowerCase().includes(activityNameLine.toLowerCase()));
-                if (matchedActivity) {
-                    setSelectedActivity(matchedActivity.id);
-                    toast({
-                        title: 'Activity Matched!',
-                        description: `Automatically selected "${matchedActivity.name}".`,
-                    });
-                }
-            }
-        }
+        
         setEssayText(fullText);
 
         setIsScanning(false);
