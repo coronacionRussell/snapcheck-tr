@@ -23,7 +23,7 @@ const ScanEssayInputSchema = z.object({
 export type ScanEssayInput = z.infer<typeof ScanEssayInputSchema>;
 
 const ScanEssayOutputSchema = z.object({
-  extractedText: z.string().describe('The full text extracted from the essay image.'),
+  extractedText: z.string().describe('The full text extracted from the essay image. If no text can be found, this should explicitly say so.'),
 });
 export type ScanEssayOutput = z.infer<typeof ScanEssayOutputSchema>;
 
@@ -36,12 +36,12 @@ const prompt = ai.definePrompt({
     model: VISION_MODEL,
     input: {schema: ScanEssayInputSchema},
     output: {schema: ScanEssayOutputSchema},
-    prompt: `You are a highly specialized Optical Character Recognition (OCR) engine. Your task is to extract all text from an image of an essay.
+    prompt: `You are a highly specialized Optical Character Recognition (OCR) engine. Your task is to extract all text from the provided image of an essay.
 
-- Accurately transcribe all text from the image.
-- Preserve original formatting like paragraph breaks and line breaks.
-- Return this transcription as the 'extractedText'.
-- Do not add any commentary or extra information. Return only the extracted text in the specified JSON format.
+- Transcribe all text from the image with the highest possible accuracy.
+- Preserve all original formatting, including paragraph breaks, line breaks, and indentation.
+- If the image is blurry, contains no text, or is otherwise unreadable, you MUST return a response that explicitly states that no text could be extracted. Do not return an empty string.
+- Return only the transcribed text in the 'extractedText' field of the specified JSON format. Do not add any extra commentary or information.
 
 Image: {{media url=imageDataUri}}`
 });
@@ -55,6 +55,9 @@ const scanEssayFlow = ai.defineFlow(
     },
     async (input) => {
         const {output} = await prompt(input);
-        return output!;
+        if (!output?.extractedText?.trim()) {
+            return { extractedText: '[No text could be extracted from the image. Please try again with a clearer picture.]' };
+        }
+        return output;
     }
 );
