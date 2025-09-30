@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collectionGroup, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collectionGroup, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
@@ -37,7 +37,6 @@ import { MessageSquareText } from 'lucide-react';
 interface Submission {
   id: string;
   assignment: string;
-  class: string;
   grade: string;
   status: 'Graded' | 'Pending Review';
   submittedAt: {
@@ -45,7 +44,7 @@ interface Submission {
     nanoseconds: number;
   };
   feedback?: string;
-  className?: string; // Add className property
+  className?: string; 
 }
 
 export default function StudentHistoryPage() {
@@ -68,28 +67,34 @@ export default function StudentHistoryPage() {
       );
 
       const submissionsSnapshot = await getDocs(submissionsQuery);
-      const submissionsData = submissionsSnapshot.docs.map(doc => {
-        const data = doc.data();
-        // Assuming parent collection (class) name can be inferred or is stored.
-        // For simplicity, let's assume it might not be directly available here
-        // without extra queries. We will adjust if needed.
+      
+      const submissionsDataPromises = submissionsSnapshot.docs.map(async (submissionDoc) => {
+        const data = submissionDoc.data();
+        const classId = submissionDoc.ref.parent.parent?.id;
+        let className = 'N/A';
+
+        if (classId) {
+            const classDocRef = doc(db, 'classes', classId);
+            const classDoc = await getDoc(classDocRef);
+            if (classDoc.exists()) {
+                className = classDoc.data().name || 'Unknown Class';
+            }
+        }
+        
         return {
-          id: doc.id,
+          id: submissionDoc.id,
           assignment: data.assignmentName || 'Essay Submission',
           grade: data.grade || '-',
           status: data.status,
           submittedAt: data.submittedAt,
           feedback: data.feedback,
-          // The class name isn't directly available in a collectionGroup query
-          // without more complex logic, so we will display 'N/A' or enhance later.
-          class: 'N/A', // Placeholder
+          className: className,
         } as Submission;
       });
 
-      // To get class names, we can do a secondary lookup, but it adds complexity.
-      // For now, we will proceed without it for optimization.
-
+      const submissionsData = await Promise.all(submissionsDataPromises);
       setSubmissions(submissionsData);
+
     } catch (error) {
       console.error("Error fetching submissions: ", error);
       toast({
@@ -151,6 +156,7 @@ export default function StudentHistoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Assignment</TableHead>
+                  <TableHead>Class</TableHead>
                   <TableHead>Date Submitted</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Grade</TableHead>
@@ -162,6 +168,9 @@ export default function StudentHistoryPage() {
                   <TableRow key={submission.id}>
                     <TableCell className="font-medium">
                       {submission.assignment}
+                    </TableCell>
+                    <TableCell>
+                      {submission.className}
                     </TableCell>
                     <TableCell>
                       {submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleString() : 'N/A'}

@@ -27,7 +27,7 @@ export default function TeacherDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-headline text-3xl font-bold">
-            {user ? `Professor ${user.fullName}'s Dashboard` : 'Dashboard'}
+            {user ? `Professor ${user?.fullName}'s Dashboard` : 'Dashboard'}
           </h1>
           <p className="text-muted-foreground">
             Welcome back, here's your teaching overview.
