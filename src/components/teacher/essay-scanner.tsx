@@ -348,21 +348,6 @@ export function EssayScanner() {
         toast({ title: 'Not Authenticated', description: 'You must be logged in to save an essay.', variant: 'destructive' });
         return;
     }
-    
-    let currentEssayText = essayText;
-    if (!currentEssayText && imageFile) {
-        const processedText = await processImage(imageFile);
-        if (!processedText) {
-            toast({ title: 'Scan Failed', description: 'Could not extract text from image to proceed.', variant: 'destructive' });
-            return;
-        }
-        currentEssayText = processedText;
-    }
-
-    if (!currentEssayText) {
-        toast({ title: 'No Text', description: 'There is no essay text to save or grade.', variant: 'destructive' });
-        return;
-    }
 
     if (gradeAfterSave) {
         setIsGrading(true);
@@ -371,6 +356,69 @@ export function EssayScanner() {
     }
     
     try {
+        let studentName: string | undefined;
+        let student: Student | undefined;
+
+        if (isPrefilled) {
+            if (!prefilledData) {
+                toast({ title: 'Error', description: 'Prefilled data is not ready yet. Please wait a moment and try again.', variant: 'destructive' });
+                setIsSaving(false);
+                setIsGrading(false);
+                return;
+            }
+            studentName = prefilledData.studentName;
+        } else {
+            student = students.find(s => s.id === selectedStudent);
+            if (!student) {
+                toast({ title: 'Error', description: 'Could not find the selected student in the class roster.', variant: 'destructive' });
+                setIsSaving(false);
+                setIsGrading(false);
+                return;
+            }
+            studentName = student.name;
+        }
+
+        let activityName: string | undefined;
+        let currentActivity: Activity | undefined;
+
+        if (isPrefilled) {
+             if (!prefilledData) {
+                toast({ title: 'Error', description: 'Prefilled data is not ready yet. Please wait a moment and try again.', variant: 'destructive' });
+                setIsSaving(false);
+                setIsGrading(false);
+                return;
+            }
+            activityName = prefilledData.activityName;
+        } else {
+            currentActivity = activities.find(a => a.id === selectedActivity);
+            if (!currentActivity) {
+                toast({ title: 'Error', description: 'Could not find the selected activity.', variant: 'destructive' });
+                setIsSaving(false);
+                setIsGrading(false);
+                return;
+            }
+            activityName = currentActivity.name;
+        }
+
+        let currentEssayText = essayText;
+        if (!currentEssayText && imageFile) {
+            const processedText = await processImage(imageFile);
+            if (!processedText) {
+                toast({ title: 'Scan Failed', description: 'Could not extract text from image to proceed.', variant: 'destructive' });
+                setIsSaving(false);
+                setIsGrading(false);
+                return;
+            }
+            currentEssayText = processedText;
+        }
+    
+        if (!currentEssayText) {
+            toast({ title: 'No Text', description: 'There is no essay text to save or grade.', variant: 'destructive' });
+            setIsSaving(false);
+            setIsGrading(false);
+            return;
+        }
+
         let imageUrl = '';
         if (imageFile) {
             const uploadId = uuidv4();
@@ -385,38 +433,11 @@ export function EssayScanner() {
             const uploadTask = await uploadBytes(storageRef, imageFile);
             imageUrl = await getDownloadURL(uploadTask.ref);
         }
-
-        const student = isPrefilled ? { name: prefilledData?.studentName } : students.find(s => s.id === selectedStudent);
-        if (!student) {
-            toast({ title: 'Error', description: 'Could not find the selected student.', variant: 'destructive' });
-            setIsSaving(false);
-            setIsGrading(false);
-            return;
-        }
-        const studentName = student.name;
         
-        let currentActivity: Activity | undefined;
-        if (isPrefilled) {
-            const activityDoc = await getDoc(doc(db, 'classes', selectedClass, 'activities', selectedActivity));
-            if(activityDoc.exists()) {
-                currentActivity = { id: activityDoc.id, ...activityDoc.data() } as Activity;
-            }
-        } else {
-            currentActivity = activities.find(a => a.id === selectedActivity);
-        }
-        
-        if (!currentActivity) {
-            toast({ title: 'Error', description: 'Could not find the selected activity.', variant: 'destructive' });
-            setIsSaving(false);
-            setIsGrading(false);
-            return;
-        }
-        const assignmentName = currentActivity.name;
-
         const submissionData = {
             studentId: selectedStudent,
             studentName,
-            assignmentName,
+            assignmentName: activityName,
             activityId: selectedActivity,
             essayText: currentEssayText,
             submittedAt: Timestamp.now(),
@@ -434,7 +455,7 @@ export function EssayScanner() {
 
         toast({
             title: 'Essay Saved!',
-            description: `The essay for ${studentName} has been saved for activity "${assignmentName}".`
+            description: `The essay for ${studentName} has been saved for activity "${activityName}".`
         });
 
         if (gradeAfterSave) {
