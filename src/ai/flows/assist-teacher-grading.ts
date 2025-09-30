@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { TEXT_MODEL } from '../models';
 
 const AssistTeacherGradingInputSchema = z.object({
   essayText: z.string().describe('The text of the essay to be graded.'),
@@ -31,6 +32,7 @@ export async function assistTeacherGrading(input: AssistTeacherGradingInput): Pr
 
 const prompt = ai.definePrompt({
   name: 'assistTeacherGradingPrompt',
+  model: TEXT_MODEL,
   input: {schema: AssistTeacherGradingInputSchema},
   output: {schema: AssistTeacherGradingOutputSchema},
   prompt: `You are an AI assistant for teachers. Your task is to provide feedback on a student's essay and suggest a preliminary score out of 100.
