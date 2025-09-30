@@ -10,7 +10,6 @@
  */
 
 import {ai} from '@/ai/genkit';
-import { TEXT_MODEL } from '@/ai/models';
 import {z} from 'genkit';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -66,7 +65,6 @@ const deleteUserData = ai.defineTool(
 
 const prompt = ai.definePrompt({
     name: 'deleteUserPrompt',
-    model: TEXT_MODEL,
     tools: [deleteUserData],
     prompt: "You are an administrative agent. Your task is to delete a user's data from the system. Use the provided 'deleteUserData' tool to delete the user with the given UID. Report back on the success or failure of the operation. UID to delete: {{uid}}",
     input: { schema: DeleteUserInputSchema },
