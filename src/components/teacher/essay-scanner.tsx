@@ -49,6 +49,7 @@ export function EssayScanner() {
   const [students, setStudents] = useState<Student[]>([]);
   const [isStudentListLoading, setIsStudentListLoading] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<string | undefined>(preselectedStudentId || undefined);
+  
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isActivityListLoading, setIsActivityListLoading] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<string | undefined>(preselectedActivityId || undefined);
@@ -233,7 +234,6 @@ export function EssayScanner() {
             description: 'The extracted text has been added below.'
         });
 
-        // NEW: Parse text based on line number convention
         if (!isPrefilled) {
             const lines = fullText.split('\n').map(line => line.trim());
             let studentName = '';
@@ -353,7 +353,7 @@ export function EssayScanner() {
     }
     
     try {
-        let student, studentName, activity, activityName;
+        let studentName, activityName, currentActivity;
 
         if (isPrefilled) {
             if (!prefilledData) {
@@ -363,19 +363,19 @@ export function EssayScanner() {
             studentName = prefilledData.studentName;
             activityName = prefilledData.activityName;
         } else {
-            student = students.find(s => s.id === selectedStudent);
+            const student = students.find(s => s.id === selectedStudent);
             if (!student) {
                 toast({ title: 'Error', description: 'Could not find the selected student in the class roster.', variant: 'destructive' });
                 setIsSaving(false); setIsGrading(false); return;
             }
             studentName = student.name;
 
-            activity = activities.find(a => a.id === selectedActivity);
-            if (!activity) {
+            currentActivity = activities.find(a => a.id === selectedActivity);
+            if (!currentActivity) {
                 toast({ title: 'Error', description: 'Could not find the selected activity.', variant: 'destructive' });
                 setIsSaving(false); setIsGrading(false); return;
             }
-            activityName = activity.name;
+            activityName = currentActivity.name;
         }
 
         let currentEssayText = essayText;
