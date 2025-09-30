@@ -19,14 +19,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { BookOpen, DoorOpen, Loader2, LogOut, Search, Trash2 } from 'lucide-react';
+import { BookOpen, DoorOpen, Loader2, LogOut, Search } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, writeBatch, increment, query, where, arrayRemove, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, increment, query, where, arrayRemove, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, AppUser } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
@@ -42,7 +42,7 @@ interface EnrolledClass {
     teacherName: string;
 }
 
-export default function StudentClassesPage() {
+function StudentClassesPageContent() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [enrolledClasses, setEnrolledClasses] = useState<EnrolledClass[]>([]);
   const [isClassesLoading, setIsClassesLoading] = useState(true);
@@ -50,8 +50,8 @@ export default function StudentClassesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
-  const fetchStudentData = useCallback(async () => {
-    if (!user || !user.enrolledClassIds || user.enrolledClassIds.length === 0) {
+  const fetchStudentData = useCallback(async (currentUser: AppUser | null) => {
+    if (!currentUser || !currentUser.enrolledClassIds || currentUser.enrolledClassIds.length === 0) {
         setEnrolledClasses([]);
         setIsClassesLoading(false);
         return;
@@ -59,7 +59,12 @@ export default function StudentClassesPage() {
 
     setIsClassesLoading(true);
     try {
-        const classIds = user.enrolledClassIds;
+        const classIds = currentUser.enrolledClassIds;
+        if (classIds.length === 0) {
+          setEnrolledClasses([]);
+          setIsClassesLoading(false);
+          return;
+        }
         const classesQuery = query(collection(db, 'classes'), where('__name__', 'in', classIds));
         const classesSnapshot = await getDocs(classesQuery);
         
@@ -80,13 +85,18 @@ export default function StudentClassesPage() {
     } finally {
       setIsClassesLoading(false);
     }
-  }, [toast, user]);
+  }, [toast]);
 
   useEffect(() => {
-    if (user) {
-        fetchStudentData();
+    if(user) {
+      fetchStudentData(user);
+    } else if (!isAuthLoading) {
+      // User is loaded and is null
+      setIsClassesLoading(false);
+      setEnrolledClasses([]);
     }
-  }, [fetchStudentData, user]);
+  }, [user, isAuthLoading, fetchStudentData]);
+
 
   const filteredClasses = useMemo(() => {
     if (!searchQuery) {
@@ -114,7 +124,7 @@ export default function StudentClassesPage() {
         const classDocRef = doc(db, 'classes', classId);
         batch.update(classDocRef, { studentCount: increment(-1) });
 
-        // Remove classId from user's enrolledClassIds
+        // Remove classId from user's enrolledClassIds array
         const userDocRef = doc(db, 'users', user.uid);
         batch.update(userDocRef, { enrolledClassIds: arrayRemove(classId) });
 
@@ -135,6 +145,12 @@ export default function StudentClassesPage() {
         });
     } finally {
         setIsLeavingClass(null);
+    }
+  }
+
+  const handleClassJoined = () => {
+    if (user) {
+      fetchStudentData(user);
     }
   }
 
@@ -252,9 +268,48 @@ export default function StudentClassesPage() {
         </div>
 
         <div className="lg:col-span-2">
-          <JoinClassCard onClassJoined={fetchStudentData} />
+          <JoinClassCard onClassJoined={handleClassJoined} />
         </div>
       </div>
     </div>
   );
 }
+
+const StudentClassesPageDynamic = dynamic(() => Promise.resolve(StudentClassesPageContent), {
+  ssr: false,
+  loading: () => (
+    <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
+      <div>
+        <Skeleton className="h-9 w-40" />
+        <Skeleton className="mt-2 h-5 w-72" />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-10 w-64" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="lg:col-span-2">
+          <Skeleton className="h-48 w-full" />
+        </div>
+      </div>
+    </div>
+  )
+});
+
+export default function StudentClassesPage() {
+  return <StudentClassesPageDynamic />;
+}
+
+    

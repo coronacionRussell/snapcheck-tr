@@ -101,3 +101,5 @@ export function useAuth() {
 
   return { user, isLoading: authStatus === 'loading' };
 }
+
+    

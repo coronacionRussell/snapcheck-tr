@@ -155,3 +155,5 @@ export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
     </Card>
   );
 }
+
+    
