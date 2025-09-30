@@ -23,7 +23,7 @@ import { BookOpen, DoorOpen, Loader2, LogOut, Search } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, writeBatch, increment, query, where, arrayRemove, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, increment, query, where, arrayRemove, onSnapshot } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth, AppUser } from '@/hooks/use-auth';
@@ -50,52 +50,37 @@ function StudentClassesPageContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
-  const fetchStudentData = useCallback(async (currentUser: AppUser | null) => {
-    if (!currentUser || !currentUser.enrolledClassIds || currentUser.enrolledClassIds.length === 0) {
-        setEnrolledClasses([]);
-        setIsClassesLoading(false);
-        return;
+  useEffect(() => {
+    if (!user || !user.enrolledClassIds || user.enrolledClassIds.length === 0) {
+      setEnrolledClasses([]);
+      setIsClassesLoading(false);
+      return;
     }
 
     setIsClassesLoading(true);
-    try {
-        const classIds = currentUser.enrolledClassIds;
-        if (classIds.length === 0) {
-          setEnrolledClasses([]);
-          setIsClassesLoading(false);
-          return;
-        }
-        const classesQuery = query(collection(db, 'classes'), where('__name__', 'in', classIds));
-        const classesSnapshot = await getDocs(classesQuery);
-        
-        const classesData = classesSnapshot.docs.map(doc => ({
-            id: doc.id,
-            name: doc.data().name,
-            teacherName: doc.data().teacherName,
-        })) as EnrolledClass[];
-
-        setEnrolledClasses(classesData);
-    } catch (error) {
-      console.error("Error fetching student classes: ", error);
+    const classesQuery = query(collection(db, 'classes'), where('__name__', 'in', user.enrolledClassIds));
+    
+    const unsubscribe = onSnapshot(classesQuery, (snapshot) => {
+      const classesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name,
+        teacherName: doc.data().teacherName,
+      })) as EnrolledClass[];
+      
+      setEnrolledClasses(classesData);
+      setIsClassesLoading(false);
+    }, (error) => {
+      console.error("Error fetching student classes in real-time: ", error);
       toast({
           title: 'Error',
           description: 'Could not fetch your classes.',
           variant: 'destructive',
-      })
-    } finally {
+      });
       setIsClassesLoading(false);
-    }
-  }, [toast]);
+    });
 
-  useEffect(() => {
-    if(user) {
-      fetchStudentData(user);
-    } else if (!isAuthLoading) {
-      // User is loaded and is null
-      setIsClassesLoading(false);
-      setEnrolledClasses([]);
-    }
-  }, [user, isAuthLoading, fetchStudentData]);
+    return () => unsubscribe();
+  }, [user, toast]);
 
 
   const filteredClasses = useMemo(() => {
@@ -135,7 +120,7 @@ function StudentClassesPageContent() {
             description: `You have left the class "${className}".`
         });
         
-        // The auth listener will trigger a re-render which calls fetchStudentData
+        // The real-time listener will automatically update the UI
     } catch(error) {
         console.error("Error leaving class: ", error);
         toast({
@@ -149,9 +134,8 @@ function StudentClassesPageContent() {
   }
 
   const handleClassJoined = () => {
-    if (user) {
-      fetchStudentData(user);
-    }
+    // The real-time listener handles UI updates, so this can be empty or used for other side-effects.
+    // For now, we don't need to do anything here.
   }
 
   const isLoading = isAuthLoading || isClassesLoading;
@@ -311,5 +295,3 @@ const StudentClassesPageDynamic = dynamic(() => Promise.resolve(StudentClassesPa
 export default function StudentClassesPage() {
   return <StudentClassesPageDynamic />;
 }
-
-    
