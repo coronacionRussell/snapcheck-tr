@@ -1,19 +1,19 @@
 
 import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
+import {openai} from 'genkitx-openai';
 import {TEXT_MODEL} from './models';
 
 // Explicitly check for the API key on the server.
-if (!process.env.GEMINI_API_KEY) {
+if (!process.env.OPENAI_API_KEY) {
   console.error(`
-    FATAL ERROR: The GEMINI_API_KEY environment variable is not set.
+    FATAL ERROR: The OPENAI_API_KEY environment variable is not set.
     The AI features of this application will not work without it.
     
     Please take the following steps:
-    1. Get a valid API key from Google AI Studio: https://aistudio.google.com/app/apikey
+    1. Get a valid API key from the OpenAI Platform: https://platform.openai.com/api-keys
     2. Create a file named '.env' in the root of your project.
     3. Add the following line to your .env file:
-       GEMINI_API_KEY="your-api-key-goes-here"
+       OPENAI_API_KEY="your-api-key-goes-here"
     
     Replace "your-api-key-goes-here" with the key you obtained.
     Then, restart the development server.
@@ -23,10 +23,8 @@ if (!process.env.GEMINI_API_KEY) {
 
 export const ai = genkit({
   plugins: [
-    googleAI({
-      apiKey: process.env.GEMINI_API_KEY,
-      // The region to run the models in.
-      // location: 'us-central1',
+    openai({
+      apiKey: process.env.OPENAI_API_KEY,
     }),
   ],
   // Log all traces to the console.
