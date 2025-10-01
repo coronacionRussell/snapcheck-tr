@@ -252,10 +252,7 @@ export function EssayScanner() {
       }
     } catch (error: unknown) {
       console.error("Error processing image: ", error);
-      let errorMessage = 'There was an issue preparing or scanning your image. Please try again.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during image processing.';
       toast({
         title: 'Image Processing Failed',
         description: errorMessage,
@@ -404,10 +401,7 @@ export function EssayScanner() {
       resetForm();
   
     } catch (error: unknown) {
-        let errorMessage = 'Could not save the submission.';
-        if (error instanceof Error) {
-            errorMessage = error.message;
-        }
+        const errorMessage = error instanceof Error ? error.message : 'Could not save the submission.';
         console.error("Error saving submission: ", error);
         toast({ title: 'Error Saving Submission', description: errorMessage, variant: 'destructive' });
     } finally {

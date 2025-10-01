@@ -172,6 +172,10 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
   }, [isCameraOpen, toast]);
 
   const processImage = async (file: File) => {
+    setIsScanning(true);
+    setEssayText('');
+    
+    // 1. Compress Image
     try {
         toast({ title: 'Compressing Image...', description: 'Preparing your image for a faster upload.' });
         const options = {
@@ -180,41 +184,29 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
             useWebWorker: true,
         };
         const compressedFile = await imageCompression(file, options);
-
-        // Store compressed file for upload, and create a preview URL from it
         setImageFile(compressedFile);
         if (imagePreviewUrl) {
-            URL.revokeObjectURL(imagePreviewUrl); // Clean up previous preview
+            URL.revokeObjectURL(imagePreviewUrl);
         }
         setImagePreviewUrl(URL.createObjectURL(compressedFile));
 
-        setIsScanning(true);
-        setEssayText('');
-        
+        // 2. Scan for Text
+        toast({ title: 'Scanning Essay...', description: 'The AI is extracting text from your image.' });
         const dataUri = await imageCompression.getDataUrlFromFile(compressedFile);
-
-        toast({
-            title: 'Scanning Essay...',
-            description: 'The AI is extracting text from your image. This may take a moment.'
-        });
         const result = await scanEssay({ imageDataUri: dataUri });
+
         setEssayText(result.extractedText);
-        toast({
-            title: 'Scan Complete!',
-            description: 'The extracted text has been added to the text area.'
-        });
+        toast({ title: 'Scan Complete!', description: 'The extracted text has been added to the text area.' });
 
     } catch (error: unknown) {
-        let errorMessage = 'There was an issue preparing or scanning your image. Please try again.';
-        if (error instanceof Error) {
-            errorMessage = error.message;
-        }
         console.error("Error processing image: ", error);
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during image processing.';
         toast({
             title: 'Image Processing Failed',
             description: errorMessage,
             variant: 'destructive'
         });
+        setEssayText('[Scan failed. Please try again with a clearer image or paste the text manually.]');
     } finally {
         setIsScanning(false);
     }
