@@ -1,6 +1,6 @@
 
 import {genkit} from 'genkit';
-import {openai} from 'genkitx-openai';
+import {openAI} from 'genkitx-openai';
 import {TEXT_MODEL} from './models';
 
 // Explicitly check for the API key on the server.
@@ -23,7 +23,7 @@ if (!process.env.OPENAI_API_KEY) {
 
 export const ai = genkit({
   plugins: [
-    openai({
+    openAI({
       apiKey: process.env.OPENAI_API_KEY,
     }),
   ],
