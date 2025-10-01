@@ -45,6 +45,9 @@ const deleteUserData = ai.defineTool(
         })
     },
     async ({ uid }) => {
+        if (!db) {
+             throw new Error("Firestore database is not initialized. Check Firebase configuration.");
+        }
         try {
             const userDocRef = doc(db, 'users', uid);
             await deleteDoc(userDocRef);
@@ -78,15 +81,18 @@ const deleteUserFlow = ai.defineFlow(
   async (input) => {
      try {
         const llmResponse = await prompt(input);
+        // The tool might not be called if the LLM decides it's not necessary or fails.
         const toolCall = llmResponse.toolCalls()?.[0];
 
         if (toolCall) {
+            // Let the tool call run. If it throws, the catch block below will handle it.
             const toolResult = await genkit.runTool(toolCall);
-            return { success: true, message: toolResult };
+            // Assuming the tool returns a string on success as per the schema.
+            return { success: true, message: toolResult as string };
         }
-
+        
         // If the LLM fails to call the tool for some reason.
-        return { success: false, message: 'The AI model failed to call the deletion tool. No action was taken.' };
+        return { success: false, message: llmResponse.text || 'The AI model failed to call the deletion tool. No action was taken.' };
 
      } catch (error: any) {
         console.error('An error occurred in the deleteUserFlow:', error);

@@ -102,7 +102,7 @@ function AdminDashboardContent() {
             return teachers;
         }
         return teachers.filter(teacher => 
-            teacher.fullName.toLowerCase().includes(teacherSearch.toLowerCase())
+            teacher.fullName?.toLowerCase().includes(teacherSearch.toLowerCase())
         );
     }, [allUsers, teacherSearch]);
 
@@ -113,7 +113,7 @@ function AdminDashboardContent() {
             return students;
         }
         return students.filter(student => 
-            student.fullName.toLowerCase().includes(studentSearch.toLowerCase())
+            student.fullName?.toLowerCase().includes(studentSearch.toLowerCase())
         );
     }, [allUsers, studentSearch]);
 
@@ -162,11 +162,11 @@ function AdminDashboardContent() {
             title: 'Account Deleted',
             description: `The account for ${userName} has been deleted.`,
           });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error deleting user:', error);
           toast({
             title: 'Deletion Failed',
-            description: 'Could not delete the user account. It may require manual deletion from the Firebase console.',
+            description: error.message || 'Could not delete the user account. It may require manual deletion from the Firebase console.',
             variant: 'destructive',
             duration: 9000,
           });
