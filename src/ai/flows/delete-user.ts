@@ -96,7 +96,8 @@ const deleteUserFlow = ai.defineFlow(
         }
         
         // If the LLM fails to call the tool for some reason.
-        return { success: false, message: llmResponse.text || 'The AI model failed to call the deletion tool. No action was taken.' };
+        const llmText = llmResponse.text();
+        return { success: false, message: llmText || 'The AI model failed to call the deletion tool. No action was taken.' };
 
      } catch (error: unknown) {
         // This block will now only catch unexpected errors from the Genkit runtime itself.
