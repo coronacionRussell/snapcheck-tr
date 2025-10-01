@@ -108,11 +108,12 @@ export function JoinClassCard({ onClassJoined }: JoinClassCardProps) {
       setClassCode('');
       onClassJoined();
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error joining class:', error);
+      const message = error instanceof Error ? error.message : String(error);
       toast({
         title: 'Error',
-        description: 'Could not join the class. Please try again later.',
+        description: `Could not join the class. ${message}`,
         variant: 'destructive',
       });
     } finally {

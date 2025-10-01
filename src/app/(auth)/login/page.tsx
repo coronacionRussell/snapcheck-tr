@@ -89,7 +89,8 @@ function LoginPageContent() {
           if (error.message === "User document not found in Firestore.") {
              errorMessage = "Your account record is incomplete. Please try registering again.";
           } else {
-             errorMessage = `An unexpected error occurred: ${error.message}`;
+             const message = error instanceof Error ? error.message : String(error);
+             errorMessage = `An unexpected error occurred: ${message}`;
           }
           break;
       }

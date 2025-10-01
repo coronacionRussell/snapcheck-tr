@@ -116,7 +116,8 @@ function RegisterPageContent() {
              errorMessage = 'Email/password sign-in is not enabled. Please enable it in the Firebase console (Authentication > Sign-in method).';
              break;
         default:
-           errorMessage = `An unexpected error occurred: ${error.message}`;
+           const message = error instanceof Error ? error.message : String(error);
+           errorMessage = `An unexpected error occurred: ${message}`;
            break;
       }
        toast({
