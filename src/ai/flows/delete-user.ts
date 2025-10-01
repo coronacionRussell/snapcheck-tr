@@ -13,7 +13,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import * as genkit from 'genkit';
+import {runTool} from 'genkit/tools';
 
 
 const DeleteUserInputSchema = z.object({
@@ -81,14 +81,12 @@ const deleteUserFlow = ai.defineFlow(
   async (input) => {
      try {
         const llmResponse = await prompt(input);
-        // The tool might not be called if the LLM decides it's not necessary or fails.
         const toolCall = llmResponse.toolCalls()?.[0];
 
         if (toolCall) {
-            // Let the tool call run. If it throws, the catch block below will handle it.
-            const toolResult = await genkit.runTool(toolCall);
-            // Assuming the tool returns a string on success as per the schema.
-            return { success: true, message: toolResult as string };
+            const toolResult = await runTool(toolCall);
+            // The tool now returns an object that matches our output schema.
+            return toolResult as DeleteUserOutput;
         }
         
         // If the LLM fails to call the tool for some reason.
