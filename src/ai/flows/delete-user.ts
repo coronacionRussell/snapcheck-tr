@@ -54,10 +54,8 @@ const deleteUserData = ai.defineTool(
             };
         } catch (error: any) {
             console.error("Error deleting user data in tool: ", error);
-            return {
-                success: false,
-                message: `Failed to delete Firestore data for UID ${uid}: ${error.message}`
-            }
+            // Throw a proper error object that Genkit can handle.
+            throw new Error(`Failed to delete Firestore data for UID ${uid}: ${error.message}`);
         }
     }
 );
@@ -78,14 +76,22 @@ const deleteUserFlow = ai.defineFlow(
     outputSchema: DeleteUserOutputSchema,
   },
   async (input) => {
-     const llmResponse = await prompt(input);
-     const toolCall = llmResponse.toolCalls()?.[0];
+     try {
+        const llmResponse = await prompt(input);
+        const toolCall = llmResponse.toolCalls()?.[0];
 
-     if (toolCall) {
-        const toolResult = await deleteUserData(toolCall.input);
-        return toolResult;
+        if (toolCall) {
+            const toolResult = await genkit.runTool(toolCall);
+            return { success: true, message: toolResult };
+        }
+
+        // If the LLM fails to call the tool for some reason.
+        return { success: false, message: 'The AI model failed to call the deletion tool. No action was taken.' };
+
+     } catch (error: any) {
+        console.error('An error occurred in the deleteUserFlow:', error);
+        // Ensure that if the tool throws an error, we catch it and return a proper response.
+        return { success: false, message: error.message || 'An unexpected error occurred during the deletion process.' };
      }
-
-     return { success: false, message: 'Flow failed to call the deletion tool.' };
   }
 );
