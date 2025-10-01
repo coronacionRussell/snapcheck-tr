@@ -149,11 +149,15 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
             title: 'Class Deleted',
             description: 'The class and all its data have been successfully deleted.',
         });
-    } catch (error) {
+    } catch (error: unknown) {
+        let errorMessage = 'Could not delete the class and its associated data.';
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        }
         console.error("Error deleting class: ", error);
         toast({
             title: 'Deletion Failed',
-            description: 'Could not delete the class and its associated data.',
+            description: errorMessage,
             variant: 'destructive'
         });
     }
