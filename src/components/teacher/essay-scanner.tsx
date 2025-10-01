@@ -1,4 +1,3 @@
-
 'use client';
 
 import { scanEssay } from '@/ai/flows/scan-essay';
