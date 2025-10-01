@@ -24,6 +24,7 @@ if (!process.env.GEMINI_API_KEY) {
 export const ai = genkit({
   plugins: [
     googleAI({
+      apiKey: process.env.GEMINI_API_KEY,
       // The region to run the models in.
       // location: 'us-central1',
     }),
