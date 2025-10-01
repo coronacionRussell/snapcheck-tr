@@ -34,7 +34,17 @@ export type AnalyzeEssayGrammarOutput = z.infer<
 export async function analyzeEssayGrammar(
   input: AnalyzeEssayGrammarInput
 ): Promise<AnalyzeEssayGrammarOutput> {
-  return analyzeEssayGrammarFlow(input);
+  try {
+    return await analyzeEssayGrammarFlow(input);
+  } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during grammar analysis.";
+      console.error("Error in analyzeEssayGrammar flow:", errorMessage);
+      // Return the original text but indicate an error occurred
+      const safeText = input.essayText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      return { 
+          correctedHtml: `<span>[AI grammar analysis failed due to an unexpected error: ${errorMessage}]</span><br /><br /><span>${safeText}</span>`
+      };
+  }
 }
 
 const prompt = ai.definePrompt({

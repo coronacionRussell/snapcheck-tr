@@ -35,7 +35,15 @@ export type GenerateEssayFeedbackOutput = z.infer<
 export async function generateEssayFeedback(
   input: GenerateEssayFeedbackInput
 ): Promise<GenerateEssayFeedbackOutput> {
-  return generateEssayFeedbackFlow(input);
+  try {
+    return await generateEssayFeedbackFlow(input);
+  } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during feedback generation.";
+      console.error("Error in generateEssayFeedback flow:", errorMessage);
+      return { 
+          feedback: `[AI feedback generation failed due to an unexpected error: ${errorMessage}]`
+      };
+  }
 }
 
 const prompt = ai.definePrompt({

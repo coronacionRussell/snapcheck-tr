@@ -27,7 +27,16 @@ const AssistTeacherGradingOutputSchema = z.object({
 export type AssistTeacherGradingOutput = z.infer<typeof AssistTeacherGradingOutputSchema>;
 
 export async function assistTeacherGrading(input: AssistTeacherGradingInput): Promise<AssistTeacherGradingOutput> {
-  return assistTeacherGradingFlow(input);
+  try {
+    return await assistTeacherGradingFlow(input);
+  } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during AI grading.";
+      console.error("Error in assistTeacherGrading flow:", errorMessage);
+      return { 
+          preliminaryScore: 'Error',
+          feedback: `[AI analysis failed due to an unexpected error: ${errorMessage}]`
+      };
+  }
 }
 
 const prompt = ai.definePrompt({

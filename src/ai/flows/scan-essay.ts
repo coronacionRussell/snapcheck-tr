@@ -27,7 +27,13 @@ const ScanEssayOutputSchema = z.object({
 export type ScanEssayOutput = z.infer<typeof ScanEssayOutputSchema>;
 
 export async function scanEssay(input: ScanEssayInput): Promise<ScanEssayOutput> {
-    return scanEssayFlow(input);
+    try {
+        return await scanEssayFlow(input);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during the scan.";
+        console.error("Error in scanEssay flow:", errorMessage);
+        return { extractedText: `[Scanning failed due to an unexpected error: ${errorMessage}]` };
+    }
 }
 
 const prompt = ai.definePrompt({

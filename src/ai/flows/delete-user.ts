@@ -86,7 +86,7 @@ const deleteUserFlow = ai.defineFlow(
   async (input) => {
      try {
         const llmResponse = await prompt(input);
-        const toolCall = llmResponse.toolCalls()?.[0];
+        const toolCall = llmResponse.toolRequest();
 
         if (toolCall) {
             const toolResult = await runTool(toolCall);
