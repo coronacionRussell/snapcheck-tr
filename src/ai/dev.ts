@@ -1,4 +1,7 @@
 
+import { config } from 'dotenv';
+config();
+
 import { enableFirebaseTelemetry } from '@genkit-ai/firebase';
 enableFirebaseTelemetry();
 
