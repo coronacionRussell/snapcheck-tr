@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -61,6 +60,7 @@ const deleteUserData = ai.defineTool(
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             console.error("Error deleting user data in tool: ", errorMessage);
+            // DO NOT THROW. Return a standard failure object.
             return {
                 success: false,
                 message: `Failed to delete Firestore data for UID ${uid}: ${errorMessage}`
@@ -91,6 +91,7 @@ const deleteUserFlow = ai.defineFlow(
 
         if (toolCall) {
             const toolResult = await runTool(toolCall);
+            // The tool now always returns a valid DeleteUserOutput object.
             return toolResult as DeleteUserOutput;
         }
         
@@ -98,10 +99,10 @@ const deleteUserFlow = ai.defineFlow(
         return { success: false, message: llmResponse.text || 'The AI model failed to call the deletion tool. No action was taken.' };
 
      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('An error occurred in the deleteUserFlow:', errorMessage);
+        // This block will now only catch unexpected errors from the Genkit runtime itself.
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred in the AI flow.";
+        console.error('An unexpected error occurred in the deleteUserFlow:', errorMessage);
         return { success: false, message: errorMessage };
      }
   }
 );
-
