@@ -204,11 +204,15 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
             description: 'The extracted text has been added to the text area.'
         });
 
-    } catch (error) {
+    } catch (error: unknown) {
+        let errorMessage = 'There was an issue preparing or scanning your image. Please try again.';
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        }
         console.error("Error processing image: ", error);
         toast({
             title: 'Image Processing Failed',
-            description: 'There was an issue preparing or scanning your image. Please try again.',
+            description: errorMessage,
             variant: 'destructive'
         });
     } finally {
