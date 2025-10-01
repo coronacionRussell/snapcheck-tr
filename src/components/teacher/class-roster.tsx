@@ -59,13 +59,17 @@ export function ClassRoster({ classId }: { classId: string }) {
     return () => unsubscribe();
   }, [classId]);
 
-  const handleRemoveStudent = async (studentId: string, studentName: string) => {
-    setIsDeleting(studentId);
+  const handleRemoveStudent = async (student: Student) => {
+    if (!student || !student.id || !student.name) {
+      toast({ title: 'Error', description: 'Cannot remove student, data is missing.', variant: 'destructive'});
+      return;
+    }
+    setIsDeleting(student.id);
     try {
         const batch = writeBatch(db);
 
         // Reference to the student document in the subcollection
-        const studentRef = doc(db, 'classes', classId, 'students', studentId);
+        const studentRef = doc(db, 'classes', classId, 'students', student.id);
         batch.delete(studentRef);
 
         // Reference to the parent class document to decrement student count
@@ -73,14 +77,14 @@ export function ClassRoster({ classId }: { classId: string }) {
         batch.update(classRef, { studentCount: increment(-1) });
 
         // Reference to the user document to remove the class from their enrolled list
-        const userRef = doc(db, 'users', studentId);
+        const userRef = doc(db, 'users', student.id);
         batch.update(userRef, { enrolledClassIds: arrayRemove(classId) });
 
         await batch.commit();
 
         toast({
             title: 'Student Removed',
-            description: `${studentName} has been removed from the class.`
+            description: `${student.name} has been removed from the class.`
         });
 
     } catch (error) {
@@ -141,13 +145,13 @@ export function ClassRoster({ classId }: { classId: string }) {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will permanently remove <strong>{student?.name || 'this student'}</strong> from your class. They will lose access and this action cannot be undone.
+                            This will permanently remove <strong>{student.name || 'this student'}</strong> from your class. They will lose access and this action cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => handleRemoveStudent(student.id, student.name)}
+                            onClick={() => handleRemoveStudent(student)}
                             className="bg-destructive hover:bg-destructive/90"
                           >
                             Remove
