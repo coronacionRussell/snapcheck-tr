@@ -46,7 +46,10 @@ const deleteUserData = ai.defineTool(
     },
     async ({ uid }) => {
         if (!db) {
-             throw new Error("Firestore database is not initialized. Check Firebase configuration.");
+             return {
+                success: false,
+                message: "Firestore database is not initialized. Check Firebase configuration."
+             }
         }
         try {
             const userDocRef = doc(db, 'users', uid);
@@ -55,10 +58,13 @@ const deleteUserData = ai.defineTool(
                 success: true,
                 message: `Successfully deleted Firestore data for user ${uid}.`,
             };
-        } catch (error: any) {
-            console.error("Error deleting user data in tool: ", error);
-            // Throw a proper error object that Genkit can handle.
-            throw new Error(`Failed to delete Firestore data for UID ${uid}: ${error.message}`);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error("Error deleting user data in tool: ", errorMessage);
+            return {
+                success: false,
+                message: `Failed to delete Firestore data for UID ${uid}: ${errorMessage}`
+            };
         }
     }
 );
@@ -85,17 +91,16 @@ const deleteUserFlow = ai.defineFlow(
 
         if (toolCall) {
             const toolResult = await runTool(toolCall);
-            // The tool now returns an object that matches our output schema.
             return toolResult as DeleteUserOutput;
         }
         
         // If the LLM fails to call the tool for some reason.
         return { success: false, message: llmResponse.text || 'The AI model failed to call the deletion tool. No action was taken.' };
 
-     } catch (error: any) {
-        console.error('An error occurred in the deleteUserFlow:', error);
-        // Ensure that if the tool throws an error, we catch it and return a proper response.
-        return { success: false, message: error.message || 'An unexpected error occurred during the deletion process.' };
+     } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('An error occurred in the deleteUserFlow:', errorMessage);
+        return { success: false, message: errorMessage };
      }
   }
 );
