@@ -25,12 +25,25 @@ function initializeFirebaseClient() {
     if (typeof window !== 'undefined') {
         if (!getApps().length) {
             // Check for valid config before initializing
-            if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('YOUR_')) {
-                return initializeApp(firebaseConfig);
-            } else {
-                console.error('Firebase configuration is invalid or missing. Please check your environment variables.');
+            if (
+                firebaseConfig.apiKey &&
+                !firebaseConfig.apiKey.startsWith('AIza') && // A basic check for a valid key format
+                !firebaseConfig.apiKey.includes('your-') 
+            ) {
+                 console.error(
+                    'Firebase configuration error: NEXT_PUBLIC_FIREBASE_API_KEY seems invalid. Please check your .env file and ensure it is a valid key from your Firebase project settings.'
+                );
                 return null;
             }
+
+            if (!firebaseConfig.projectId) {
+                 console.error(
+                    'Firebase configuration error: NEXT_PUBLIC_FIREBASE_PROJECT_ID is missing. Please check your .env file.'
+                );
+                return null;
+            }
+            
+            return initializeApp(firebaseConfig);
         }
         return getApp();
     }
@@ -48,6 +61,9 @@ if (initializedApp) {
     // If the app is running on the server or initialization fails,
     // these will be undefined. Application logic should handle this gracefully,
     // for example by only calling Firebase services inside useEffect or client components.
+    if (typeof window !== 'undefined') {
+        console.error("Firebase could not be initialized. Please check your .env file and Firebase project configuration.");
+    }
 }
 
 export { app, db, auth, storage };
