@@ -2,9 +2,6 @@
 import { config } from 'dotenv';
 config();
 
-import { enableFirebaseTelemetry } from '@genkit-ai/firebase';
-enableFirebaseTelemetry();
-
 import '@/ai/flows/assist-teacher-grading.ts';
 import '@/ai/flows/generate-essay-feedback.ts';
 import '@/ai/flows/scan-essay.ts';
