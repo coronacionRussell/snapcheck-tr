@@ -1,7 +1,7 @@
 /**
  * @fileOverview Centralized model definitions for the application.
  */
-import { geminiPro, geminiProVision } from '@genkit-ai/google-genai';
+import { gemini15Flash, geminiPro, geminiProVision } from '@genkit-ai/google-genai';
 
 
 // For most text-based generation and analysis tasks.

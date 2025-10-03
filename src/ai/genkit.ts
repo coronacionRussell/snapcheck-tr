@@ -2,15 +2,12 @@
 'use server';
 
 import {genkit} from 'genkit';
-import * as firebase from "@genkit-ai/firebase";
 import {googleAI} from '@genkit-ai/google-genai';
 
 
-// Initialize Genkit with the Firebase and Google AI plugins.
-// This will use the project's service account for authentication.
+// Initialize Genkit with the Google AI plugin.
 export const ai = genkit({
   plugins: [
-    firebase.firebase(),
     googleAI(),
   ],
   // Log all traces to the console.
