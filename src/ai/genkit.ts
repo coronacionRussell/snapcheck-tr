@@ -1,12 +1,21 @@
+'use server';
+
+/**
+ * @fileOverview This file configures the Genkit AI instance for the application.
+ * It initializes the Google AI plugin with the necessary API key.
+ */
+
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 
 export const ai = genkit({
   plugins: [
-    googleAI({ apiKey: process.env.GEMINI_API_KEY }),
+    googleAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      apiVersion: 'v1beta',
+    }),
   ],
-  // Log all traces to the console.
+  // Optional debugging:
   // logSinks: [console.log],
-  // Open the trace in the browser.
   // openTraceInBrowser: true,
 });
