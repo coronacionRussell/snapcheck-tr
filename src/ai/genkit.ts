@@ -2,7 +2,7 @@
 'use server';
 
 import {genkit} from 'genkit';
-import {firebase} from "@genkit-ai/firebase";
+import * as firebase from "@genkit-ai/firebase";
 import {googleAI} from '@genkit-ai/google-genai';
 
 
@@ -10,7 +10,7 @@ import {googleAI} from '@genkit-ai/google-genai';
 // This will use the project's service account for authentication.
 export const ai = genkit({
   plugins: [
-    firebase(),
+    firebase.firebase(),
     googleAI(),
   ],
   // Log all traces to the console.
