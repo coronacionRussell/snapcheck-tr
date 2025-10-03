@@ -18,5 +18,5 @@ ${input.essayText}
 `,
   });
 
-  return result.text;
+  return { feedback: result.text };
 }
