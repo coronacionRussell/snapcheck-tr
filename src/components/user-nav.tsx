@@ -27,23 +27,21 @@ export function UserNav() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogout = () => {
-    (async () => {
-        try {
-          await signOut(auth);
-          router.push('/login');
-          toast({
-            title: 'Logged Out',
-            description: 'You have been successfully logged out.',
-          });
-        } catch (error) {
-          toast({
-            title: 'Logout Failed',
-            description: 'An error occurred while logging out.',
-            variant: 'destructive',
-          });
-        }
-    })();
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out.',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (isLoading) {
