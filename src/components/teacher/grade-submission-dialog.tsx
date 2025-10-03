@@ -1,4 +1,3 @@
-
 'use client';
 import { assistTeacherGrading } from '@/ai/flows/assist-teacher-grading';
 import { analyzeEssayGrammar } from '@/ai/flows/analyze-essay-grammar';
@@ -12,12 +11,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea as CustomTextarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, CheckCircle, Eye, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Input } from '../ui/input';
+import { Input as CustomInput } from '../ui/input';
 import { Label } from '../ui/label';
 import { Submission } from './class-submissions';
 import { db } from '@/lib/firebase';
@@ -39,7 +38,7 @@ type GradeSubmissionDialogProps = {
 export function GradeSubmissionDialog({ submission: initialSubmission, className, classId, isOpen: controlledIsOpen, setIsOpen: setControlledIsOpen, runAiOnOpen = false }: GradeSubmissionDialogProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = controlledIsOpen ?? internalIsOpen;
-  const setIsOpen = setControlledIsOpen ?? setInternalIsOpen;
+  const setIsOpen = controlledIsOpen ?? setInternalIsOpen;
 
   const [submission, setSubmission] = useState<Submission>(initialSubmission);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,10 +57,13 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
   const { toast } = useToast();
 
   const handleRunAiGrading = useCallback(async () => {
-    if (!activityDescription) {
+    console.log("handleRunAiGrading called.");
+    console.log("Inputs for AI grading: ", { essayText: submission.essayText, rubricText: rubric, activityDescription: activityDescription });
+
+    if (!activityDescription || !rubric) {
       toast({
         title: 'Cannot Run AI',
-        description: 'AI grading requires an activity with a description.',
+        description: 'AI grading requires both an activity description and a rubric. Please ensure they are set for this activity.',
         variant: 'destructive',
       });
       return;
@@ -81,10 +83,27 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
         analyzeEssayGrammar({ essayText: submission.essayText })
       ]);
 
+      console.log("AI Grading Result: ", gradingResult);
+      console.log("AI Grammar Result: ", grammarResult);
+
+      if (!gradingResult || !gradingResult.feedback || !gradingResult.preliminaryScore) {
+        console.error("AI Grading Result is incomplete or malformed:", gradingResult);
+        toast({
+          title: 'AI Analysis Error',
+          description: 'The AI returned an incomplete or malformed grading result.',
+          variant: 'destructive',
+        });
+        setFinalFeedback('[Error: AI feedback incomplete]');
+        setFinalScore('Error');
+        return;
+      }
+
       setAiResult(gradingResult);
       setFinalFeedback(gradingResult.feedback);
       setFinalScore(gradingResult.preliminaryScore);
       setGrammarAnalysis(grammarResult.correctedHtml);
+      
+      console.warn("State after AI update:", { aiResult: gradingResult, finalFeedback: gradingResult.feedback, finalScore: gradingResult.preliminaryScore });
 
     } catch (error) {
       console.error(error);
@@ -99,27 +118,35 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
     }
   }, [activityDescription, submission.essayText, rubric, toast]);
 
+  // This useEffect now primarily manages the dialog's open state and initial data loading.
   useEffect(() => {
     if (isOpen) {
-      const currentSubmission = {...initialSubmission};
-      setSubmission(currentSubmission);
-      setFinalScore(currentSubmission.grade || '');
-      setFinalFeedback(currentSubmission.feedback || '');
+      // Initialize states when dialog opens
+      setSubmission(initialSubmission);
+      // Only set initial score/feedback from the submission if they exist,
+      // otherwise, keep them empty, allowing AI to fill them.\n      setFinalScore(initialSubmission.grade || '');
+      setFinalFeedback(initialSubmission.feedback || '');
       setAiResult(null);
       setGrammarAnalysis('');
 
       const submissionRef = doc(db, 'classes', classId, 'submissions', initialSubmission.id);
-      const unsubscribe = onSnapshot(submissionRef, (doc) => {
-        if (doc.exists()) {
-          const updatedData = { id: doc.id, ...doc.data() } as Submission;
+      const unsubscribe = onSnapshot(submissionRef, (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          // Only update the submission object here, NOT finalScore/finalFeedback directly
+          const updatedData = { id: docSnapshot.id, ...docSnapshot.data() } as Submission;
           setSubmission(updatedData);
-          if (!finalScore) setFinalScore(updatedData.grade || '');
-          if (!finalFeedback) setFinalFeedback(updatedData.feedback || '');
         }
       });
       return () => unsubscribe();
+    } else {
+      // When dialog closes, ensure all states are reset for the next time it opens
+      setSubmission(initialSubmission); // Reset to original prop value
+      setFinalScore('');
+      setFinalFeedback('');
+      setAiResult(null);
+      setGrammarAnalysis('');
     }
-  }, [isOpen, classId, initialSubmission.id, initialSubmission, finalScore, finalFeedback]);
+  }, [isOpen, classId, initialSubmission]); // Removed finalScore, finalFeedback from dependencies
 
   useEffect(() => {
     const fetchActivityDetails = async () => {
@@ -138,9 +165,11 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
             if(activityDoc.exists()) {
                 const activityData = activityDoc.data();
                 const desc = activityData.description || 'No description provided for this activity.';
+                console.log("Fetched Activity Description:", desc);
+                console.log("Fetched Rubric:", activityData.rubric);
                 setRubric(activityData.rubric);
                 setActivityDescription(desc);
-                if (runAiOnOpen && desc) {
+                if (runAiOnOpen && desc && activityData.rubric) {
                   handleRunAiGrading();
                 }
             } else {
@@ -210,6 +239,9 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
     setIsOpen(false);
     setAiResult(null);
     setGrammarAnalysis('');
+    // Explicitly clear final score and feedback when closing the dialog
+    setFinalScore('');
+    setFinalFeedback('');
   }
 
   const parseOptions = {
@@ -266,6 +298,8 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
     </Button>
   );
 
+  console.log("Rendering GradeSubmissionDialog - finalScore:", finalScore, "finalFeedback:", finalFeedback);
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
         if (!open) handleClose();
@@ -305,20 +339,20 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
             )}
           </div>
          
-          <div className={`space-y-4 ${submission.essayImageUrl ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
-             <Card className="flex h-full flex-col">
+          <div className={`space-y-4 flex flex-col ${submission.essayImageUrl ? 'lg:col-span-1' : 'lg:col-span-2'}`}> {/* Added flex flex-col here */}
+             <Card className="flex-grow flex flex-col"> {/* Added flex-grow and flex flex-col */}
               <CardHeader>
                 <CardTitle className="font-headline text-lg">
                   Extracted Essay Text
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-grow">
-                <Textarea readOnly rows={20} value={submission.essayText} className="font-code text-sm h-full" />
+                <CustomTextarea readOnly rows={20} value={String(submission.essayText)} className="font-code text-sm h-full text-foreground" />
               </CardContent>
             </Card>
 
             {grammarAnalysis && (
-                <Card>
+                <Card className="flex-grow flex flex-col"> {/* Added flex-grow and flex flex-col */}
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2 text-lg">
                             <CheckCircle className="size-5 text-primary" /> AI Grammar Analysis
@@ -327,8 +361,8 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
                             Errors are highlighted. Hover over them to see the suggested correction.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="prose prose-sm max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground whitespace-pre-wrap leading-relaxed">
+                    <CardContent className="flex-grow">
+                        <div className="prose prose-sm max-w-none rounded-md border bg-secondary p-4 whitespace-pre-wrap leading-relaxed overflow-y-auto text-black"> {/* Removed fixed height */}
                             {parse(grammarAnalysis, parseOptions)}
                         </div>
                     </CardContent>
@@ -344,11 +378,11 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
               </CardHeader>
               <CardContent>
                 {isRubricLoading ? <div className="flex justify-center items-center h-24"><Loader2 className="h-8 w-8 animate-spin" /></div> : 
-                <Textarea
+                <CustomTextarea
                   readOnly
                   rows={6}
-                  value={rubric}
-                  className="font-code text-sm bg-muted"
+                  value={String(rubric)}
+                  className="font-code text-sm bg-muted text-foreground"
                 />}
               </CardContent>
             </Card>
@@ -389,22 +423,23 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
                 <CardContent className="space-y-4">
                     <div>
                         <Label htmlFor="final-score">Final Score (/100)</Label>
-                        <Input
+                        <input
                         id="final-score"
-                        value={finalScore}
+                        type="text"
+                        value={String(finalScore)}
                         onChange={(e) => setFinalScore(e.target.value)}
-                        placeholder={isGraded ? '-' : 'Enter a score (e.g., 85)'}
                         readOnly={isGraded}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
                         />
                     </div>
                     <div>
                         <Label>Final Feedback</Label>
-                        <Textarea 
+                        <textarea 
                             rows={10} 
-                            value={finalFeedback} 
+                            value={String(finalFeedback)}
                             onChange={(e) => setFinalFeedback(e.target.value)}
-                            placeholder={isLoading ? 'Generating feedback...' : aiResult ? 'Edit the AI-generated feedback or write your own.' : isGraded ? 'No feedback was provided.' : 'Run the AI assistant to generate feedback, or write your own.'}
                             readOnly={isGraded}
+                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
                         />
                     </div>
                 </CardContent>

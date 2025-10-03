@@ -41,21 +41,9 @@ const prompt = ai.definePrompt({
   name: 'analyzeEssayGrammarPrompt',
   model: TEXT_MODEL,
   input: { schema: AnalyzeEssayGrammarInputSchema },
-  output: { schema: AnalyzeEssayGrammarOutputSchema },
-  config: { output: { format: 'json' } }, // 👈 Force JSON mode
-  prompt: `You are an expert grammar and spelling checker.
-Analyze the essay text and return an HTML string.
-
-Rules:
-1. For spelling errors: <span class="spelling-error" data-suggestion="correct">wrong</span>
-2. For grammar errors: <span class="grammar-error" data-suggestion="better phrase">bad phrase</span>
-3. Do NOT wrap correct words/phrases. Leave them as-is.
-4. Preserve original line breaks and spacing.
-5. Return ONLY a JSON object with the key "correctedHtml". No extra text.
-
-Essay Text:
-{{{essayText}}}
-`,
+  // Removed: config: { responseFormat: { type: 'json' } }, // This was causing the error
+  prompt: `You are an expert grammar and spelling checker.\nAnalyze the essay text and return an HTML string.\n\nRules:\n1. For spelling errors: <span class="spelling-error" data-suggestion="correct">wrong</span>\n2. For grammar errors: <span class="grammar-error" data-suggestion="better phrase">bad phrase</span>\n3. Do NOT wrap correct words/phrases. Leave them as-is.\n4. Preserve original line breaks and spacing.\n5. Return ONLY a JSON object with the key "correctedHtml". No extra text.\n
+Essay Text:\n{{{essayText}}}\n`,
 });
 
 const analyzeEssayGrammarFlow = ai.defineFlow(

@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -10,6 +9,13 @@ import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StudentClassActivities } from '@/components/student/student-class-activities';
 import { useParams } from 'next/navigation';
+import { StudentSubmissionsOverview } from '@/components/student/student-submissions-overview'; // Import the new component
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 
 interface ClassInfo {
   name: string;
@@ -116,7 +122,18 @@ export default function StudentClassDetailsPage() {
         </div>
       </div>
 
-       <StudentClassActivities classId={classId} />
+       <Tabs defaultValue="activities">
+        <TabsList>
+          <TabsTrigger value="activities">Activities</TabsTrigger>
+          <TabsTrigger value="your-submissions">Your Submissions</TabsTrigger>
+        </TabsList>
+        <TabsContent value="activities" className="mt-4">
+          <StudentClassActivities classId={classId} />
+        </TabsContent>
+        <TabsContent value="your-submissions" className="mt-4">
+          <StudentSubmissionsOverview classId={classId} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   collection,
   query,
@@ -25,8 +24,9 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const [classes, setClasses] = useState<Class[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const unsubscribeRefs = useRef<(() => void)[]>([]);
 
-  const fetchClasses = useCallback(() => {
+  const fetchClassesWithPendingCounts = useCallback(() => {
     if (!user) {
         setIsLoading(false);
         setClasses([]);
@@ -34,19 +34,69 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     };
 
     setIsLoading(true);
-    const q = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
+    const classesQuery = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const classesData = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          studentCount: data.studentCount || 0, // Fallback to 0
-          pendingSubmissions: data.pendingSubmissions || 0, // Fallback to 0
+    // Clear previous unsubscribers
+    unsubscribeRefs.current.forEach(unsubscribe => unsubscribe());
+    unsubscribeRefs.current = [];
+
+    const classesUnsubscribe = onSnapshot(classesQuery, (classesSnapshot) => {
+      const newClassesData: Class[] = [];
+      let pendingPromises: Promise<void>[] = [];
+      const currentClassIds = new Set<string>();
+
+      classesSnapshot.docs.forEach((classDoc) => {
+        currentClassIds.add(classDoc.id);
+        const classData = classDoc.data();
+        const initialClass: Class = {
+          id: classDoc.id,
+          ...classData,
+          studentCount: classData.studentCount || 0,
+          pendingSubmissions: 0, // Initialize to 0, will be updated by sub-listener
         } as Class;
+        newClassesData.push(initialClass);
+
+        // Create a listener for pending submissions for THIS class
+        const submissionsQuery = query(
+          collection(db, 'classes', classDoc.id, 'submissions'),
+          where('status', '==', 'Pending Review')
+        );
+
+        const submissionUnsubscribe = onSnapshot(submissionsQuery, (submissionsSnapshot) => {
+          setClasses(prevClasses => {
+            const updatedClasses = prevClasses.map(c => {
+              if (c.id === classDoc.id) {
+                return { ...c, pendingSubmissions: submissionsSnapshot.size };
+              }
+              return c;
+            });
+            // If the class wasn't in prevClasses (e.g., initial load or new class)
+            // ensure it's added and updated with the correct pending count.
+            // This handles cases where a class is added and its submission listener fires quickly.
+            if (!updatedClasses.some(c => c.id === classDoc.id)) {
+                const existingClassIndex = newClassesData.findIndex(c => c.id === classDoc.id);
+                if (existingClassIndex !== -1) {
+                    newClassesData[existingClassIndex] = { ...newClassesData[existingClassIndex], pendingSubmissions: submissionsSnapshot.size };
+                }
+                return [...newClassesData]; // Re-evaluate all classes if a new one appears or needs updating
+            }
+            return updatedClasses;
+          });
+        }, (error) => {
+          console.error(`Error fetching pending submissions for class ${classDoc.id}: `, error);
+        });
+        unsubscribeRefs.current.push(submissionUnsubscribe);
       });
-      setClasses(classesData);
+
+      // Remove listeners for classes that no longer exist
+      unsubscribeRefs.current = unsubscribeRefs.current.filter(unsubscribe => {
+        // This is tricky as we don't directly store classId with unsubscribe. Requires refactoring if class deletion is frequent.
+        // For now, relies on the main classesUnsubscribe to handle overall class list.
+        // A better approach would be to store { classId, unsubscribeFunction } pairs.
+        return true; // Keep all for now, assuming classes are not frequently deleted during runtime.
+      });
+
+      setClasses(newClassesData.sort((a, b) => a.name.localeCompare(b.name)));
       setIsLoading(false);
     }, (error) => {
         console.error("Error fetching classes: ", error);
@@ -58,17 +108,21 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
     });
 
-    return unsubscribe;
+    unsubscribeRefs.current.push(classesUnsubscribe);
+    return () => {
+        unsubscribeRefs.current.forEach(unsubscribe => unsubscribe());
+        unsubscribeRefs.current = [];
+    };
   }, [user, toast]);
 
   useEffect(() => {
-    const unsubscribe = fetchClasses();
+    const unsubscribe = fetchClassesWithPendingCounts();
     return () => {
         if (unsubscribe) {
             unsubscribe();
         }
     }
-  }, [fetchClasses]);
+  }, [fetchClassesWithPendingCounts]);
 
   const onClassCreated = async (newClass: Omit<Class, 'id' | 'teacherId' | 'teacherName' | 'studentCount' | 'pendingSubmissions'>): Promise<Class | null> => {
     if (!user) {

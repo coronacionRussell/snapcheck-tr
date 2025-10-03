@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -10,7 +9,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useParams } from 'next/navigation';
 import { ClassRoster } from '@/components/teacher/class-roster';
@@ -18,6 +17,7 @@ import { ClassActivities } from '@/components/teacher/class-activities';
 import { ClassSubmissions } from '@/components/teacher/class-submissions';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge'; // Import Badge component
 
 interface ClassInfo {
   name: string;
@@ -45,6 +45,7 @@ export default function ClassDetailsPage() {
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
 
   useEffect(() => {
     if (!classId) return;
@@ -75,7 +76,27 @@ export default function ClassDetailsPage() {
       }
     };
 
+    const setupPendingSubmissionsListener = () => {
+      if (!db) return;
+
+      const submissionsCollection = collection(db, 'classes', classId, 'submissions');
+      const q = query(submissionsCollection, where('status', '==', 'Pending Review'));
+
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        setPendingSubmissionsCount(querySnapshot.size);
+      }, (err) => {
+        console.error("Error fetching pending submissions count: ", err);
+      });
+
+      return unsubscribe;
+    };
+
     fetchClassData();
+    const unsubscribeFromPendingSubmissions = setupPendingSubmissionsListener();
+
+    return () => {
+      unsubscribeFromPendingSubmissions && unsubscribeFromPendingSubmissions();
+    };
   }, [classId]);
 
   if (isLoading) {
@@ -123,7 +144,14 @@ export default function ClassDetailsPage() {
       <Tabs defaultValue="activities">
         <TabsList>
           <TabsTrigger value="activities">Activities</TabsTrigger>
-          <TabsTrigger value="submissions">All Submissions</TabsTrigger>
+          <TabsTrigger value="submissions">
+            All Submissions
+            {pendingSubmissionsCount > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {pendingSubmissionsCount}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="roster">Roster</TabsTrigger>
         </TabsList>
         <TabsContent value="activities" className="mt-4">

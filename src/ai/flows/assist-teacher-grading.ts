@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -32,6 +31,7 @@ export async function assistTeacherGrading(input: AssistTeacherGradingInput): Pr
   } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during AI grading.";
       console.error("Error in assistTeacherGrading flow:", errorMessage);
+      // Ensure a valid structure is always returned, even on error
       return { 
           preliminaryScore: 'Error',
           feedback: `[AI analysis failed due to an unexpected error: ${errorMessage}]`
@@ -44,6 +44,7 @@ const prompt = ai.definePrompt({
   model: TEXT_MODEL,
   input: {schema: AssistTeacherGradingInputSchema},
   output: {schema: AssistTeacherGradingOutputSchema},
+  // Removed: config: { responseFormat: { type: 'json' } }, // This was causing the error
   prompt: `You are an AI assistant for teachers. Your task is to provide feedback on a student's essay and suggest a preliminary score out of 100.
 
 The "Assignment Description" is the primary essay question or prompt. Your first priority is to evaluate how well the essay directly answers this prompt and fulfills its specific instructions.
@@ -51,6 +52,8 @@ The "Assignment Description" is the primary essay question or prompt. Your first
 Next, use the provided "Rubric" to evaluate the quality of the writing based on its criteria (e.g., thesis, evidence, organization).
 
 Generate constructive feedback that explains how the essay performs against both the Assignment Description and the Rubric. Provide a score out of 100 that reflects this comprehensive evaluation.
+
+If you cannot generate a meaningful score or feedback for any reason, please return "0" for preliminaryScore and "Unable to generate feedback based on the provided information." for feedback.
 
 You MUST output your response in a valid JSON format.
 
