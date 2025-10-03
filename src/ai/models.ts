@@ -7,4 +7,4 @@ import { googleAI } from '@genkit-ai/google-genai';
 export const TEXT_MODEL = googleAI.model('gemini-1.5-pro-latest');
 
 // For tasks involving image input (Optical Character Recognition).
-export const VISION_MODEL = googleAI.model('gemini-1.5-pro-latest');
+export const VISION_MODEL = googleAI.model('gemini-1.5-flash-latest');
