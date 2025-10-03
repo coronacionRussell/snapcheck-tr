@@ -2,8 +2,9 @@
 'use server';
 
 import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/google-genai';
 import {firebase} from "@genkit-ai/firebase";
+import {googleAI} from '@genkit-ai/google-genai';
+
 
 // Initialize Genkit with the Firebase and Google AI plugins.
 // This will use the project's service account for authentication.
