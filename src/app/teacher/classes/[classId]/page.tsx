@@ -17,7 +17,7 @@ import { ClassActivities } from '@/components/teacher/class-activities';
 import { ClassSubmissions } from '@/components/teacher/class-submissions';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge'; // Import Badge component
+import { Badge } from '@/components/ui/badge'; 
 
 interface ClassInfo {
   name: string;
@@ -46,6 +46,7 @@ export default function ClassDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
+  const [totalStudentsCount, setTotalStudentsCount] = useState(0); // New state for total student count
 
   useEffect(() => {
     if (!classId) return;
@@ -91,11 +92,30 @@ export default function ClassDetailsPage() {
       return unsubscribe;
     };
 
+    // New listener for total student count
+    const setupTotalStudentsListener = () => {
+      if (!db) return;
+      const studentsCollectionRef = collection(db, 'users');
+      const studentsQuery = query(
+        studentsCollectionRef,
+        where('role', '==', 'student'),
+        where('enrolledClassIds', 'array-contains', classId)
+      );
+      const unsubscribe = onSnapshot(studentsQuery, (querySnapshot) => {
+        setTotalStudentsCount(querySnapshot.size);
+      }, (err) => {
+        console.error("Error fetching total students count: ", err);
+      });
+      return unsubscribe;
+    };
+
     fetchClassData();
     const unsubscribeFromPendingSubmissions = setupPendingSubmissionsListener();
+    const unsubscribeFromTotalStudents = setupTotalStudentsListener(); // Start new listener
 
     return () => {
       unsubscribeFromPendingSubmissions && unsubscribeFromPendingSubmissions();
+      unsubscribeFromTotalStudents && unsubscribeFromTotalStudents(); // Clean up new listener
     };
   }, [classId]);
 
@@ -152,7 +172,14 @@ export default function ClassDetailsPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="roster">Roster</TabsTrigger>
+          <TabsTrigger value="roster">
+            Roster
+            {totalStudentsCount > 0 && (
+              <Badge className="ml-2">
+                {totalStudentsCount}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="activities" className="mt-4">
           <ClassActivities classId={classId} />

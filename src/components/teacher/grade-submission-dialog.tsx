@@ -121,10 +121,10 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
   // This useEffect now primarily manages the dialog's open state and initial data loading.
   useEffect(() => {
     if (isOpen) {
-      // Initialize states when dialog opens
+      // Set submission to initial prop value
       setSubmission(initialSubmission);
-      // Only set initial score/feedback from the submission if they exist,
-      // otherwise, keep them empty, allowing AI to fill them.\n      setFinalScore(initialSubmission.grade || '');
+      // Initialize finalScore/finalFeedback from initial submission prop
+      setFinalScore(initialSubmission.grade || '');
       setFinalFeedback(initialSubmission.feedback || '');
       setAiResult(null);
       setGrammarAnalysis('');
@@ -132,9 +132,11 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
       const submissionRef = doc(db, 'classes', classId, 'submissions', initialSubmission.id);
       const unsubscribe = onSnapshot(submissionRef, (docSnapshot) => {
         if (docSnapshot.exists()) {
-          // Only update the submission object here, NOT finalScore/finalFeedback directly
           const updatedData = { id: docSnapshot.id, ...docSnapshot.data() } as Submission;
           setSubmission(updatedData);
+          // *** IMPORTANT: Update finalScore and finalFeedback from updatedData here ***
+          setFinalScore(updatedData.grade || '');
+          setFinalFeedback(updatedData.feedback || '');
         }
       });
       return () => unsubscribe();
@@ -146,7 +148,7 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
       setAiResult(null);
       setGrammarAnalysis('');
     }
-  }, [isOpen, classId, initialSubmission]); // Removed finalScore, finalFeedback from dependencies
+  }, [isOpen, classId, initialSubmission]);
 
   useEffect(() => {
     const fetchActivityDetails = async () => {
@@ -169,7 +171,9 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
                 console.log("Fetched Rubric:", activityData.rubric);
                 setRubric(activityData.rubric);
                 setActivityDescription(desc);
-                if (runAiOnOpen && desc && activityData.rubric) {
+                // Only run AI if not already graded AND if explicitly requested (runAiOnOpen)
+                // and if activity description and rubric are available.
+                if (runAiOnOpen && !submission.grade && desc && activityData.rubric) {
                   handleRunAiGrading();
                 }
             } else {
@@ -198,7 +202,7 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
     if (isOpen) {
         fetchActivityDetails();
     }
-  }, [submission.activityId, classId, isOpen, toast, runAiOnOpen, handleRunAiGrading]);
+  }, [submission.activityId, classId, isOpen, toast, runAiOnOpen, handleRunAiGrading, submission.grade]); // Added submission.grade to dependencies
   
   const handleFinalizeGrade = async () => {
     if (!finalScore.trim()) {
@@ -221,7 +225,8 @@ export function GradeSubmissionDialog({ submission: initialSubmission, className
             title: 'Grade Submitted!',
             description: `The grade for ${submission.studentName} has been finalized.`,
         });
-        handleClose();
+        // The onSnapshot will now update the internal state, no need to manually update here
+        setIsOpen(false);
 
     } catch (error) {
         console.error("Error finalizing grade: ", error);

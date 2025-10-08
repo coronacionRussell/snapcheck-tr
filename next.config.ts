@@ -59,6 +59,9 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  experimental: {
+    allowedDevOrigins: ['3002-firebase-studio-1756481085683.cluster-iktsryn7xnhpexlu6255bftka4.cloudworkstations.dev'],
+  },
 };
 
 export default withPWA(nextConfig);

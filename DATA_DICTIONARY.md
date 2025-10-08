@@ -31,6 +31,7 @@ This collection stores all the classes created by teachers.
     -   `teacherId` (string): The `uid` of the teacher who created the class.
     -   `teacherName` (string): The full name of the teacher.
     -   `studentCount` (number): The number of students enrolled in the class.
+    -   `pendingSubmissions` (number): A real-time count of submissions in this class with the status 'Pending Review'.
 
 #### Sub-collection: `students`
 
@@ -71,6 +72,3 @@ This sub-collection within each `class` document stores all essay submissions fr
     -   `status` (string): The current status of the submission. Can be `Pending Review` or `Graded`.
     -   `grade` (string, optional): The final score or grade assigned by the teacher.
     -   `feedback` (string, optional): The final feedback provided by the teacher.
-
-
-    

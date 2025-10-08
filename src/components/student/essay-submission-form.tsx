@@ -1,10 +1,8 @@
 'use client';
 
-import { generateEssayFeedback } from '@/ai/flows/generate-essay-feedback';
 import { scanEssay } from '@/ai/flows/scan-essay';
-import { analyzeEssayGrammar } from '@/ai/flows/analyze-essay-grammar';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Camera, CheckCircle, Loader2, Sparkles, UploadCloud, X, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Camera, Loader2, UploadCloud, Trash2, Image as ImageIcon, Pencil, Check } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
@@ -17,8 +15,6 @@ import { db, storage } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, addDoc, query, where, updateDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/hooks/use-auth';
-import parse, { domToReact, Element } from 'html-react-parser';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
 import { v4 as uuidv4 } from 'uuid';
@@ -48,17 +44,13 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
   
   const [rubric, setRubric] = useState('');
   
-  const [feedback, setFeedback] = useState('');
-  const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [isReviewing, setIsReviewing] = useState(false); // New state for review mode
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
-
-  const [grammarAnalysis, setGrammarAnalysis] = useState('');
-  const [isAnalyzingGrammar, setIsAnalyzingGrammar] = useState(false);
 
   const fetchActivities = useCallback(async () => {
     if (!user || !user.enrolledClassIds || user.enrolledClassIds.length === 0 || !db) {
@@ -237,71 +229,20 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     }
   };
 
+  const handleRemoveImage = useCallback(() => {
+    setImageFile(null);
+    if(imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl(null);
+    }
+    const fileInput = document.getElementById('essay-photo') as HTMLInputElement;
+    if(fileInput) {
+        fileInput.value = '';
+    }
+  }, [imagePreviewUrl]);
 
-  const handleGetFeedback = async () => {
-     if (!selectedActivity) {
-        toast({
-            title: 'Missing Activity',
-            description: 'Please select an activity before getting feedback.',
-            variant: 'destructive',
-          });
-          return;
-    }
-    if (!essayText.trim() || !rubric.trim()) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please provide the essay text. The rubric should be loaded automatically.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsLoadingFeedback(true);
-    setFeedback('');
-    try {
-      const result = await generateEssayFeedback({ essayText, rubric });
-      setFeedback(result.feedback);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Feedback Generation Failed',
-        description:
-          'There was an error generating feedback. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoadingFeedback(false);
-    }
-  }
-
-  const handleAnalyzeGrammar = async () => {
-    if (!essayText.trim()) {
-      toast({
-        title: 'Missing Essay Text',
-        description: 'Please provide some text to analyze.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setIsAnalyzingGrammar(true);
-    setGrammarAnalysis('');
-    try {
-      const result = await analyzeEssayGrammar({ essayText });
-      setGrammarAnalysis(result.correctedHtml);
-    } catch (error) {
-      console.error('Error analyzing grammar:', error);
-      toast({
-        title: 'Analysis Failed',
-        description: 'There was an error analyzing the grammar. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsAnalyzingGrammar(false);
-    }
-  };
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSubmit = async (event?: React.FormEvent) => {
+    event?.preventDefault(); // Optional chaining for event
     if (!user) {
         toast({ title: "Not authenticated", variant: 'destructive'});
         return;
@@ -371,13 +312,13 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
       
       // 3. Reset form immediately for a fast UI response.
       setEssayText('');
-      setFeedback('');
-      setGrammarAnalysis('');
+      setRubric(''); // Clear rubric as well
       setImageFile(null);
       setImagePreviewUrl(null);
       if (!preselectedActivityId) {
           setSelectedActivity(undefined);
       }
+      setIsReviewing(false); // Exit review mode after submission
 
     } catch (error) {
         console.error(error);
@@ -391,69 +332,31 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
     }
   };
 
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    if(imagePreviewUrl) {
-      URL.revokeObjectURL(imagePreviewUrl);
-      setImagePreviewUrl(null);
+  const handleReview = () => {
+    if (!selectedActivity) {
+      toast({
+        title: 'Missing Activity',
+        description: 'Please select an activity before reviewing.',
+        variant: 'destructive',
+      });
+      return;
     }
-    const fileInput = document.getElementById('essay-photo') as HTMLInputElement;
-    if(fileInput) {
-        fileInput.value = '';
+    if (!essayText.trim()) {
+      toast({
+        title: 'Missing Essay Text',
+        description: 'Please provide the essay text before reviewing.',
+        variant: 'destructive',
+      });
+      return;
     }
+    setIsReviewing(true);
   };
 
-  const parseOptions = {
-    replace: (domNode: any) => {
-      if (domNode instanceof Element && domNode.attribs && domNode.name === 'span') {
-         if (domNode.attribs.class === 'spelling-error') {
-            return (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <span className="bg-blue-200/50 text-blue-800 rounded-md px-1 cursor-pointer">
-                                {domToReact(domNode.children, parseOptions)}
-                            </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Correction: <strong className="text-primary">{domNode.attribs['data-suggestion']}</strong></p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            );
-        }
-        if (domNode.attribs.class === 'grammar-error') {
-            return (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <span className="bg-yellow-200/50 text-yellow-800 rounded-md px-1 cursor-pointer">
-                                {domToReact(domNode.children, parseOptions)}
-                            </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Correction: <strong className="text-primary">{domNode.attribs['data-suggestion']}</strong></p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            );
-        }
-        if (domNode.attribs.class === 'correct') {
-            return (
-                <span>
-                    {domToReact(domNode.children, parseOptions)}
-                </span>
-            );
-        }
-      }
-    },
-  };
-  
-  const formDisabled = isAuthLoading || isLoadingFeedback || isScanning || isSubmitting || isAnalyzingGrammar;
+  const formDisabled = isAuthLoading || isScanning || isSubmitting || isReviewing;
   const currentActivity = availableActivities.find(a => a.id === selectedActivity);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={(e) => e.preventDefault()} className="space-y-6"> {/* Prevent default form submission initially */}
        {preselectedActivityId && currentActivity ? (
            <Card>
                 <CardHeader>
@@ -522,7 +425,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
                   accept="image/*"
                   onChange={handleFileUpload}
                   className="pl-10"
-                  disabled={formDisabled}
+                  disabled={formDisabled || isReviewing}
                 />
               </div>
                <p className="text-xs text-muted-foreground">
@@ -536,7 +439,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
                 variant="outline"
                 className="w-full"
                 onClick={() => setIsCameraOpen(true)}
-                 disabled={formDisabled}
+                 disabled={formDisabled || isReviewing}
               >
                 <Camera className="mr-2 size-4" /> Open Camera
               </Button>
@@ -574,7 +477,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
                     <ImageIcon className="size-5 text-muted-foreground" />
                     <CardTitle className="text-lg">Image Preview</CardTitle>
                   </div>
-                  <Button variant="destructive" size="sm" onClick={handleRemoveImage} disabled={formDisabled}>
+                  <Button variant="destructive" size="sm" onClick={handleRemoveImage} disabled={formDisabled || isReviewing}>
                       <Trash2 className="mr-2" />
                       Remove Image
                   </Button>
@@ -597,7 +500,7 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
               onChange={(e) => setEssayText(e.target.value)}
               required
               className="font-code"
-              disabled={isScanning || isSubmitting}
+              disabled={isScanning || isSubmitting || isReviewing}
             />
           </div>
         </CardContent>
@@ -622,78 +525,31 @@ export function EssaySubmissionForm({ preselectedActivityId }: EssaySubmissionFo
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-         <Button type="button" size="lg" className="w-full" variant="outline" disabled={formDisabled} onClick={handleAnalyzeGrammar}>
-            {isAnalyzingGrammar ? (
-            <>
-                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                Analyzing...
-            </>
-            ) : (
-            <>
-                <CheckCircle className="mr-2 size-4" />
-                Analyze Grammar
-            </>
-            )}
-        </Button>
-         <Button type="button" size="lg" className="w-full" variant="outline" disabled={formDisabled || !selectedActivity} onClick={handleGetFeedback}>
-            {isLoadingFeedback ? (
-            <>
-                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                Generating Feedback...
-            </>
-            ) : (
-            <>
-                <Sparkles className="mr-2 size-4" />
-                Get Rubric Feedback
-            </>
-            )}
-        </Button>
-      </div>
-
-       {grammarAnalysis && (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2 text-lg">
-                        <CheckCircle className="size-5 text-primary" /> AI Grammar Analysis
-                    </CardTitle>
-                    <CardDescription>
-                        Errors are highlighted. Hover over them to see the suggested correction.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="prose prose-sm max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground whitespace-pre-wrap leading-relaxed">
-                        {parse(grammarAnalysis, parseOptions)}
-                    </div>
-                </CardContent>
-            </Card>
-        )}
-
-      {feedback && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2 text-lg">
-              <Bot className="mr-2 size-5" /> AI Rubric Feedback
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="prose prose-sm max-w-none rounded-md border bg-secondary p-4 text-secondary-foreground whitespace-pre-wrap">
-              {feedback}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Button type="submit" size="lg" className="w-full" disabled={formDisabled || !selectedActivity}>
+      {isReviewing ? (
+        <div className="flex gap-2 justify-end">
+          <Button type="button" variant="outline" size="lg" onClick={() => setIsReviewing(false)} disabled={isSubmitting}>
+            <Pencil className="mr-2 h-5 w-5" />
+            Back to Edit
+          </Button>
+          <Button type="button" size="lg" onClick={() => handleSubmit()} disabled={isSubmitting}>
             {isSubmitting ? (
-            <>
+              <>
                 <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                 Submitting for Grading...
-            </>
+              </>
             ) : (
-            'Submit for Grading'
+              <>
+                <Check className="mr-2 h-5 w-5" />
+                Confirm Submission
+              </>
             )}
+          </Button>
+        </div>
+      ) : (
+        <Button type="button" size="lg" className="w-full" onClick={handleReview} disabled={formDisabled || !selectedActivity || !essayText.trim()}>
+            Review Submission
         </Button>
+      )}
     </form>
   );
 }

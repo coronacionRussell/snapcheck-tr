@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Badge } from '@/components/ui/badge';
@@ -27,12 +26,19 @@ import {
 } from '@/components/ui/dialog';
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collectionGroup, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collectionGroup, getDocs, query, where, orderBy, doc, getDoc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { MessageSquareText } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Submission {
   id: string;
@@ -45,11 +51,20 @@ interface Submission {
   };
   feedback?: string;
   className?: string; 
+  classId?: string; // Add classId to submission interface
+}
+
+interface EnrolledClass {
+  id: string;
+  name: string;
 }
 
 export default function StudentHistoryPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [enrolledClasses, setEnrolledClasses] = useState<EnrolledClass[]>([]);
+  const [selectedClassFilter, setSelectedClassFilter] = useState<string>('all');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [isDataLoading, setIsDataLoading] = useState(true);
   const { toast } = useToast();
 
@@ -60,17 +75,21 @@ export default function StudentHistoryPage() {
     }
     setIsDataLoading(true);
     try {
-      const submissionsQuery = query(
+      let submissionsQueryRef: any = query(
         collectionGroup(db, 'submissions'),
         where('studentId', '==', user.uid),
         orderBy('submittedAt', 'desc')
       );
 
-      const submissionsSnapshot = await getDocs(submissionsQuery);
+      if (selectedStatusFilter !== 'all') {
+        submissionsQueryRef = query(submissionsQueryRef, where('status', '==', selectedStatusFilter));
+      }
+
+      const submissionsSnapshot = await getDocs(submissionsQueryRef);
       
       const submissionsDataPromises = submissionsSnapshot.docs.map(async (submissionDoc) => {
         const data = submissionDoc.data();
-        const classId = submissionDoc.ref.parent.parent?.id;
+        const classId = data.classId; // Get classId directly from the submission data
         let className = 'N/A';
 
         if (classId) {
@@ -89,11 +108,17 @@ export default function StudentHistoryPage() {
           submittedAt: data.submittedAt,
           feedback: data.feedback,
           className: className,
+          classId: classId, // Include classId
         } as Submission;
       });
 
-      const submissionsData = await Promise.all(submissionsDataPromises);
-      setSubmissions(submissionsData);
+      let fetchedSubmissions = await Promise.all(submissionsDataPromises);
+
+      if (selectedClassFilter !== 'all') {
+        fetchedSubmissions = fetchedSubmissions.filter(sub => sub.classId === selectedClassFilter);
+      }
+
+      setSubmissions(fetchedSubmissions);
 
     } catch (error) {
       console.error("Error fetching submissions: ", error);
@@ -106,13 +131,40 @@ export default function StudentHistoryPage() {
     } finally {
       setIsDataLoading(false);
     }
+  }, [user, toast, selectedStatusFilter, selectedClassFilter]);
+
+  const fetchEnrolledClasses = useCallback(async () => {
+    if (!user?.enrolledClassIds || user.enrolledClassIds.length === 0) {
+      setEnrolledClasses([]);
+      return;
+    }
+
+    try {
+      const classesPromises = user.enrolledClassIds.map(async (classId) => {
+        const classDoc = await getDoc(doc(db, 'classes', classId));
+        if (classDoc.exists()) {
+          return { id: classDoc.id, name: classDoc.data().name } as EnrolledClass;
+        }
+        return null;
+      });
+      const fetchedClasses = (await Promise.all(classesPromises)).filter(Boolean) as EnrolledClass[];
+      setEnrolledClasses(fetchedClasses);
+    } catch (error) {
+      console.error("Error fetching enrolled classes: ", error);
+      toast({
+        title: 'Error',
+        description: 'Could not fetch your enrolled classes.',
+        variant: 'destructive',
+      });
+    }
   }, [user, toast]);
 
   useEffect(() => {
     if (!isAuthLoading) {
+      fetchEnrolledClasses();
       fetchSubmissions();
     }
-  }, [isAuthLoading, fetchSubmissions]);
+  }, [isAuthLoading, fetchEnrolledClasses, fetchSubmissions]);
 
 
   const isLoading = isAuthLoading || isDataLoading;
@@ -145,6 +197,36 @@ export default function StudentHistoryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <Select value={selectedClassFilter} onValueChange={setSelectedClassFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filter by Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {enrolledClasses.map(cls => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Select value={selectedStatusFilter} onValueChange={setSelectedStatusFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filter by Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Graded">Graded</SelectItem>
+                  <SelectItem value="Pending Review">Pending Review</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {isLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-8 w-full" />
@@ -215,7 +297,7 @@ export default function StudentHistoryPage() {
             </Table>
           ) : (
             <div className="py-8 text-center text-muted-foreground">
-              <p>You have not submitted any assignments yet.</p>
+              <p>You have not submitted any assignments yet or no matching submissions found.</p>
               <p className="text-sm">
                 Use the "Submit Essay" page to make your first submission.
               </p>

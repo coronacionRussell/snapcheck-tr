@@ -37,14 +37,15 @@ function RegisterPageContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState(''); // New state for first name
+  const [lastName, setLastName] = useState('');   // New state for last name
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
 
   const handleCreateAccount = async () => {
-    if (!fullName || !email || !password) {
+    if (!firstName || !lastName || !email || !password) {
       toast({
         title: 'Missing Fields',
         description: 'Please fill out all required fields.',
@@ -59,9 +60,13 @@ function RegisterPageContent() {
       userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
+      const fullUserName = `${firstName} ${lastName}`; // Combine for full name
+
       const userData: any = {
         uid: user.uid,
-        fullName,
+        firstName, // Store first name separately
+        lastName,  // Store last name separately
+        fullName: fullUserName, // Store full name
         email,
         role,
       };
@@ -155,9 +160,15 @@ function RegisterPageContent() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="full-name">Full Name</Label>
-                <Input id="full-name" placeholder="John Doe" required value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isLoading} />
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                      <Label htmlFor="first-name">First Name</Label>
+                      <Input id="first-name" placeholder="John" required value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isLoading} />
+                  </div>
+                  <div className="grid gap-2">
+                      <Label htmlFor="last-name">Last Name</Label>
+                      <Input id="last-name" placeholder="Doe" required value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isLoading} />
+                  </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>

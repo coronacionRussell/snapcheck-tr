@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { BookOpen, FilePenLine, History, Loader2, MessageSquareText, Trash2 } from 'lucide-react';
+import { BookOpen, FilePenLine, History, Loader2, MessageSquareText, Trash2, Hourglass } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, query, where, limit, collectionGroup, writeBatch } from 'firebase/firestore';
@@ -62,6 +61,7 @@ export default function StudentDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [enrolledClassCount, setEnrolledClassCount] = useState(0);
   const [recentGrades, setRecentGrades] = useState<RecentGrade[]>([]);
+  const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const { toast } = useToast();
@@ -79,19 +79,21 @@ export default function StudentDashboard() {
         const studentId = user.uid;
         
         let allGradedSubmissions: RecentGrade[] = [];
+        let currentPendingSubmissionsCount = 0;
 
         if (user.enrolledClassIds && user.enrolledClassIds.length > 0) {
             for (const classId of user.enrolledClassIds) {
-                const submissionsQuery = query(
+                // Fetch graded submissions for recent grades
+                const gradedSubmissionsQuery = query(
                     collection(db, 'classes', classId, 'submissions'),
                     where('studentId', '==', studentId),
                     where('status', '==', 'Graded')
                 );
-                const submissionsSnapshot = await getDocs(submissionsQuery);
+                const gradedSubmissionsSnapshot = await getDocs(gradedSubmissionsQuery);
                 const classDoc = await getDoc(doc(db, 'classes', classId));
                 const className = classDoc.exists() ? classDoc.data().name : 'Unknown Class';
 
-                submissionsSnapshot.forEach(submissionDoc => {
+                gradedSubmissionsSnapshot.forEach(submissionDoc => {
                     const data = submissionDoc.data();
                     allGradedSubmissions.push({
                         id: submissionDoc.id,
@@ -103,12 +105,22 @@ export default function StudentDashboard() {
                         classId: classId,
                     });
                 });
+
+                // Fetch pending submissions for the count
+                const pendingSubmissionsQuery = query(
+                  collection(db, 'classes', classId, 'submissions'),
+                  where('studentId', '==', studentId),
+                  where('status', '==', 'Pending Review')
+                );
+                const pendingSubmissionsSnapshot = await getDocs(pendingSubmissionsQuery);
+                currentPendingSubmissionsCount += pendingSubmissionsSnapshot.size;
             }
         }
         
         // Sort by date (newest first) and take the top 3
         allGradedSubmissions.sort((a, b) => b.id.localeCompare(a.id)); // Assuming doc IDs are time-ordered
         setRecentGrades(allGradedSubmissions.slice(0, 3));
+        setPendingSubmissionsCount(currentPendingSubmissionsCount);
 
     } catch (error) {
       console.error("Error fetching student data: ", error);
@@ -163,7 +175,7 @@ export default function StudentDashboard() {
               <BookOpen className="size-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isAuthLoading ? <Skeleton className="h-8 w-10" /> : <div className="text-2xl font-bold">{enrolledClassCount}</div> }
+              {isLoading ? <Skeleton className="h-8 w-10" /> : <div className="text-2xl font-bold">{enrolledClassCount}</div> }
               <Button variant="link" asChild className="p-0 h-auto">
                 <Link href="/student/classes">View all classes</Link>
               </Button>
@@ -183,13 +195,13 @@ export default function StudentDashboard() {
           </Card>
            <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">View Submission History</CardTitle>
-              <History className="size-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+              <Hourglass className="size-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">&nbsp;</div>
+                {isLoading ? <Skeleton className="h-8 w-10" /> : <div className="text-2xl font-bold">{pendingSubmissionsCount}</div>}
                 <Button variant="link" asChild className="p-0 h-auto">
-                    <Link href="/student/grades">See All Grades</Link>
+                    <Link href="/student/classes">View Submissions</Link>
                 </Button>
             </CardContent>
           </Card>

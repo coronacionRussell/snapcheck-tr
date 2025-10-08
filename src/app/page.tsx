@@ -13,6 +13,10 @@ import {
   Menu,
   UploadCloud,
   X,
+  Users,
+  Workflow,
+  Sparkles,
+  Gauge
 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { Button } from '@/components/ui/button';
@@ -33,25 +37,43 @@ export default function Home() {
       icon: <UploadCloud className="size-8 text-primary" />,
       title: 'Seamless Essay Submission',
       description:
-        'Easily upload essay photos. Our OCR technology converts them into digital text instantly.',
+        'Students can easily upload essay photos. Our OCR technology converts them into digital text instantly.',
     },
     {
-      icon: <Cpu className="size-8 text-primary" />,
+      icon: <Sparkles className="size-8 text-primary" />,
       title: 'AI-Powered Feedback',
       description:
-        'Receive insightful, rubric-based feedback to understand your strengths and areas for improvement.',
+        'Receive insightful, rubric-based feedback for strengths and areas for improvement, powered by advanced AI.',
+    },
+    {
+      icon: <Gauge className="size-8 text-primary" />,
+      title: 'Automated Grading Assistance',
+      description:
+        'For teachers, our AI provides preliminary scores based on your rubrics, streamlining the grading process.',
     },
     {
       icon: <CheckCircle className="size-8 text-primary" />,
-      title: 'Automated Grading Assistance',
+      title: 'Accurate Student Identification',
       description:
-        'For teachers, our AI provides preliminary scores, streamlining the grading process.',
+        'AI helps reliably match submissions to students, reducing administrative errors in large classes.',
+    },
+    {
+      icon: <Workflow className="size-8 text-primary" />,
+      title: 'Efficient Batch Processing',
+      description:
+        'Grade dozens of essays at once. Scan multiple submissions, and let the AI assist in grading them all.',
     },
     {
       icon: <BookOpen className="size-8 text-primary" />,
       title: 'Class Management',
       description:
         'Teachers can create classes with unique codes, making it easy for students to enroll and participate.',
+    },
+    {
+      icon: <Users className="size-8 text-primary" />,
+      title: 'Teacher Control & Customization',
+      description:
+        'Maintain final say. Review and refine AI suggestions and customize AI behavior for grading and feedback.',
     },
   ];
 
@@ -124,42 +146,46 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
-        <section className="py-16 md:py-24">
-          <div className="container grid grid-cols-1 items-center gap-12 text-center md:grid-cols-2 md:gap-16 md:text-left">
+        <section className="relative overflow-hidden py-16 md:py-24 lg:py-32 bg-gradient-to-br from-green-50 to-teal-50">
+          <Image
+            src="https://i.imgur.com/BBYIJ4P.png" // Abstract branding image
+            alt="Abstract Background" 
+            fill
+            className="absolute inset-0 object-cover opacity-30"
+            priority
+            sizes="100vw"
+            style={{ objectFit: 'cover' }}
+          />
+          <div className="container relative z-10 grid grid-cols-1 items-center gap-12 text-center md:grid-cols-2 md:gap-16 md:text-left">
             <div className="space-y-6">
-              <h1 className="font-headline text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
-                Instant Essay Feedback,
-                <br />
-                Powered by AI
+              <h1 className="font-headline text-4xl font-bold tracking-tighter text-gray-900 sm:text-5xl md:text-6xl">
+                Revolutionize Your Grading with AI.
               </h1>
-              <p className="mx-auto max-w-[600px] text-lg text-muted-foreground md:mx-0">
-                SnapCheck revolutionizes essay grading for students and
-                teachers. Submit a photo of your essay and get instant,
-                rubric-based feedback and preliminary scores.
+              <p className="mx-auto max-w-[600px] text-lg text-gray-700 md:mx-0">
+                SnapCheck uses advanced AI to scan, grade, and provide personalized feedback on student essays, saving teachers countless hours and enhancing learning.
               </p>
               <div className="flex flex-col justify-center gap-4 sm:flex-row md:justify-start">
-                <Button size="lg" asChild>
+                <Button size="lg" asChild className="bg-[#70CBC0] hover:bg-[#5bb8ae]">
                   <Link href="/register">
                     Get Started Free <ArrowRight className="ml-2" />
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link href="/login">Login as Teacher</Link>
+                <Button size="lg" variant="outline" asChild className="border-gray-300 text-gray-800 hover:bg-gray-100">
+                  <Link href="#features">Learn More</Link>
                 </Button>
               </div>
             </div>
-            <div className="relative mx-auto w-full max-w-md md:max-w-none">
+            <div className="relative mx-auto w-full max-w-md md:max-w-none animate-float">
               <Image
                 src="https://media.istockphoto.com/id/469090060/photo/smart-jack-russell-terrier.jpg?s=612x612&w=0&k=20&c=jr3vERTtcaXUjn5rYtW3KiixND9CWBrNvZr-ogfyowo="
                 width={612}
                 height={612}
                 alt="A smart Jack Russell Terrier wearing glasses and a bow tie"
-                data-ai-hint="dog studying"
-                className="aspect-square rounded-lg object-cover shadow-2xl"
+                className="aspect-square rounded-lg object-cover shadow-2xl border border-gray-200"
                 priority
                 fetchPriority="high"
               />
-              <div className="mt-4 w-full rounded-lg border bg-card p-4 shadow-xl md:absolute md:-bottom-4 md:-right-4 md:mt-0 md:max-w-xs">
+              <div className="mt-4 w-full rounded-lg border bg-card p-4 shadow-xl md:absolute md:-bottom-8 md:-right-8 md:mt-0 md:max-w-xs">
                 <div className="mb-2 flex items-center gap-2">
                   <Feather className="size-5 text-primary" />
                   <h3 className="font-headline font-semibold">
@@ -167,38 +193,37 @@ export default function Home() {
                   </h3>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  "Great thesis statement! Consider adding more specific
-                  evidence in paragraph two to further support your argument."
+                  "Excellent use of supporting evidence! Consider refining your introduction to more clearly state your thesis."
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="features" className="bg-background py-20 md:py-32">
+        <section id="features" className="bg-gray-50 py-20 md:py-32">
           <div className="container">
             <div className="mx-auto mb-12 max-w-3xl text-center">
-              <h2 className="font-headline text-3xl font-bold sm:text-4xl">
-                Transforming the Way We Learn
+              <h2 className="font-headline text-3xl font-bold sm:text-4xl text-gray-900">
+                Transforming Education: Tools for Smarter Learning and Teaching
               </h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                SnapCheck provides powerful tools for both students and
+              <p className="mt-4 text-lg text-gray-700">
+                SnapCheck provides powerful, AI-driven tools for both students and
                 educators to enhance the writing and grading experience.
               </p>
             </div>
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {features.map((feature) => (
-                <Card key={feature.title} className="text-center">
+                <Card key={feature.title} className="text-center shadow-sm hover:shadow-md transition-shadow duration-200">
                   <CardHeader>
-                    <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10">
+                    <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#E0F2F1]"> {/* Muted Teal light */}
                       {feature.icon}
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <CardTitle className="font-headline mb-2 text-xl">
+                    <CardTitle className="font-headline mb-2 text-xl text-gray-900">
                       {feature.title}
                     </CardTitle>
-                    <p className="text-muted-foreground">
+                    <p className="text-gray-600">
                       {feature.description}
                     </p>
                   </CardContent>
@@ -207,9 +232,25 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <section id="call-to-action" className="bg-[#70CBC0] py-16 md:py-24 text-center text-white">
+          <div className="container mx-auto max-w-3xl space-y-6">
+            <h2 className="font-headline text-3xl font-bold sm:text-4xl">
+              Ready to Experience Smarter Grading?
+            </h2>
+            <p className="text-lg opacity-90">
+              Join SnapCheck today and transform the way you manage and grade essays. It's free to get started!
+            </p>
+            <Button size="lg" asChild className="bg-white text-[#70CBC0] hover:bg-gray-100 animate-pulse-slow">
+              <Link href="/register">
+                Start Your Free Account <ArrowRight className="ml-2" />
+              </Link>
+            </Button>
+          </div>
+        </section>
       </main>
 
-      <footer className="border-t py-6">
+      <footer className="border-t py-6 bg-background">
         <div className="container flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
           <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} SnapCheck. All rights reserved.
