@@ -137,87 +137,128 @@ function RegisterPageContent() {
   };
 
   return (
-    <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-lg border bg-card shadow-lg md:grid-cols-2">
-      <div className="relative hidden aspect-square items-center justify-center md:flex">
-         <Image
-            src="https://i.imgur.com/BBYIJ4P.png"
-            fill
-            alt="Abstract branding image"
-            className="object-cover"
-            data-ai-hint="abstract logo"
-            priority
-            />
-      </div>
-       <Card className="border-0 shadow-none">
-          <>
-            <CardHeader className="text-center">
-              <div className="mb-4 flex justify-center">
-                <Logo />
-              </div>
-              <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
-              <CardDescription>
-                Join SnapCheck to revolutionize your writing and grading.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                      <Label htmlFor="first-name">First Name</Label>
-                      <Input id="first-name" placeholder="John" required value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isLoading} />
-                  </div>
-                  <div className="grid gap-2">
-                      <Label htmlFor="last-name">Last Name</Label>
-                      <Input id="last-name" placeholder="Doe" required value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isLoading} />
-                  </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                    <Input id="password" type={showPassword ? 'text' : 'password'} required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} />
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={isLoading}
-                    >
-                        {showPassword ? <EyeOff /> : <Eye />}
-                        <span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
-                    </Button>
+    <div className="flex min-h-screen items-center justify-center bg-gray-950 p-4">
+      <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-lg border border-green-700/50 bg-zinc-900 shadow-xl shadow-green-500/20 md:grid-cols-2">
+        <div className="relative hidden aspect-square items-center justify-center md:flex">
+           <Image
+              src="https://i.imgur.com/BBYIJ4P.png"
+              fill
+              alt="Abstract branding image"
+              className="object-cover opacity-30"
+              data-ai-hint="abstract logo"
+              priority
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              style={{ objectFit: 'cover' }}
+              />
+        </div>
+         <Card className="border-0 shadow-none bg-transparent text-gray-100">
+            <>
+              <CardHeader className="text-center">
+                <div className="mb-4 flex justify-center">
+                  <Logo className="[&>svg]:size-12 [&>span]:text-4xl text-white" />
                 </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="role">I am a</Label>
-                <Select value={role} onValueChange={setRole} disabled={isLoading}>
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="teacher">Teacher</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
-              <Button className="w-full" onClick={handleCreateAccount} disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-6 w-6 animate-spin" />}
-                {isLoading ? 'Creating Account...' : 'Create Account'}
-              </Button>
-              <div className="text-center text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <Link href="/login" className="underline hover:text-primary">
-                  Login
-                </Link>
-              </div>
-            </CardFooter>
-          </>
-      </Card>
+                <CardTitle className="font-headline text-2xl text-white">Create an Account</CardTitle>
+                <CardDescription className="text-gray-300">
+                  Join SnapCheck to revolutionize your writing and grading.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="first-name" className="text-gray-300">First Name</Label>
+                        <Input 
+                          id="first-name" 
+                          placeholder="John" 
+                          required 
+                          value={firstName} 
+                          onChange={(e) => setFirstName(e.target.value)} 
+                          disabled={isLoading} 
+                          className="bg-zinc-800 border-green-700/50 text-white focus:ring-green-500 focus:ring-2"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="last-name" className="text-gray-300">Last Name</Label>
+                        <Input 
+                          id="last-name" 
+                          placeholder="Doe" 
+                          required 
+                          value={lastName} 
+                          onChange={(e) => setLastName(e.target.value)} 
+                          disabled={isLoading} 
+                          className="bg-zinc-800 border-green-700/50 text-white focus:ring-green-500 focus:ring-2"
+                        />
+                    </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email" className="text-gray-300">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="m@example.com" 
+                    required 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    disabled={isLoading} 
+                    className="bg-zinc-800 border-green-700/50 text-white focus:ring-green-500 focus:ring-2"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password" className="text-gray-300">Password</Label>
+                  <div className="relative">
+                      <Input 
+                        id="password" 
+                        type={showPassword ? 'text' : 'password'} 
+                        required 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        disabled={isLoading} 
+                        className="bg-zinc-800 border-green-700/50 text-white focus:ring-green-500 focus:ring-2"
+                      />
+                      <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-gray-400 hover:bg-zinc-700 hover:text-white"
+                          onClick={() => setShowPassword(!showPassword)}
+                          disabled={isLoading}
+                      >
+                          {showPassword ? <EyeOff /> : <Eye />}
+                          <span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
+                      </Button>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="role" className="text-gray-300">I am a</Label>
+                  <Select value={role} onValueChange={setRole} disabled={isLoading}>
+                    <SelectTrigger id="role" className="bg-zinc-800 border-green-700/50 text-white focus:ring-green-500 focus:ring-2">
+                      <SelectValue placeholder="Select your role" className="text-gray-300" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-800 border-green-700/50 text-white">
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="teacher">Teacher</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4">
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/30 animate-pulse-light"
+                  onClick={handleCreateAccount} 
+                  disabled={isLoading}
+                >
+                  {isLoading && <Loader2 className="mr-2 h-6 w-6 animate-spin" />}
+                  {isLoading ? 'Creating Account...' : 'Create Account'}
+                </Button>
+                <div className="text-center text-sm text-gray-400">
+                  Already have an account?{' '}
+                  <Link href="/login" className="underline text-green-400 hover:text-green-300">
+                    Login
+                  </Link>
+                </div>
+              </CardFooter>
+            </>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -231,36 +272,38 @@ export default function RegisterPage() {
 
   if (!isMounted) {
     return (
-       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2">
-        <Skeleton className="hidden md:block h-[620px] w-full rounded-l-lg" />
-        <div className="space-y-6 rounded-lg md:rounded-l-none border bg-card p-8 shadow-lg">
-            <div className="space-y-2 text-center">
-                <Skeleton className="mx-auto h-12 w-32" />
-                <Skeleton className="mx-auto h-6 w-48" />
-                <Skeleton className="mx-auto h-4 w-64" />
-            </div>
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-10 w-full" />
-                </div>
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-12" />
-                    <Skeleton className="h-10 w-full" />
-                </div>
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-10 w-full" />
-                </div>
-                 <div className="space-y-2">
-                    <Skeleton className="h-4 w-12" />
-                    <Skeleton className="h-10 w-full" />
-                </div>
-            </div>
-            <div className="space-y-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="mx-auto h-4 w-44" />
-            </div>
+       <div className="flex min-h-screen items-center justify-center bg-gray-950 p-4">
+        <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 overflow-hidden rounded-lg border border-green-700/50 bg-zinc-900 shadow-xl shadow-green-500/20">
+          <Skeleton className="hidden md:block h-[620px] w-full rounded-l-lg bg-gray-800" />
+          <div className="space-y-6 rounded-lg md:rounded-l-none bg-zinc-900 p-8">
+              <div className="space-y-2 text-center">
+                  <Skeleton className="mx-auto h-12 w-32 bg-gray-700" />
+                  <Skeleton className="mx-auto h-6 w-48 bg-gray-700" />
+                  <Skeleton className="mx-auto h-4 w-64 bg-gray-800" />
+              </div>
+              <div className="space-y-4">
+                  <div className="space-y-2">
+                      <Skeleton className="h-4 w-16 bg-gray-700" />
+                      <Skeleton className="h-10 w-full bg-gray-800" />
+                  </div>
+                  <div className="space-y-2">
+                      <Skeleton className="h-4 w-12 bg-gray-700" />
+                      <Skeleton className="h-10 w-full bg-gray-800" />
+                  </div>
+                  <div className="space-y-2">
+                      <Skeleton className="h-4 w-16 bg-gray-700" />
+                      <Skeleton className="h-10 w-full bg-gray-800" />
+                  </div>
+                   <div className="space-y-2">
+                      <Skeleton className="h-4 w-12 bg-gray-700" />
+                      <Skeleton className="h-10 w-full bg-gray-800" />
+                  </div>
+              </div>
+              <div className="space-y-4">
+                  <Skeleton className="h-10 w-full bg-green-600" />
+                  <Skeleton className="mx-auto h-4 w-44 bg-gray-800" />
+              </div>
+          </div>
         </div>
       </div>
     )

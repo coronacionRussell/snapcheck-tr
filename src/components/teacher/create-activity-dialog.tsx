@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,6 +19,10 @@ import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Textarea } from '../ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface CreateActivityDialogProps {
   classId: string;
@@ -54,6 +58,7 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
   const [open, setOpen] = useState(false);
   const [activityName, setActivityName] = useState('');
   const [description, setDescription] = useState('');
+  const [deadline, setDeadline] = useState<Date | undefined>(undefined); // New state for deadline
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
 
@@ -74,6 +79,7 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
             name: activityName,
             description: description,
             createdAt: serverTimestamp(),
+            deadline: deadline || null, // Include deadline, null if not set
             rubric: defaultRubric,
         });
         
@@ -100,6 +106,7 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
     setOpen(false);
     setActivityName('');
     setDescription('');
+    setDeadline(undefined); // Reset deadline
     setIsCreating(false);
   };
 
@@ -150,6 +157,32 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
                     rows={4}
                 />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="deadline">Deadline (Optional)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !deadline && "text-muted-foreground"
+                    )}
+                    disabled={isCreating}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {deadline ? format(deadline, "PPP") : <span className="text-gray-400">Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={deadline}
+                    onSelect={setDeadline}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={handleCloseAndReset} disabled={isCreating}>
@@ -164,5 +197,3 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
     </Dialog>
   );
 }
-
-    

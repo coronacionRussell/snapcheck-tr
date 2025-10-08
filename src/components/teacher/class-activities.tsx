@@ -21,6 +21,7 @@ import { Skeleton } from '../ui/skeleton';
 import { CreateActivityDialog } from './create-activity-dialog';
 import { ManageActivityDialog } from './manage-activity-dialog';
 import { ActivitySubmissionStatus } from './activity-submission-status';
+import { format } from 'date-fns';
 
 export interface SubmissionForActivity {
     studentId: string;
@@ -38,6 +39,10 @@ export interface Activity {
         seconds: number;
         nanoseconds: number;
     };
+    deadline?: {
+        seconds: number;
+        nanoseconds: number;
+    } | null; // Add deadline field
 }
 
 export function ClassActivities({ classId }: { classId: string }) {
@@ -105,6 +110,9 @@ export function ClassActivities({ classId }: { classId: string }) {
                                    <p className="font-semibold">{activity.name}</p>
                                    <p className="text-sm text-muted-foreground">
                                      Created on: {activity.createdAt ? new Date(activity.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                                     {activity.deadline && (
+                                        <span className="ml-4 text-green-500">Deadline: {format(new Date(activity.deadline.seconds * 1000), 'PPP')}</span>
+                                     )}
                                    </p>
                                </div>
                            </AccordionTrigger>
@@ -134,5 +142,3 @@ export function ClassActivities({ classId }: { classId: string }) {
     </Card>
   );
 }
-
-    

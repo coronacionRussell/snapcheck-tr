@@ -18,9 +18,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { Loader2, Save, Trash2 } from 'lucide-react';
+import { Loader2, Save, Trash2, CalendarIcon } from 'lucide-react';
 import { Activity } from './class-activities';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 
 interface ManageActivityDialogProps {
@@ -33,6 +37,9 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
   const [activityName, setActivityName] = useState(activity.name);
   const [description, setDescription] = useState(activity.description);
   const [rubric, setRubric] = useState(activity.rubric);
+  const [deadline, setDeadline] = useState<Date | undefined>(
+    activity.deadline ? new Date(activity.deadline.seconds * 1000) : undefined
+  ); // State for deadline
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
@@ -49,6 +56,7 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
         name: activityName,
         description: description,
         rubric: rubric,
+        deadline: deadline || null, // Include deadline
       });
       toast({ title: 'Activity Updated', description: 'Your changes have been saved successfully.' });
       setOpen(false);
@@ -108,6 +116,32 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
                 />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="deadline">Deadline (Optional)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !deadline && "text-muted-foreground"
+                    )}
+                    disabled={isSaving}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {deadline ? format(deadline, "PPP") : <span className="text-gray-400">Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={deadline}
+                    onSelect={setDeadline}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
                 <Label htmlFor="activity-rubric">Grading Rubric</Label>
                 <Textarea
                     id="activity-rubric"
@@ -152,5 +186,3 @@ export function ManageActivityDialog({ classId, activity }: ManageActivityDialog
     </Dialog>
   );
 }
-
-    

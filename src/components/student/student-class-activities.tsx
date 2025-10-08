@@ -23,6 +23,7 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import Link from 'next/link';
 import { FilePenLine } from 'lucide-react';
+import { format } from 'date-fns';
 
 export interface Activity {
     id: string;
@@ -33,6 +34,10 @@ export interface Activity {
         seconds: number;
         nanoseconds: number;
     };
+    deadline?: {
+        seconds: number;
+        nanoseconds: number;
+    } | null; // Add deadline field to interface
     submissionStatus: 'Submitted' | 'Not Submitted';
 }
 
@@ -61,6 +66,7 @@ export function StudentClassActivities({ classId }: { classId: string }) {
             return { 
                 id: doc.id, 
                 ...data,
+                deadline: data.deadline || null, // Ensure deadline is passed
                 submissionStatus: submittedActivityIds.has(doc.id) ? 'Submitted' : 'Not Submitted',
             }
         }) as Activity[];
@@ -98,6 +104,9 @@ export function StudentClassActivities({ classId }: { classId: string }) {
                                    <p className="font-semibold">{activity.name}</p>
                                    <p className="text-sm text-muted-foreground">
                                         Created on: {activity.createdAt ? new Date(activity.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                                        {activity.deadline && (
+                                            <span className="ml-4 text-orange-500">Deadline: {format(new Date(activity.deadline.seconds * 1000), 'PPP')}</span>
+                                        )}
                                     </p>
                                </div>
                            </AccordionTrigger>
@@ -141,5 +150,3 @@ export function StudentClassActivities({ classId }: { classId: string }) {
     </Card>
   );
 }
-
-    
