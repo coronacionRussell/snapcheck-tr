@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { EnrollStudentDialog } from './enroll-student-dialog'; // Import the new dialog
 
 // Student interface (should match Firestore data)
 export interface Student {
@@ -253,9 +254,7 @@ export function ClassRoster() {
             Manage students enrolled in this class. {students.length > 0 && `(${students.length} students)`}
           </CardDescription>
         </div>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" /> Enroll Student
-        </Button>
+        <EnrollStudentDialog classId={classId} className={className} />
       </CardHeader>
       <CardContent>
         {isLoading ? (

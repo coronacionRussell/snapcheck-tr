@@ -39,7 +39,7 @@ const defaultRubric = `## Part 1: Standard Writing Criteria
 - **Depth of Analysis (20pts):** The analysis explains how the evidence supports the thesis and doesn't just summarize.
 
 ### Structure & Organization (20 points)
-- **Logical Flow (10pts):** Paragraphs are logically sequenced, and transitions are smooth.
+- **Logical Flow (10pts):</b The paragraphs are logically sequenced, and transitions are smooth.
 - **Conclusion (10pts):** The conclusion effectively summarizes the argument and offers a final insight.
 
 ### Grammar & Style (10 points)
@@ -58,7 +58,8 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
   const [open, setOpen] = useState(false);
   const [activityName, setActivityName] = useState('');
   const [description, setDescription] = useState('');
-  const [deadline, setDeadline] = useState<Date | undefined>(undefined); // New state for deadline
+  const [deadline, setDeadline] = useState<Date | undefined>(undefined);
+  const [totalPoints, setTotalPoints] = useState<number>(100); // New state for total points
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
 
@@ -79,7 +80,8 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
             name: activityName,
             description: description,
             createdAt: serverTimestamp(),
-            deadline: deadline || null, // Include deadline, null if not set
+            deadline: deadline || null,
+            totalPoints: totalPoints, // Include totalPoints
             rubric: defaultRubric,
         });
         
@@ -106,7 +108,8 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
     setOpen(false);
     setActivityName('');
     setDescription('');
-    setDeadline(undefined); // Reset deadline
+    setDeadline(undefined);
+    setTotalPoints(100); // Reset total points
     setIsCreating(false);
   };
 
@@ -156,6 +159,18 @@ export function CreateActivityDialog({ classId }: CreateActivityDialogProps) {
                     disabled={isCreating}
                     rows={4}
                 />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="total-points">Total Points</Label>
+              <Input
+                id="total-points"
+                type="number"
+                value={totalPoints}
+                onChange={(e) => setTotalPoints(Number(e.target.value))}
+                placeholder="e.g., 100"
+                disabled={isCreating}
+                min={0}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="deadline">Deadline (Optional)</Label>

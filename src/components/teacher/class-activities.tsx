@@ -42,7 +42,8 @@ export interface Activity {
     deadline?: {
         seconds: number;
         nanoseconds: number;
-    } | null; // Add deadline field
+    } | null;
+    totalPoints?: number; // Add totalPoints field
 }
 
 export function ClassActivities({ classId }: { classId: string }) {
@@ -69,6 +70,7 @@ export function ClassActivities({ classId }: { classId: string }) {
                 id: doc.id, 
                 ...activityData,
                 submissions,
+                totalPoints: activityData.totalPoints || 100, // Include totalPoints, default to 100
             } as Activity;
         });
 
@@ -107,11 +109,11 @@ export function ClassActivities({ classId }: { classId: string }) {
                         <div className="flex w-full items-center justify-between pr-4 hover:bg-muted/50 rounded-md">
                            <AccordionTrigger className="flex-1 text-left p-4 hover:no-underline">
                                <div>
-                                   <p className="font-semibold">{activity.name}</p>
+                                   <p className="font-semibold">{activity.name} {activity.totalPoints && <span className="ml-2 text-sm text-muted-foreground">({activity.totalPoints} pts)</span>}</p>
                                    <p className="text-sm text-muted-foreground">
                                      Created on: {activity.createdAt ? new Date(activity.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
                                      {activity.deadline && (
-                                        <span className="ml-4 text-green-500">Deadline: {format(new Date(activity.deadline.seconds * 1000), 'PPP')}</span>
+                                        <span className="ml-4 text-orange-500">Deadline: {format(new Date(activity.deadline.seconds * 1000), 'PPP')}</span>
                                      )}
                                    </p>
                                </div>

@@ -39,8 +39,17 @@ interface Stats {
     totalClasses: number;
 }
 
+interface ClassData {
+    id: string;
+    name: string;
+    teacherId: string;
+    teacherName: string;
+    studentCount: number;
+}
+
 function AdminDashboardContent() {
     const [allUsers, setAllUsers] = useState<AppUser[]>([]);
+    const [allClasses, setAllClasses] = useState<ClassData[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isVerifying, setIsVerifying] = useState<string | null>(null);
@@ -48,8 +57,12 @@ function AdminDashboardContent() {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [teacherSearch, setTeacherSearch] = useState('');
     const [studentSearch, setStudentSearch] = useState('');
+    const [classSearch, setClassSearch] = useState(''); // New state for class search
 
     useEffect(() => {
+        const unsubscribe: (() => void)[] = [];
+
+        // Users Listener
         const usersQuery = query(collection(db, 'users'), orderBy('fullName'));
         const unsubscribeUsers = onSnapshot(usersQuery, (usersSnapshot) => {
             const usersData = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as AppUser));
@@ -74,9 +87,50 @@ function AdminDashboardContent() {
             toast({ title: 'Error', description: 'Could not fetch user data.', variant: 'destructive' });
             setIsLoading(false);
         });
+        unsubscribe.push(unsubscribeUsers);
 
-        const classesQuery = query(collection(db, 'classes'));
-        const unsubscribeClasses = onSnapshot(classesQuery, (classesSnapshot) => {
+        // Classes Listener
+        const classesCollectionRef = collection(db, 'classes');
+        const unsubscribeClasses = onSnapshot(classesCollectionRef, async (classesSnapshot) => {
+            const fetchedClasses: ClassData[] = [];
+            const teacherIds = new Set<string>();
+
+            classesSnapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.teacherId) {
+                    teacherIds.add(data.teacherId);
+                }
+                fetchedClasses.push({
+                    id: doc.id,
+                    name: data.name,
+                    teacherId: data.teacherId || 'N/A',
+                    teacherName: 'Loading...', // Placeholder
+                    studentCount: 0, // Placeholder
+                });
+            });
+
+            // Fetch teacher names
+            const teachersMap = new Map<string, string>();
+            if (teacherIds.size > 0) {
+                const teachersQuery = query(collection(db, 'users'), where('uid', 'in', Array.from(teacherIds)));
+                const teachersSnapshot = await getDocs(teachersQuery);
+                teachersSnapshot.forEach(doc => {
+                    teachersMap.set(doc.id, doc.data().fullName || 'Unknown Teacher');
+                });
+            }
+
+            // Fetch student counts for each class
+            const classesWithDetails = await Promise.all(fetchedClasses.map(async (cls) => {
+                const studentsQuery = query(collection(db, 'users'), where('enrolledClassIds', 'array-contains', cls.id));
+                const studentsSnapshot = await getDocs(studentsQuery);
+                return {
+                    ...cls,
+                    teacherName: teachersMap.get(cls.teacherId) || 'Unknown Teacher',
+                    studentCount: studentsSnapshot.size,
+                };
+            }));
+
+            setAllClasses(classesWithDetails);
             setStats(prevStats => ({
                 ...(prevStats || { totalUsers: 0, totalTeachers: 0, totalStudents: 0 }),
                 totalClasses: classesSnapshot.size,
@@ -85,10 +139,10 @@ function AdminDashboardContent() {
             console.error("Error fetching classes:", error);
             toast({ title: 'Error', description: 'Could not fetch class data.', variant: 'destructive' });
         });
+        unsubscribe.push(unsubscribeClasses);
 
         return () => {
-            unsubscribeUsers();
-            unsubscribeClasses();
+            unsubscribe.forEach(unsub => unsub());
         };
     }, []);
 
@@ -116,6 +170,16 @@ function AdminDashboardContent() {
             student.fullName?.toLowerCase().includes(studentSearch.toLowerCase())
         );
     }, [allUsers, studentSearch]);
+
+    const filteredClasses = useMemo(() => {
+        if (!classSearch) {
+            return allClasses;
+        }
+        return allClasses.filter(cls => 
+            cls.name.toLowerCase().includes(classSearch.toLowerCase()) ||
+            cls.teacherName.toLowerCase().includes(classSearch.toLowerCase())
+        );
+    }, [allClasses, classSearch]);
 
     const handleVerifyTeacher = async (teacherId: string, teacherName: string) => {
         setIsVerifying(teacherId);
@@ -174,7 +238,40 @@ function AdminDashboardContent() {
           setIsDeleting(null);
         }
       };
+    
+    const handleDeleteClass = async (classId: string, className: string) => {
+        setIsDeleting(classId);
+        try {
+            // Delete the class document
+            await deleteDoc(doc(db, 'classes', classId));
 
+            // Find all students enrolled in this class and remove the classId from their enrolledClassIds array
+            const studentsQuery = query(collection(db, 'users'), where('enrolledClassIds', 'array-contains', classId));
+            const studentsSnapshot = await getDocs(studentsQuery);
+            const updateStudentPromises: Promise<void>[] = [];
+
+            studentsSnapshot.forEach((studentDoc) => {
+                const currentEnrollments = studentDoc.data().enrolledClassIds || [];
+                const updatedEnrollments = currentEnrollments.filter((id: string) => id !== classId);
+                updateStudentPromises.push(updateDoc(doc(db, 'users', studentDoc.id), { enrolledClassIds: updatedEnrollments }));
+            });
+            await Promise.all(updateStudentPromises);
+
+            toast({
+                title: 'Class Deleted',
+                description: `The class "${className}" and its associated student enrollments have been removed.`,
+            });
+        } catch (error) {
+            console.error("Error deleting class: ", error);
+            toast({
+                title: 'Error',
+                description: 'Could not delete the class or disenroll students.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsDeleting(null);
+        }
+    };
 
   return (
     <div className="grid flex-1 auto-rows-max items-start gap-4 md:gap-8">
@@ -227,6 +324,91 @@ function AdminDashboardContent() {
                 </CardContent>
             </Card>
         </div>
+
+        <Card>
+            <CardHeader>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <CardTitle className="font-headline flex items-center gap-2">
+                            <BookCopy />
+                            Classes
+                        </CardTitle>
+                        <CardDescription>
+                            Manage all classes, their teachers, and enrolled students.
+                        </CardDescription>
+                    </div>
+                    <div className="relative sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <Input placeholder="Search classes..." className="pl-10" value={classSearch} onChange={(e) => setClassSearch(e.target.value)} />
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Class Name</TableHead>
+                            <TableHead>Teacher</TableHead>
+                            <TableHead>Students</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading ? (
+                            [...Array(3)].map((_, i) => (
+                                <TableRow key={i}>
+                                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                                    <TableCell className="text-right"><Skeleton className="h-8 w-10" /></TableCell>
+                                </TableRow>
+                            ))
+                        ) : filteredClasses.length > 0 ? (
+                            filteredClasses.map((cls) => (
+                                <TableRow key={cls.id}>
+                                    <TableCell className="font-medium">{cls.name}</TableCell>
+                                    <TableCell>{cls.teacherName}</TableCell>
+                                    <TableCell>{cls.studentCount}</TableCell>
+                                    <TableCell className="text-right">
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="destructive" size="icon" disabled={isDeleting === cls.id}>
+                                                    {isDeleting === cls.id ? <Loader2 className="h-5 w-5 animate-spin"/> : <Trash2 className="size-4"/>}
+                                                    <span className="sr-only">Delete class</span>
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Delete Class?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                This will permanently delete the class <strong>{cls.name}</strong>, all its activities, and disenroll all students. This action cannot be undone.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={() => handleDeleteClass(cls.id, cls.name)}
+                                                    className="bg-destructive hover:bg-destructive/90"
+                                                >
+                                                    Yes, Delete Class
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center h-24">
+                                    {classSearch ? `No classes found matching "${classSearch}".` : "No classes have been created yet."}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
 
         <Card>
         <CardHeader>
