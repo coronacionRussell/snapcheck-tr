@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/sheet';
 
 export default function Home() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuMenuOpen] = useState(false);
   const features = [
     {
       icon: <UploadCloud className="size-8 text-green-400" />,
@@ -99,7 +99,7 @@ export default function Home() {
           </nav>
           {/* Mobile Nav */}
           <div className="md:hidden">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="border-gray-700 text-gray-100 bg-gray-800">
                   <Menu className="size-5" />
@@ -117,7 +117,7 @@ export default function Home() {
                   <Link
                     href="/"
                     className="flex items-center"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={() => setIsMobileMenuMenuOpen(false)}
                   >
                     <Logo className="text-white" />
                   </Link>
@@ -126,14 +126,14 @@ export default function Home() {
                       variant="ghost"
                       asChild
                       className="justify-start text-lg text-gray-300 hover:text-white"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => setIsMobileMenuMenuOpen(false)}
                     >
                       <Link href="/login">Login</Link>
                     </Button>
                     <Button
                       asChild
                       className="w-full text-lg bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/30"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => setIsMobileMenuMenuOpen(false)}
                     >
                       <Link href="/register">Sign Up</Link>
                     </Button>
@@ -175,28 +175,7 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-            <div className="relative mx-auto w-full max-w-md animate-float">
-              <Image
-                src="https://media.istockphoto.com/id/469090060/photo/smart-jack-russell-terrier.jpg?s=612x612&w=0&k=20&c=jr3vERTtcaXUjn5rYtW3KiixND9CWBrNvZr-ogfyowo="
-                width={612}
-                height={612}
-                alt="A smart Jack Russell Terrier wearing glasses and a bow tie"
-                className="aspect-square rounded-lg object-cover shadow-2xl border border-green-700/50"
-                priority
-                fetchPriority="high"
-              />
-              <div className="mt-4 w-full rounded-lg border border-green-700/50 bg-zinc-800 p-4 shadow-xl shadow-green-500/20 md:absolute md:-bottom-8 md:-right-8 md:mt-0 md:max-w-xs">
-                <div className="mb-2 flex items-center gap-2">
-                  <Feather className="size-5 text-green-400" />
-                  <h3 className="font-headline font-semibold text-white">
-                    AI Feedback Snippet
-                  </h3>
-                </div>
-                <p className="text-sm text-gray-300">
-                  "Excellent use of supporting evidence! Consider refining your introduction to more clearly state your thesis."
-                </p>
-              </div>
-            </div>
+            {/* Removed the image and the associated feedback snippet for a cleaner, text-focused hero section */}
           </div>
         </section>
 
