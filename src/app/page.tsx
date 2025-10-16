@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/sheet';
 
 export default function Home() {
-  const [isMobileMenuOpen, setIsMobileMenuMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Corrected state variable name
   const features = [
     {
       icon: <UploadCloud className="size-8 text-green-400" />,
@@ -99,7 +99,7 @@ export default function Home() {
           </nav>
           {/* Mobile Nav */}
           <div className="md:hidden">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuMenuOpen}>
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}> {/* Corrected prop name */}
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="border-gray-700 text-gray-100 bg-gray-800">
                   <Menu className="size-5" />
@@ -117,7 +117,7 @@ export default function Home() {
                   <Link
                     href="/"
                     className="flex items-center"
-                    onClick={() => setIsMobileMenuMenuOpen(false)}
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <Logo className="text-white" />
                   </Link>
@@ -126,14 +126,14 @@ export default function Home() {
                       variant="ghost"
                       asChild
                       className="justify-start text-lg text-gray-300 hover:text-white"
-                      onClick={() => setIsMobileMenuMenuOpen(false)}
+                      onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Link href="/login">Login</Link>
                     </Button>
                     <Button
                       asChild
                       className="w-full text-lg bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/30"
-                      onClick={() => setIsMobileMenuMenuOpen(false)}
+                      onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Link href="/register">Sign Up</Link>
                     </Button>
@@ -147,15 +147,7 @@ export default function Home() {
 
       <main className="flex-1">
         <section className="relative overflow-hidden py-16 md:py-24 lg:py-32 bg-gradient-to-br from-gray-900 to-green-950">
-          <Image
-            src="https://i.imgur.com/BBYIJ4P.png" // Abstract branding image
-            alt="Abstract Background" 
-            fill
-            className="absolute inset-0 object-cover opacity-10"
-            priority
-            sizes="100vw"
-            style={{ objectFit: 'cover' }}
-          />
+          {/* The background image and feedback snippet div has been removed from this section */}
           <div className="container relative z-10 grid grid-cols-1 items-center gap-12 text-center">
             <div className="space-y-6">
               <h1 className="font-headline text-4xl font-bold tracking-tighter text-white sm:text-5xl md:text-6xl">
@@ -175,7 +167,6 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-            {/* Removed the image and the associated feedback snippet for a cleaner, text-focused hero section */}
           </div>
         </section>
 
